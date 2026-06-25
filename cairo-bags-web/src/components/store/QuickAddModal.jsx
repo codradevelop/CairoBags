@@ -17,28 +17,12 @@ import {
 } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getVariantSizeName(variant, locale) {
   if (!variant) return "";
-  if (locale === "ar") {
-    return (
-      variant.sizeNameAr ??
-      variant.SizeNameAr ??
-      variant.sizeNameEn ??
-      variant.SizeNameEn ??
-      variant.size ??
-      variant.Size ??
-      ""
-    );
-  }
-  return (
-    variant.sizeNameEn ??
-    variant.SizeNameEn ??
-    variant.sizeNameAr ??
-    variant.SizeNameAr ??
-    variant.size ??
-    variant.Size ??
-    ""
-  );
+  return locale === "ar"
+    ? variant.sizeNameAr ?? variant.SizeNameAr ?? variant.sizeNameEn ?? variant.SizeNameEn ?? ""
+    : variant.sizeNameEn ?? variant.SizeNameEn ?? variant.sizeNameAr ?? variant.SizeNameAr ?? "";
 }
 
 function QuantityStepper({ value, onChange, min = 1, max = 99, disabled }) {
@@ -72,7 +56,8 @@ export function QuickAddModal({ open, product, onClose }) {
   const { addItem } = useCart();
   const { success, error: toastError } = useToast();
 
-  const [selectedVariantId, setSelectedVariantId] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
 
@@ -91,23 +76,81 @@ export function QuickAddModal({ open, product, onClose }) {
       outOfStock: locale === "ar" ? "غير متوفر" : "Out of Stock",
       added: locale === "ar" ? "أُضيف إلى السلة" : "Added to cart",
       addFailed: locale === "ar" ? "فشل الإضافة" : "Could not add to cart",
-      selectVariant: locale === "ar" ? "اختر اللون" : "Select a color",
+      selectVariant: locale === "ar" ? "اختر المتغير" : "Select a variant",
     }),
     [locale]
   );
 
+  // ── Derived data ──────────────────────────────────────────────────────────
+  const colorOptions = useMemo(() => {
+    const seen = new Set();
+    return variants
+      .map((v) => getVariantColorName(v, locale))
+      .filter((c) => c && !seen.has(c) && seen.add(c));
+  }, [variants, locale]);
+
+  const hasSizes = useMemo(
+    () => variants.some((v) => getVariantSizeName(v, locale) !== ""),
+    [variants, locale]
+  );
+
+  const sizeOptions = useMemo(() => {
+    if (!hasSizes) return [];
+    const filtered = selectedColor
+      ? variants.filter((v) => getVariantColorName(v, locale) === selectedColor)
+      : variants;
+    const seen = new Set();
+    return filtered
+      .map((v) => getVariantSizeName(v, locale))
+      .filter((s) => s && !seen.has(s) && seen.add(s));
+  }, [hasSizes, variants, locale, selectedColor]);
+
+  const selectedVariant = useMemo(() => {
+    return (
+      variants.find((v) => {
+        const colorMatch = !selectedColor || getVariantColorName(v, locale) === selectedColor;
+        const sizeMatch = !hasSizes || !selectedSize || getVariantSizeName(v, locale) === selectedSize;
+        return colorMatch && sizeMatch;
+      }) ?? null
+    );
+  }, [variants, selectedColor, selectedSize, hasSizes, locale]);
+
+  const inStock = selectedVariant ? isVariantInStock(selectedVariant) : false;
+  const selectedVariantId = selectedVariant ? getVariantId(selectedVariant) : null;
+
+  // ── Reset on open ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!open || !product) return;
+    // Pick best default: in-stock default → in-stock first → first
     const purchasable =
-      variants.find((variant) => isVariantInStock(variant) && (variant.isDefault ?? variant.IsDefault)) ??
-      variants.find((variant) => isVariantInStock(variant)) ??
+      variants.find((v) => isVariantInStock(v) && (v.isDefault ?? v.IsDefault)) ??
+      variants.find((v) => isVariantInStock(v)) ??
       variants[0] ??
       null;
-    setSelectedVariantId(purchasable ? getVariantId(purchasable) : null);
+
+    if (purchasable) {
+      setSelectedColor(getVariantColorName(purchasable, locale) || null);
+      setSelectedSize(hasSizes ? getVariantSizeName(purchasable, locale) || null : null);
+    } else {
+      setSelectedColor(null);
+      setSelectedSize(null);
+    }
     setQuantity(1);
     setAdding(false);
-  }, [open, product, variants]);
+  }, [open, product, variants, locale, hasSizes]);
 
+  // When color changes reset size
+  function handleColorChange(color) {
+    setSelectedColor(color);
+    if (hasSizes) {
+      const firstForColor = variants.find(
+        (v) => getVariantColorName(v, locale) === color && getVariantSizeName(v, locale) !== ""
+      );
+      setSelectedSize(firstForColor ? getVariantSizeName(firstForColor, locale) : null);
+    }
+  }
+
+  // ── Keyboard close ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!open) return undefined;
 
@@ -125,22 +168,7 @@ export function QuickAddModal({ open, product, onClose }) {
     };
   }, [open, onClose]);
 
-  const selectedVariant = useMemo(
-    () => variants.find((variant) => getVariantId(variant) === selectedVariantId) ?? null,
-    [variants, selectedVariantId]
-  );
-
-  const inStock = selectedVariant ? isVariantInStock(selectedVariant) : false;
-
-  const sizeOptions = useMemo(() => {
-    const sizes = variants
-      .map((variant) => getVariantSizeName(variant, locale))
-      .filter(Boolean);
-    return [...new Set(sizes)];
-  }, [locale, variants]);
-
-  const showSizes = sizeOptions.length > 0;
-
+  // ── Add to cart ───────────────────────────────────────────────────────────
   async function handleAddToCart() {
     if (!selectedVariantId) {
       toastError(labels.selectVariant);
@@ -186,6 +214,7 @@ export function QuickAddModal({ open, product, onClose }) {
         )}
         style={{ animationDuration: "420ms" }}
       >
+        {/* Modal header */}
         <div className="flex items-center justify-between border-b border-brand-border px-5 py-4 md:px-6">
           <h2 id="quick-add-title" className="font-display text-lg font-medium text-brand-text md:text-xl">
             {labels.title}
@@ -203,6 +232,7 @@ export function QuickAddModal({ open, product, onClose }) {
         </div>
 
         <div className="overflow-y-auto px-5 py-5 md:px-6">
+          {/* Product info row */}
           <div className="flex gap-4">
             <div className="h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-brand-border bg-brand-secondary md:h-32 md:w-28">
               {imageUrl ? (
@@ -232,32 +262,35 @@ export function QuickAddModal({ open, product, onClose }) {
             </div>
           </div>
 
-          {variants.length > 0 ? (
+          {/* ── Color selector ──────────────────────────────────────────── */}
+          {colorOptions.length > 0 ? (
             <div className="mt-6">
               <p className="mb-3 text-xs font-medium tracking-[0.18em] text-brand-muted uppercase">
                 {labels.color}
+                {selectedColor ? <span className="ms-1 normal-case font-normal">— {selectedColor}</span> : null}
               </p>
               <div className="flex flex-wrap gap-2">
-                {variants.map((variant) => {
-                  const variantId = getVariantId(variant);
-                  const selected = variantId === selectedVariantId;
-                  const available = isVariantInStock(variant);
+                {colorOptions.map((color) => {
+                  const selected = color === selectedColor;
+                  const hasStock = variants
+                    .filter((v) => getVariantColorName(v, locale) === color)
+                    .some((v) => isVariantInStock(v));
                   return (
                     <button
-                      key={variantId}
+                      key={color}
                       type="button"
-                      disabled={!available}
-                      onClick={() => setSelectedVariantId(variantId)}
+                      disabled={!hasStock}
+                      onClick={() => handleColorChange(color)}
                       className={cn(
                         "rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200",
                         selected
                           ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
                           : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
-                        !available && "cursor-not-allowed opacity-45"
+                        !hasStock && "cursor-not-allowed opacity-45"
                       )}
                       aria-pressed={selected}
                     >
-                      {getVariantColorName(variant, locale)}
+                      {color}
                     </button>
                   );
                 })}
@@ -265,24 +298,56 @@ export function QuickAddModal({ open, product, onClose }) {
             </div>
           ) : null}
 
-          {showSizes ? (
+          {/* ── Size selector ───────────────────────────────────────────── */}
+          {hasSizes && sizeOptions.length > 0 ? (
             <div className="mt-5">
               <p className="mb-3 text-xs font-medium tracking-[0.18em] text-brand-muted uppercase">
                 {labels.size}
+                {selectedSize ? <span className="ms-1 normal-case font-normal">— {selectedSize}</span> : null}
               </p>
               <div className="flex flex-wrap gap-2">
-                {sizeOptions.map((size) => (
-                  <span
-                    key={size}
-                    className="rounded-full border border-brand-border bg-brand-secondary px-3 py-1.5 text-sm text-brand-text"
-                  >
-                    {size}
-                  </span>
-                ))}
+                {sizeOptions.map((size) => {
+                  const selected = size === selectedSize;
+                  const matchingVariant = variants.find(
+                    (v) =>
+                      (!selectedColor || getVariantColorName(v, locale) === selectedColor) &&
+                      getVariantSizeName(v, locale) === size
+                  );
+                  const hasStock = matchingVariant ? isVariantInStock(matchingVariant) : false;
+                  const sizePrice = matchingVariant ? getVariantPrice(matchingVariant) : null;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      disabled={!hasStock}
+                      onClick={() => setSelectedSize(size)}
+                      className={cn(
+                        "flex min-w-[3.5rem] flex-col items-center rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-200",
+                        selected
+                          ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
+                          : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
+                        !hasStock && "cursor-not-allowed opacity-45"
+                      )}
+                      aria-pressed={selected}
+                    >
+                      <span>{size}</span>
+                      {sizePrice != null ? (
+                        <span className={cn("mt-0.5 text-xs opacity-75", selected ? "text-brand-secondary" : "text-brand-muted")}>
+                          {new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
+                            style: "currency",
+                            currency: "EGP",
+                            maximumFractionDigits: 0,
+                          }).format(sizePrice)}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ) : null}
 
+          {/* ── Quantity ─────────────────────────────────────────────────── */}
           <div className="mt-6 flex items-center justify-between gap-4">
             <p className="text-xs font-medium tracking-[0.18em] text-brand-muted uppercase">
               {labels.quantity}
@@ -291,6 +356,7 @@ export function QuickAddModal({ open, product, onClose }) {
           </div>
         </div>
 
+        {/* Footer */}
         <div className="border-t border-brand-border px-5 py-4 md:px-6">
           <Button
             type="button"

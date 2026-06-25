@@ -16,6 +16,12 @@ public class ProductVariant : BaseEntity
     [MaxLength(100)]
     public string ColorNameEn { get; set; } = string.Empty;
 
+    [MaxLength(100)]
+    public string SizeNameAr { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string SizeNameEn { get; set; } = string.Empty;
+
     [MaxLength(64)]
     public string Sku { get; set; } = string.Empty;
 

@@ -31,6 +31,8 @@ public class ProductVariantDto
     public int Id { get; set; }
     public string ColorNameAr { get; set; } = string.Empty;
     public string ColorNameEn { get; set; } = string.Empty;
+    public string SizeNameAr { get; set; } = string.Empty;
+    public string SizeNameEn { get; set; } = string.Empty;
     public string Sku { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal? CompareAtPrice { get; set; }
@@ -93,6 +95,12 @@ public class ProductVariantInputDto
     [Required]
     [MaxLength(100)]
     public string ColorNameEn { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string SizeNameAr { get; set; } = string.Empty;
+
+    [MaxLength(100)]
+    public string SizeNameEn { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(64)]

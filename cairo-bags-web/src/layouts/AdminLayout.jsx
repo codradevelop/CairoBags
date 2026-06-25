@@ -2,7 +2,6 @@ import { useState } from "react";
 import { AdminSidebar, AdminTopbar } from "../components/layout/AdminSidebar.jsx";
 import { Breadcrumbs } from "../components/layout/Breadcrumbs.jsx";
 import { LanguageSwitcher } from "../components/layout/LanguageSwitcher.jsx";
-import { ThemeSwitcher } from "../components/layout/ThemeSwitcher.jsx";
 import { NotificationDropdown } from "../components/layout/NotificationDropdown.jsx";
 import { UserDropdown } from "../components/layout/UserDropdown.jsx";
 import { cn } from "../utils/cn.js";
@@ -44,7 +43,6 @@ export function AdminLayout({
     <>
       {topbarActions}
       <LanguageSwitcher />
-      <ThemeSwitcher />
       <NotificationDropdown adminContext />
       <UserDropdown adminContext />
     </>

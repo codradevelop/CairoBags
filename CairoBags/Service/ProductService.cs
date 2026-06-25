@@ -432,6 +432,8 @@ public class ProductService : IProductService
 
                 variant.ColorNameAr = input.ColorNameAr.Trim();
                 variant.ColorNameEn = input.ColorNameEn.Trim();
+                variant.SizeNameAr = input.SizeNameAr?.Trim() ?? string.Empty;
+                variant.SizeNameEn = input.SizeNameEn?.Trim() ?? string.Empty;
                 variant.Sku = input.Sku.Trim();
                 variant.Price = input.Price;
                 variant.CompareAtPrice = input.CompareAtPrice;
@@ -547,6 +549,8 @@ public class ProductService : IProductService
         {
             ColorNameAr = input.ColorNameAr.Trim(),
             ColorNameEn = input.ColorNameEn.Trim(),
+            SizeNameAr = input.SizeNameAr?.Trim() ?? string.Empty,
+            SizeNameEn = input.SizeNameEn?.Trim() ?? string.Empty,
             Sku = input.Sku.Trim(),
             Price = input.Price,
             CompareAtPrice = input.CompareAtPrice,
@@ -754,6 +758,8 @@ public class ProductService : IProductService
             Id = variant.Id,
             ColorNameAr = variant.ColorNameAr,
             ColorNameEn = variant.ColorNameEn,
+            SizeNameAr = variant.SizeNameAr,
+            SizeNameEn = variant.SizeNameEn,
             Sku = variant.Sku,
             Price = variant.Price,
             CompareAtPrice = variant.CompareAtPrice,

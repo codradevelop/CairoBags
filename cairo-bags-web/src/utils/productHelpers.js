@@ -112,6 +112,13 @@ export function getVariantColorName(variant, locale = "en") {
     : variant.colorNameEn ?? variant.ColorNameEn ?? variant.colorNameAr ?? variant.ColorNameAr;
 }
 
+export function getVariantSizeName(variant, locale = "en") {
+  if (!variant) return "";
+  return locale === "ar"
+    ? variant.sizeNameAr ?? variant.SizeNameAr ?? variant.sizeNameEn ?? variant.SizeNameEn ?? ""
+    : variant.sizeNameEn ?? variant.SizeNameEn ?? variant.sizeNameAr ?? variant.SizeNameAr ?? "";
+}
+
 export function getVariantPrice(variant) {
   return variant?.price ?? variant?.Price ?? 0;
 }

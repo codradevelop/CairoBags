@@ -221,6 +221,8 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
             entity.ToTable("ProductVariants");
             entity.Property(e => e.ColorNameAr).HasMaxLength(100);
             entity.Property(e => e.ColorNameEn).HasMaxLength(100);
+            entity.Property(e => e.SizeNameAr).HasMaxLength(100);
+            entity.Property(e => e.SizeNameEn).HasMaxLength(100);
             entity.Property(e => e.Sku).HasMaxLength(64);
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.Property(e => e.CompareAtPrice).HasColumnType("decimal(18,2)");

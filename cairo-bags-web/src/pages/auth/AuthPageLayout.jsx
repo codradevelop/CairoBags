@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { LanguageSwitcher } from "../../components/layout/LanguageSwitcher.jsx";
-import { ThemeSwitcher } from "../../components/layout/ThemeSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
 
 export function AuthPageLayout({ children, className, variant = "card" }) {
@@ -20,7 +19,6 @@ export function AuthPageLayout({ children, className, variant = "card" }) {
           </Link>
           <div className="flex items-center gap-1">
             <LanguageSwitcher />
-            <ThemeSwitcher />
           </div>
         </div>
       </header>

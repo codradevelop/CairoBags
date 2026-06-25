@@ -16,7 +16,7 @@ export function LanguageSwitcher({ className, variant = "ghost", size = "sm" }) 
       className={cn("min-w-[4.5rem] font-medium tracking-wide", className)}
       aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
     >
-      {locale === "ar" ? "عربي" : "English"}
+      {locale === "ar" ? "English" : "عربي"}
     </Button>
   );
 }
