@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
-
-function getImageUrl(image) {
-  return image?.thumbnailUrl ?? image?.ThumbnailUrl ?? image?.imageUrl ?? image?.ImageUrl;
-}
+import { getProductImageAssetUrl } from "../../utils/productHelpers.js";
 
 function getImageAlt(image, locale) {
   if (locale === "ar") {
@@ -24,7 +21,7 @@ export function ProductGallery({ images = [], productName = "", className }) {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const active = sorted[activeIndex] ?? sorted[0];
-  const activeUrl = active ? getImageUrl(active) : null;
+  const activeUrl = active ? getProductImageAssetUrl(active) : null;
 
   if (!sorted.length) {
     return (
@@ -54,7 +51,7 @@ export function ProductGallery({ images = [], productName = "", className }) {
       {sorted.length > 1 ? (
         <div className="flex gap-2 overflow-x-auto pb-1 cb-scrollbar-thin">
           {sorted.map((image, index) => {
-            const url = getImageUrl(image);
+            const url = getProductImageAssetUrl(image);
             if (!url) return null;
             const selected = index === activeIndex;
             return (

@@ -1,9 +1,24 @@
 /** Static navigation labels for layout shells (no routing). */
 export const storeNavLinks = [
   { key: "shop", href: "/shop", labelEn: "Shop", labelAr: "تسوق" },
-  { key: "categories", href: "/categories", labelEn: "Categories", labelAr: "التصنيفات" },
-  { key: "new", href: "/shop?filter=new", labelEn: "New Arrivals", labelAr: "وصل حديثاً" },
-  { key: "featured", href: "/shop?filter=featured", labelEn: "Featured", labelAr: "مميز" },
+  {
+    key: "categories",
+    homeSection: "categories",
+    labelEn: "Categories",
+    labelAr: "التصنيفات",
+  },
+  {
+    key: "featured",
+    homeSection: "featured",
+    labelEn: "Featured",
+    labelAr: "مميز",
+  },
+  {
+    key: "new",
+    homeSection: "new-arrivals",
+    labelEn: "New Arrivals",
+    labelAr: "وصل حديثاً",
+  },
 ];
 
 export const accountNavLinks = [

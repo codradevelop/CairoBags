@@ -16,7 +16,6 @@ import {
 import { Badge, Button, ConfirmModal, Input } from "../../components/ui/index.js";
 import * as categoryService from "../../services/categoryService.js";
 import { getCategoryId, getCategoryImageUrl, getCategoryName } from "../../utils/productHelpers.js";
-import { resolveMediaUrl } from "../../utils/mediaUrl.js";
 import { paginateItems } from "../../utils/pagination.js";
 
 export function CategoriesPage() {
@@ -98,7 +97,7 @@ export function CategoriesPage() {
         const name = getCategoryName(row, locale);
         return (
           <AdminTableImage
-            src={resolveMediaUrl(getCategoryImageUrl(row))}
+            src={getCategoryImageUrl(row)}
             alt={name}
             rounded="full"
           />

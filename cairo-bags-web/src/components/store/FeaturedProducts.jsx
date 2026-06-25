@@ -107,32 +107,14 @@ function ProductSection({
 }) {
   return (
     <section className={cn(className)}>
-      {/* Section header */}
-      <div className="mb-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end md:mb-12">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end md:mb-8">
         <div>
-          {/* Gold separator line */}
-          <div className="cb-gold-line-left mb-4" />
-          <h2
-            className="cb-section-heading"
-            style={{ letterSpacing: "-0.025em" }}
-          >
-            {heading}
-          </h2>
-          <p className="cb-section-subheading mt-2">{subtitle}</p>
+          <h2 className="font-display text-2xl font-medium text-brand-text md:text-3xl">{heading}</h2>
+          <p className="mt-2 text-sm text-brand-muted">{subtitle}</p>
         </div>
-        <Link to="/shop" className="shrink-0">
-          <Button variant="outline" size="sm" className="group gap-2">
+        <Link to="/shop">
+          <Button variant="outline" size="sm">
             {locale === "ar" ? "عرض الكل" : "View All"}
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="transition-transform group-hover:translate-x-0.5"
-              aria-hidden="true"
-            >
-              <path d="m9 18 6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
           </Button>
         </Link>
       </div>
@@ -150,7 +132,7 @@ function ProductSection({
       {!loading && !error && products.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
           {products.map((product) => (
-            <ProductCard key={product.id ?? product.Id} product={product} />
+            <ProductCard key={product.id ?? product.Id} product={product} variant="landing" />
           ))}
         </div>
       ) : null}

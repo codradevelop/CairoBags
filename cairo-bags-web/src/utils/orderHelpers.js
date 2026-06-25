@@ -1,4 +1,5 @@
 import { ORDER_STATUS } from "../constants/orderStatus.js";
+import { resolveMediaUrl } from "./mediaUrl.js";
 
 export function getOrderId(order) {
   return order?.orderId ?? order?.OrderId ?? order?.order?.orderId ?? order?.Order?.OrderId;
@@ -53,7 +54,18 @@ export function getOrderItemsCount(order) {
 }
 
 export function getOrderPrimaryImage(order) {
-  return order?.primaryProductImage ?? order?.PrimaryProductImage ?? null;
+  const path = order?.primaryProductImage ?? order?.PrimaryProductImage ?? null;
+  return path ? resolveMediaUrl(path) : null;
+}
+
+export function getOrderItemImage(item) {
+  const path = item?.imageUrl ?? item?.ImageUrl ?? null;
+  return path ? resolveMediaUrl(path) : null;
+}
+
+export function getPaymentProofImageUrl(image) {
+  const path = image?.imageUrl ?? image?.ImageUrl ?? null;
+  return path ? resolveMediaUrl(path) : null;
 }
 
 export function getOrderDetailInfo(detail) {

@@ -1,0 +1,40 @@
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+**/.vs/
+
+# Node / frontend
+cairo-bags-web/node_modules/
+cairo-bags-web/dist/
+
+# Environment & secrets
+.env
+.env.local
+.env.development
+.env.production
+cairo-bags-web/.env
+cairo-bags-web/.env.development
+
+# Uploaded media (runtime)
+CairoBags/FileStorage/*
+!CairoBags/FileStorage/.gitkeep
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test / tooling caches
+coverage/
+*.tsbuildinfo

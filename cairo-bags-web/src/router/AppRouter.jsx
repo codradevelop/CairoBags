@@ -29,6 +29,7 @@ import { CartPage } from "../pages/cart/CartPage.jsx";
 import { CheckoutPage } from "../pages/checkout/CheckoutPage.jsx";
 import { OrderSuccessPage } from "../pages/checkout/OrderSuccessPage.jsx";
 import { PaymentUploadPage } from "../pages/checkout/PaymentUploadPage.jsx";
+import { WishlistPage } from "../pages/store/WishlistPage.jsx";
 
 export function AppRouter() {
   return (
@@ -55,6 +56,7 @@ export function AppRouter() {
         <Route path="/account/orders" element={<OrdersPage />} />
         <Route path="/account/orders/:id" element={<OrderDetailsPage />} />
         <Route path="/account/notifications" element={<NotificationsPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
       </Route>
 
       <Route element={<AdminRoute />}>

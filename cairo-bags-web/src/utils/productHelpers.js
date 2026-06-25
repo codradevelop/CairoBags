@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from "./mediaUrl.js";
+
 export function pickTranslation(entity, locale = "en") {
   if (!entity) return null;
   const ar = entity.arabic ?? entity.Arabic;
@@ -44,20 +46,37 @@ export function getCategoryId(category) {
 }
 
 export function getCategoryImageUrl(category) {
-  return category?.imageUrl ?? category?.ImageUrl ?? null;
+  const path = category?.imageUrl ?? category?.ImageUrl ?? null;
+  return path ? resolveMediaUrl(path) : null;
 }
 
-export function getPrimaryImageUrl(product) {
+/** Raw API path — use for form state / API payloads, not for <img src>. */
+export function getPrimaryImagePath(product) {
   return product?.primaryImageUrl ?? product?.PrimaryImageUrl ?? null;
 }
 
+export function getPrimaryImageUrl(product) {
+  const path = getPrimaryImagePath(product);
+  return path ? resolveMediaUrl(path) : null;
+}
+
+export function getProductImageAssetUrl(image) {
+  const path =
+    image?.thumbnailUrl ??
+    image?.ThumbnailUrl ??
+    image?.imageUrl ??
+    image?.ImageUrl ??
+    null;
+  return path ? resolveMediaUrl(path) : null;
+}
+
 export function getProductImageUrl(product) {
-  const primary = getPrimaryImageUrl(product);
-  if (primary) return primary;
+  const primary = getPrimaryImagePath(product);
+  if (primary) return resolveMediaUrl(primary);
 
   const images = getProductImages(product);
   const image = images.find((item) => item.isPrimary ?? item.IsPrimary) ?? images[0];
-  return image?.thumbnailUrl ?? image?.ThumbnailUrl ?? image?.imageUrl ?? image?.ImageUrl ?? null;
+  return getProductImageAssetUrl(image);
 }
 
 export function getProductPriceRange(product) {

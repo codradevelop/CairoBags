@@ -19,6 +19,7 @@ import {
   getOrderDetailPayment,
   getOrderDetailShipping,
   getOrderItemColor,
+  getOrderItemImage,
   getOrderItemName,
   getOrderNumber,
   getOrderStatus,
@@ -161,15 +162,17 @@ export function OrderDetailsPage() {
           <Card variant="default" padding="md">
             <CardHeader title={locale === "ar" ? "المنتجات" : "Products"} />
             <CardBody className="space-y-4">
-              {items.map((item) => (
+              {items.map((item) => {
+                const imageUrl = getOrderItemImage(item);
+                return (
                 <div
                   key={item.orderItemId ?? item.OrderItemId}
                   className="flex gap-4 border-b border-brand-border pb-4 last:border-b-0 last:pb-0"
                 >
                   <div className="h-20 w-16 shrink-0 overflow-hidden rounded-md border border-brand-border bg-brand-secondary">
-                    {item.imageUrl ?? item.ImageUrl ? (
+                    {imageUrl ? (
                       <img
-                        src={item.imageUrl ?? item.ImageUrl}
+                        src={imageUrl}
                         alt=""
                         className="h-full w-full object-cover"
                       />
@@ -188,7 +191,8 @@ export function OrderDetailsPage() {
                     {formatPrice(item.lineTotal ?? item.LineTotal, locale)}
                   </p>
                 </div>
-              ))}
+                );
+              })}
             </CardBody>
           </Card>
 

@@ -4,8 +4,9 @@ import { LanguageSwitcher } from "../../components/layout/LanguageSwitcher.jsx";
 import { ThemeSwitcher } from "../../components/layout/ThemeSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
 
-export function AuthPageLayout({ children, className }) {
+export function AuthPageLayout({ children, className, variant = "card" }) {
   const { locale } = useLocale();
+  const isSliding = variant === "sliding";
 
   return (
     <div className="min-h-screen bg-brand-background">
@@ -24,8 +25,13 @@ export function AuthPageLayout({ children, className }) {
         </div>
       </header>
 
-      <main className={cn("cb-container flex flex-1 flex-col items-center justify-center py-10 md:py-16", className)}>
-        <div className="w-full max-w-md">
+      <main
+        className={cn(
+          "cb-container flex flex-1 flex-col items-center justify-center py-10 md:py-16",
+          className
+        )}
+      >
+        <div className={cn("w-full", isSliding ? "max-w-[850px]" : "max-w-md")}>
           <div className="mb-8 text-center">
             <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
               {locale === "ar" ? "مجموعة القاهرة" : "Cairo Collection"}

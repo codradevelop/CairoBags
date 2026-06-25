@@ -9,7 +9,7 @@ import { Button, Skeleton } from "../../components/ui/index.js";
 import * as productService from "../../services/productService.js";
 import * as categoryService from "../../services/categoryService.js";
 import {
-  getPrimaryImageUrl,
+  getPrimaryImagePath,
   getProductImages,
   getProductVariants,
 } from "../../utils/productHelpers.js";
@@ -36,7 +36,7 @@ function mapProductToForm(product) {
     shortDescriptionEn: en.shortDescription ?? en.ShortDescription ?? "",
     descriptionAr: ar.description ?? ar.Description ?? "",
     descriptionEn: en.description ?? en.Description ?? "",
-    imageUrl: primary?.imageUrl ?? primary?.ImageUrl ?? getPrimaryImageUrl(product) ?? "",
+    imageUrl: primary?.imageUrl ?? primary?.ImageUrl ?? getPrimaryImagePath(product) ?? "",
     variants: [
       {
         id: defaultVariant.id ?? defaultVariant.Id,

@@ -22,7 +22,6 @@ import {
   getProductName,
   getProductShortDescription,
 } from "../../utils/productHelpers.js";
-import { resolveMediaUrl } from "../../utils/mediaUrl.js";
 import { paginateItems } from "../../utils/pagination.js";
 
 const STATUS_LABELS = {
@@ -106,7 +105,7 @@ export function ProductsPage() {
       render: (row) => {
         const name = getProductName(row, locale);
         return (
-          <AdminTableImage src={resolveMediaUrl(getProductImageUrl(row))} alt={name} />
+          <AdminTableImage src={getProductImageUrl(row)} alt={name} />
         );
       },
     },

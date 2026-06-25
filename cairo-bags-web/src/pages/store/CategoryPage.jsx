@@ -13,6 +13,7 @@ import {
 import { buildProductQueryParams } from "../../utils/shopFilters.js";
 import {
   getCategoryDescription,
+  getCategoryImageUrl,
   getCategoryName,
 } from "../../utils/productHelpers.js";
 import { Button } from "../../components/ui/index.js";
@@ -52,7 +53,7 @@ export function CategoryPage() {
   }, [loadData]);
 
   const description = category ? getCategoryDescription(category, locale) : "";
-  const imageUrl = category?.imageUrl ?? category?.ImageUrl;
+  const imageUrl = category ? getCategoryImageUrl(category) : null;
 
   return (
     <StoreLayout>

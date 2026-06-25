@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\Animal2.props" />
-</Project>

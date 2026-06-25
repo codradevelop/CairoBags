@@ -114,4 +114,10 @@ export const ENDPOINTS = {
   signalR: {
     notifications: "/hubs/notifications",
   },
+  wishlist: {
+    list: "/api/wishlist",
+    toggle: (productId) => `/api/wishlist/${productId}`,
+    remove: (productId) => `/api/wishlist/${productId}`,
+    count: "/api/wishlist/count",
+  },
 };

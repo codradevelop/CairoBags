@@ -4,14 +4,12 @@ import { Button } from "../ui/Button.jsx";
 import { Navbar } from "./Navbar.jsx";
 import { MobileMenu } from "./MobileMenu.jsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
-import { ThemeSwitcher } from "./ThemeSwitcher.jsx";
 import { UserDropdown } from "./UserDropdown.jsx";
 import { NotificationDropdown } from "./NotificationDropdown.jsx";
 import { CartButton } from "./CartButton.jsx";
-import { CartDrawer } from "../cart/CartDrawer.jsx";
+import { WishlistHeaderButton } from "./WishlistButton.jsx";
 import { ProductSearch } from "../store/ProductSearch.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
-import { useCart } from "../../context/CartContext.jsx";
 import { cn } from "../../utils/cn.js";
 
 function MenuIcon() {
@@ -76,7 +74,6 @@ export function AnnouncementBar({ message, messageAr, href = "/shop", className 
 
 export function Header({ className, showAnnouncement = true, announcement }) {
   const { locale } = useLocale();
-  const { drawerOpen, closeDrawer } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -103,12 +100,10 @@ export function Header({ className, showAnnouncement = true, announcement }) {
             {/* Logo with gold gradient treatment */}
             <Link
               to="/"
-              className="group relative font-display text-xl font-semibold tracking-tight md:text-2xl"
+              className="group font-display text-xl font-semibold tracking-tight text-brand-primary transition-colors hover:text-brand-accent md:text-2xl"
               style={{ letterSpacing: "-0.02em" }}
             >
-              <span className="cb-text-gradient-gold transition-opacity group-hover:opacity-90">
-                Cairo Bags
-              </span>
+              Cairo Bags
             </Link>
           </div>
 
@@ -130,8 +125,8 @@ export function Header({ className, showAnnouncement = true, announcement }) {
               <SearchIcon />
             </Button>
             <LanguageSwitcher className="hidden sm:inline-flex" />
-            <ThemeSwitcher />
             <NotificationDropdown />
+            <WishlistHeaderButton />
             <CartButton />
             <UserDropdown />
           </div>
@@ -145,7 +140,6 @@ export function Header({ className, showAnnouncement = true, announcement }) {
       </div>
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <CartDrawer open={drawerOpen} onClose={closeDrawer} />
     </header>
   );
 }

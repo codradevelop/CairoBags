@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button.jsx";
 import { Input } from "../ui/Input.jsx";
 import { Navbar } from "./Navbar.jsx";
 import { getNavLabel, storeNavLinks } from "./navConfig.js";
 import { useLocale } from "./LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
+import { getStoreNavHref, handleStoreNavClick } from "../../utils/homeNav.js";
 
 function CloseIcon() {
   return (
@@ -16,6 +18,8 @@ function CloseIcon() {
 
 export function MobileMenu({ open, onClose, links = storeNavLinks }) {
   const { locale } = useLocale();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -100,9 +104,20 @@ export function MobileMenu({ open, onClose, links = storeNavLinks }) {
             {links.map((link) => (
               <li key={link.key}>
                 <a
-                  href={link.href}
+                  href={getStoreNavHref(link, location.pathname)}
                   className="group flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-brand-text transition-all duration-fast hover:bg-brand-accent/8 hover:text-brand-accent"
-                  onClick={onClose}
+                  onClick={(event) => {
+                    if (link.key === "shop" || link.homeSection) {
+                      event.preventDefault();
+                      handleStoreNavClick(link, {
+                        pathname: location.pathname,
+                        navigate,
+                        onDone: onClose,
+                      });
+                      return;
+                    }
+                    onClose();
+                  }}
                 >
                   {/* Gold bullet dot */}
                   <span

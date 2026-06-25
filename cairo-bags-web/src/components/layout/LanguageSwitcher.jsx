@@ -13,10 +13,10 @@ export function LanguageSwitcher({ className, variant = "ghost", size = "sm" }) 
       variant={variant}
       size={size}
       onClick={toggleLocale}
-      className={cn("min-w-[3rem] font-medium tracking-wider", className)}
+      className={cn("min-w-[4.5rem] font-medium tracking-wide", className)}
       aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
     >
-      {locale === "ar" ? "EN" : "عربي"}
+      {locale === "ar" ? "عربي" : "English"}
     </Button>
   );
 }

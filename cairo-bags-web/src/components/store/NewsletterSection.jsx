@@ -1,105 +1,227 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button.jsx";
-import { Input } from "../ui/Input.jsx";
+import { FieldError, Input } from "../ui/Input.jsx";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
-import { useToast } from "../ui/Toast.jsx";
 import { cn } from "../../utils/cn.js";
 
-const whyIcons = [
-  // Diamond / Craftsmanship
-  <svg key="craft" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m2 9 10-7 10 7v11a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9z"/>
-    <polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>,
-  // Time / Timeless
-  <svg key="time" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <polyline points="12 6 12 12 16 14"/>
-  </svg>,
-  // Box / Delivery
-  <svg key="deliver" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 10V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10"/>
-    <rect x="1" y="6" width="22" height="4" rx="1"/>
-    <line x1="12" y1="22" x2="12" y2="6"/>
-  </svg>,
-];
+const COPY = {
+  en: {
+    label: "Exclusive Welcome Offer",
+    title: "Get 10% OFF Your First Order",
+    description:
+      "Subscribe with your email and we'll send you an exclusive 10% discount coupon directly to your inbox.",
+    placeholder: "Enter your email address",
+    button: "Get My Coupon",
+    disclaimer: "No spam. Only exclusive offers and early access to new collections.",
+    invalidEmpty: "Please enter your email address.",
+    invalidFormat: "Please enter a valid email address.",
+    successTitle: "Welcome to Cairo Bags!",
+    successLead: "Your exclusive 10% discount coupon will be sent to your email shortly.",
+    successHint: "Please check your inbox (and spam folder if needed).",
+    continueShopping: "Continue Shopping",
+  },
+  ar: {
+    label: "العرض الترحيبي",
+    title: "احصل على خصم 10٪ على أول طلب",
+    description:
+      "أدخل بريدك الإلكتروني وسنرسل لك كوبون خصم 10٪ مباشرة إلى بريدك الإلكتروني.",
+    placeholder: "أدخل بريدك الإلكتروني",
+    button: "احصل على الكوبون",
+    disclaimer: "لن نرسل رسائل مزعجة. فقط عروض حصرية وإطلاقات جديدة.",
+    invalidEmpty: "يرجى إدخال بريدك الإلكتروني.",
+    invalidFormat: "يرجى إدخال بريد إلكتروني صحيح.",
+    successTitle: "أهلاً بك في Cairo Bags",
+    successLead: "سيتم إرسال كوبون خصم 10٪ إلى بريدك الإلكتروني خلال لحظات.",
+    successHint: "يرجى التحقق من صندوق الوارد أو الرسائل غير المرغوب فيها.",
+    continueShopping: "متابعة التسوق",
+  },
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmail(value, copy) {
+  const trimmed = value.trim();
+  if (!trimmed) return copy.invalidEmpty;
+  if (!EMAIL_PATTERN.test(trimmed)) return copy.invalidFormat;
+  return "";
+}
+
+// TODO: Replace mock success with POST /api/newsletter/subscribe
+async function subscribeToWelcomeCoupon(_email) {
+  await new Promise((resolve) => window.setTimeout(resolve, 700));
+  return { success: true };
+}
+
+function WelcomeCouponSuccess({ copy, className }) {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className={cn(
+        "mx-auto flex max-w-lg flex-col items-center text-center",
+        "animate-slide-down motion-reduce:animate-none",
+        className
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className={cn(
+          "mb-5 flex h-14 w-14 items-center justify-center rounded-full",
+          "bg-brand-accent/15 text-2xl ring-1 ring-brand-accent/30",
+          "shadow-glow-sm dark:bg-brand-accent/20"
+        )}
+        aria-hidden="true"
+      >
+        🎉
+      </div>
+
+      <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
+        {copy.label}
+      </p>
+      <h2 className="mt-3 font-display text-2xl font-medium text-brand-text md:text-3xl">
+        {copy.successTitle}
+      </h2>
+      <p className="mt-3 text-sm leading-relaxed text-brand-muted md:text-base">
+        {copy.successLead}
+      </p>
+      <p className="mt-2 text-sm text-brand-muted/90">{copy.successHint}</p>
+
+      <Button
+        type="button"
+        variant="accent"
+        size="lg"
+        className="mt-8 h-12 min-w-[160px] px-6 text-base"
+        onClick={() => navigate("/shop")}
+      >
+        {copy.continueShopping}
+      </Button>
+    </div>
+  );
+}
+
+function WelcomeCouponForm({ copy, email, error, submitting, onEmailChange, onSubmit }) {
+  return (
+    <div className="animate-fade-in motion-reduce:animate-none">
+      <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
+        {copy.label}
+      </p>
+      <h2 className="mt-3 font-display text-2xl font-medium text-brand-text md:text-3xl">
+        {copy.title}
+      </h2>
+      <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-brand-muted md:text-base">
+        {copy.description}
+      </p>
+
+      <form
+        onSubmit={onSubmit}
+        noValidate
+        className="mx-auto mt-8 max-w-md space-y-3 text-start"
+      >
+        <div>
+          <Input
+            id="welcome-coupon-email"
+            type="email"
+            value={email}
+            onChange={onEmailChange}
+            placeholder={copy.placeholder}
+            variant={error ? "error" : "default"}
+            autoComplete="email"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "welcome-coupon-email-error" : undefined}
+            disabled={submitting}
+            className="transition-shadow duration-fast"
+          />
+          <FieldError id="welcome-coupon-email-error">{error}</FieldError>
+        </div>
+
+        <div className="flex justify-center pt-1">
+          <Button
+            type="submit"
+            variant="accent"
+            size="lg"
+            loading={submitting}
+            disabled={submitting}
+            className="h-12 min-w-[160px] px-6 text-base"
+          >
+            {copy.button}
+          </Button>
+        </div>
+      </form>
+
+      <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-brand-muted/90">
+        {copy.disclaimer}
+      </p>
+    </div>
+  );
+}
 
 export function NewsletterSection({ className }) {
   const { locale } = useLocale();
-  const { success } = useToast();
-  const [email, setEmail] = useState("");
+  const copy = locale === "ar" ? COPY.ar : COPY.en;
 
-  function handleSubmit(event) {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [status, setStatus] = useState("idle");
+
+  const submitting = status === "submitting";
+  const succeeded = status === "success";
+
+  function handleEmailChange(event) {
+    setEmail(event.target.value);
+    if (error) setError("");
+  }
+
+  async function handleSubmit(event) {
     event.preventDefault();
-    if (!email.trim()) return;
-    success(
-      locale === "ar"
-        ? "شكراً لاشتراكك في نشرتنا"
-        : "Thank you for subscribing to our newsletter"
-    );
-    setEmail("");
+    const validationError = validateEmail(email, copy);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setError("");
+    setStatus("submitting");
+
+    try {
+      await subscribeToWelcomeCoupon(email.trim());
+      setStatus("success");
+    } catch {
+      setStatus("idle");
+      setError(
+        locale === "ar"
+          ? "حدث خطأ. يرجى المحاولة مرة أخرى."
+          : "Something went wrong. Please try again."
+      );
+    }
   }
 
   return (
     <section
-      className={cn("relative overflow-hidden rounded-2xl", className)}
-      style={{
-        background: "linear-gradient(135deg, #0d0d0b 0%, #1a1710 40%, #2a2010 70%, #0d0d0b 100%)",
-      }}
+      className={cn(
+        "relative overflow-hidden rounded-2xl border border-brand-border bg-brand-secondary px-6 py-10 text-center shadow-soft md:px-12 md:py-14",
+        "transition-all duration-slow dark:border-brand-border dark:bg-brand-surface-dark",
+        className
+      )}
     >
-      {/* Gold shimmer overlay */}
       <div
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 0%, rgba(201,169,98,0.5) 0%, transparent 65%)",
-        }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent/60 to-transparent"
+        aria-hidden="true"
       />
-      {/* Corner brackets */}
-      <div className="absolute start-6 top-6">
-        <div style={{ width: "32px", height: "32px", borderTop: "1px solid rgba(201,169,98,0.4)", borderInlineStart: "1px solid rgba(201,169,98,0.4)" }} />
-      </div>
-      <div className="absolute bottom-6 end-6">
-        <div style={{ width: "32px", height: "32px", borderBottom: "1px solid rgba(201,169,98,0.4)", borderInlineEnd: "1px solid rgba(201,169,98,0.4)" }} />
-      </div>
 
-      <div className="relative px-8 py-12 text-center md:px-16 md:py-16">
-        <p className="cb-section-label">{locale === "ar" ? "النشرة البريدية" : "Newsletter"}</p>
-        <h2
-          className="mt-3 font-display font-light tracking-tight"
-          style={{ fontSize: "clamp(1.75rem, 4vw, 2.5rem)", color: "#f5f1e8" }}
-        >
-          {locale === "ar" ? "ابق على اطلاع" : "Stay in the Know"}
-        </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm" style={{ color: "rgba(245,241,232,0.55)" }}>
-          {locale === "ar"
-            ? "اشترك لتصلك أحدث المجموعات والعروض الحصرية"
-            : "Subscribe for exclusive access to new collections and offers"}
-        </p>
-        <div className="cb-gold-line mx-auto mt-5 max-w-[4rem]" />
-
-        <form
+      {succeeded ? (
+        <WelcomeCouponSuccess copy={copy} />
+      ) : (
+        <WelcomeCouponForm
+          copy={copy}
+          email={email}
+          error={error}
+          submitting={submitting}
+          onEmailChange={handleEmailChange}
           onSubmit={handleSubmit}
-          className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
-        >
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder={locale === "ar" ? "بريدك الإلكتروني" : "Your email address"}
-            className="flex-1"
-            required
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              borderColor: "rgba(201,169,98,0.3)",
-              color: "#f5f1e8",
-            }}
-          />
-          <Button type="submit" variant="accent" className="shrink-0">
-            {locale === "ar" ? "اشترك" : "Subscribe"}
-          </Button>
-        </form>
-      </div>
+        />
+      )}
     </section>
   );
 }
@@ -133,53 +255,20 @@ export function WhyChooseSection({ className }) {
 
   return (
     <section className={cn(className)}>
-      <div className="mb-10 text-center">
-        <p className="cb-section-label">{locale === "ar" ? "مميزاتنا" : "Why Us"}</p>
-        <h2 className="cb-section-heading mt-3">
+      <div className="mb-8 text-center">
+        <h2 className="font-display text-2xl font-medium text-brand-text md:text-3xl">
           {locale === "ar" ? "لماذا Cairo Bags؟" : "Why Cairo Bags?"}
         </h2>
-        <div className="cb-gold-line mx-auto mt-5 max-w-[4rem]" />
       </div>
-
       <div className="grid gap-6 md:grid-cols-3">
-        {items.map((item, i) => (
+        {items.map((item) => (
           <div
             key={item.title}
-            className="group relative rounded-xl border p-8 text-center transition-all duration-slow cursor-default"
-            style={{
-              borderColor: "var(--cb-border-subtle)",
-              background: "var(--cb-surface)",
-              boxShadow: "var(--cb-shadow-card)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "var(--cb-shadow-glow)";
-              e.currentTarget.style.borderColor = "rgba(201,169,98,0.35)";
-              e.currentTarget.style.transform = "translateY(-4px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "var(--cb-shadow-card)";
-              e.currentTarget.style.borderColor = "var(--cb-border-subtle)";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
+            className="rounded-lg border border-brand-border bg-brand-surface p-6 text-center dark:bg-brand-surface-dark"
           >
-            {/* Icon circle */}
-            <div
-              className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full transition-all duration-fast"
-              style={{
-                background: "linear-gradient(135deg, rgba(201,169,98,0.15) 0%, rgba(232,213,163,0.08) 100%)",
-                border: "1px solid rgba(201,169,98,0.25)",
-                color: "#c9a962",
-              }}
-            >
-              {whyIcons[i]}
-            </div>
-            <h3
-              className="font-display text-lg font-medium text-brand-text"
-              style={{ letterSpacing: "-0.01em" }}
-            >
-              {item.title}
-            </h3>
-            <p className="mt-2 text-sm text-brand-muted leading-relaxed">{item.desc}</p>
+            <div className="mx-auto mb-4 h-px w-10 bg-brand-accent" />
+            <h3 className="font-display text-lg font-medium text-brand-text">{item.title}</h3>
+            <p className="mt-2 text-sm text-brand-muted">{item.desc}</p>
           </div>
         ))}
       </div>

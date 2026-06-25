@@ -8,6 +8,7 @@ import {
   CardBody,
   CardFooter,
   FieldError,
+  FileUpload,
   Input,
   InputGroup,
   Label,
@@ -32,6 +33,7 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
   const [form, setForm] = useState({ ...EMPTY_CATEGORY, ...initialValues });
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   function updateField(key, value) {
     setForm((prev) => {
@@ -49,6 +51,7 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
   async function handleImageChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setSelectedFileName(file.name);
     setUploading(true);
     try {
       const { imageUrl } = await fileService.uploadImageAndGetUrl(file);
@@ -142,8 +145,14 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
           </InputGroup>
           <InputGroup className="md:col-span-2">
             <Label>{locale === "ar" ? "صورة التصنيف" : "Category image"}</Label>
-            <Input type="file" accept="image/*" onChange={handleImageChange} disabled={uploading} />
-            {form.imageUrl ? <p className="mt-1 text-xs text-brand-muted">{form.imageUrl}</p> : null}
+            <FileUpload
+              accept="image/*"
+              onChange={handleImageChange}
+              disabled={uploading}
+              loading={uploading}
+              previewUrl={form.imageUrl || null}
+              fileName={selectedFileName}
+            />
           </InputGroup>
           <label className="flex items-center gap-2 text-sm md:col-span-2">
             <input

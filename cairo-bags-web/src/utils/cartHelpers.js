@@ -1,3 +1,5 @@
+import { resolveMediaUrl } from "./mediaUrl.js";
+
 export function getCartItems(cart) {
   return cart?.items ?? cart?.Items ?? [];
 }
@@ -25,7 +27,8 @@ export function getCartItemColor(item, locale = "en") {
 }
 
 export function getCartItemImage(item) {
-  return item?.imageUrl ?? item?.ImageUrl ?? null;
+  const path = item?.imageUrl ?? item?.ImageUrl ?? null;
+  return path ? resolveMediaUrl(path) : null;
 }
 
 export function getCartItemUnitPrice(item) {

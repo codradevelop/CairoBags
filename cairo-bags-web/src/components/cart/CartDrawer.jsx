@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { Button } from "../ui/Button.jsx";
 import { CartItem } from "./CartItem.jsx";
@@ -10,6 +11,7 @@ import { cn } from "../../utils/cn.js";
 
 export function CartDrawer({ open, onClose, className }) {
   const { cart, itemsCount, subTotal, loading } = useCart();
+  const { isAuthenticated } = useAuth();
   const { locale } = useLocale();
   const items = getCartItems(cart);
 
@@ -62,7 +64,11 @@ export function CartDrawer({ open, onClose, className }) {
                   {locale === "ar" ? "عرض السلة" : "View Cart"}
                 </Button>
               </Link>
-              <Link to="/checkout" onClick={onClose}>
+              <Link
+                to={isAuthenticated ? "/checkout" : "/login"}
+                state={isAuthenticated ? undefined : { from: "/checkout" }}
+                onClick={onClose}
+              >
                 <Button variant="accent" className="w-full" disabled={loading}>
                   {locale === "ar" ? "إتمام الشراء" : "Checkout"}
                 </Button>

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext.jsx";
 import { Badge } from "../ui/Badge.jsx";
 import { cn } from "../../utils/cn.js";
@@ -20,15 +20,12 @@ function CartIcon() {
 }
 
 export function CartButton({ className }) {
-  const { itemsCount, openDrawer } = useCart();
-  const navigate = useNavigate();
+  const { itemsCount } = useCart();
   const count = itemsCount ?? 0;
 
   return (
-    <button
-      type="button"
-      onClick={() => openDrawer()}
-      onDoubleClick={() => navigate("/cart")}
+    <Link
+      to="/cart"
       className={cn(
         "relative inline-flex h-10 w-10 items-center justify-center rounded-md",
         "text-brand-text transition-colors hover:bg-brand-secondary",
@@ -46,6 +43,6 @@ export function CartButton({ className }) {
           {count > 99 ? "99+" : count}
         </Badge>
       ) : null}
-    </button>
+    </Link>
   );
 }

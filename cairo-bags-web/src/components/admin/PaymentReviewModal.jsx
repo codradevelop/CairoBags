@@ -5,7 +5,7 @@ import { Button, Input, InputGroup, Label, Textarea } from "../ui/index.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { StatusBadge } from "./StatusBadge.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
-import { resolveMediaUrl } from "../../utils/mediaUrl.js";
+import { getPaymentProofImageUrl } from "../../utils/orderHelpers.js";
 import * as adminPaymentService from "../../services/adminPaymentService.js";
 
 export function PaymentReviewModal({ open, paymentId, onClose, onReviewed }) {
@@ -125,7 +125,7 @@ export function PaymentReviewModal({ open, paymentId, onClose, onReviewed }) {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {proofImages.map((img, index) => {
-                    const imageUrl = resolveMediaUrl(img.imageUrl ?? img.ImageUrl);
+                    const imageUrl = getPaymentProofImageUrl(img);
                     return (
                       <button
                         key={img.id ?? img.Id ?? index}
