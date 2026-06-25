@@ -310,6 +310,9 @@ namespace CairoBags.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("VerifiedReviewCount")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
@@ -1159,6 +1162,10 @@ namespace CairoBags.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DeepLinkPath")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -1892,6 +1899,12 @@ namespace CairoBags.Migrations
                     b.Property<bool>("IsVerifiedPurchase")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("OrderId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
@@ -1900,6 +1913,10 @@ namespace CairoBags.Migrations
 
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -1914,11 +1931,19 @@ namespace CairoBags.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsVisible");
+
+                    b.HasIndex("OrderId");
+
                     b.HasIndex("ProductId");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("ProductId", "IsVisible");
 
                     b.HasIndex("ProductId", "Status");
 
@@ -1929,6 +1954,46 @@ namespace CairoBags.Migrations
                         {
                             t.HasCheckConstraint("CK_ProductReviews_Rating", "[Rating] >= 1 AND [Rating] <= 5");
                         });
+                });
+
+            modelBuilder.Entity("CairoBags.Models.Reviews.ReviewHelpful", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductReviewId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ProductReviewId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ReviewHelpfuls", (string)null);
                 });
 
             modelBuilder.Entity("CairoBags.Models.Reviews.ReviewImage", b =>
@@ -1954,6 +2019,9 @@ namespace CairoBags.Migrations
                         .HasColumnType("bit");
 
                     b.Property<int>("ProductReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -3048,6 +3116,11 @@ namespace CairoBags.Migrations
 
             modelBuilder.Entity("CairoBags.Models.Reviews.ProductReview", b =>
                 {
+                    b.HasOne("CairoBags.Models.Orders.Order", "Order")
+                        .WithMany()
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CairoBags.Models.Catalog.Product", "Product")
                         .WithMany("Reviews")
                         .HasForeignKey("ProductId")
@@ -3060,7 +3133,28 @@ namespace CairoBags.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Order");
+
                     b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CairoBags.Models.Reviews.ReviewHelpful", b =>
+                {
+                    b.HasOne("CairoBags.Models.Reviews.ProductReview", "ProductReview")
+                        .WithMany("HelpfulVotes")
+                        .HasForeignKey("ProductReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CairoBags.Models.Identity.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProductReview");
 
                     b.Navigation("User");
                 });
@@ -3275,6 +3369,8 @@ namespace CairoBags.Migrations
 
             modelBuilder.Entity("CairoBags.Models.Reviews.ProductReview", b =>
                 {
+                    b.Navigation("HelpfulVotes");
+
                     b.Navigation("Images");
                 });
 

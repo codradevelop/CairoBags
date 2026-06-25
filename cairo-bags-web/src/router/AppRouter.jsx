@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { AdminRoute } from "./AdminRoute.jsx";
+import { AdminShoppingBlockRoute } from "./AdminShoppingBlockRoute.jsx";
 import { GuestRoute } from "./GuestRoute.jsx";
 import { HomePage } from "../pages/store/HomePage.jsx";
 import { ShopPage } from "../pages/store/ShopPage.jsx";
@@ -39,7 +40,12 @@ export function AppRouter() {
       <Route path="/categories/:id" element={<CategoryPage />} />
       <Route path="/products/:id" element={<ProductDetailsPage />} />
       <Route path="/search" element={<SearchResultsPage />} />
-      <Route path="/cart" element={<CartPage />} />
+
+      <Route element={<AdminShoppingBlockRoute />}>
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/payment" element={<Navigate to="/admin" replace />} />
+        <Route path="/payment/*" element={<Navigate to="/admin" replace />} />
+      </Route>
 
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
@@ -48,15 +54,17 @@ export function AppRouter() {
       </Route>
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/checkout/success" element={<OrderSuccessPage />} />
-        <Route path="/checkout/payment/:orderId" element={<PaymentUploadPage />} />
+        <Route element={<AdminShoppingBlockRoute />}>
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout/success" element={<OrderSuccessPage />} />
+          <Route path="/checkout/payment/:orderId" element={<PaymentUploadPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+        </Route>
         <Route path="/account" element={<AccountDashboardPage />} />
         <Route path="/account/profile" element={<ProfilePage />} />
         <Route path="/account/orders" element={<OrdersPage />} />
         <Route path="/account/orders/:id" element={<OrderDetailsPage />} />
         <Route path="/account/notifications" element={<NotificationsPage />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
       </Route>
 
       <Route element={<AdminRoute />}>

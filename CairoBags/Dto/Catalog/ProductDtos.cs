@@ -55,6 +55,7 @@ public class ProductSummaryDto
     public bool IsNewArrival { get; set; }
     public decimal AverageRating { get; set; }
     public int ReviewCount { get; set; }
+    public int VerifiedReviewCount { get; set; }
     public DateTime? PublishedAt { get; set; }
     public ProductTranslationDto? Arabic { get; set; }
     public ProductTranslationDto? English { get; set; }

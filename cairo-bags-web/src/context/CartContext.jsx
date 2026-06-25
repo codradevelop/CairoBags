@@ -9,12 +9,13 @@ import {
 import * as cartService from "../services/cartService.js";
 import { getGuestSessionId } from "../utils/sessionId.js";
 import { normalizeError } from "../utils/normalizeError.js";
+import { assertStoreShoppingAllowed } from "../utils/storePermissions.js";
 import { useAuth } from "./AuthContext.jsx";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -69,6 +70,7 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback(
     async (payload) => {
+      assertStoreShoppingAllowed(user);
       setLoading(true);
       setError(null);
       try {
@@ -86,11 +88,12 @@ export function CartProvider({ children }) {
         setLoading(false);
       }
     },
-    [isAuthenticated, sessionId]
+    [isAuthenticated, sessionId, user]
   );
 
   const updateItem = useCallback(
     async (variantId, payload) => {
+      assertStoreShoppingAllowed(user);
       setLoading(true);
       setError(null);
       try {
@@ -109,11 +112,12 @@ export function CartProvider({ children }) {
         setLoading(false);
       }
     },
-    [isAuthenticated, sessionId]
+    [isAuthenticated, sessionId, user]
   );
 
   const removeItem = useCallback(
     async (variantId) => {
+      assertStoreShoppingAllowed(user);
       setLoading(true);
       setError(null);
       try {
@@ -131,10 +135,11 @@ export function CartProvider({ children }) {
         setLoading(false);
       }
     },
-    [isAuthenticated, sessionId]
+    [isAuthenticated, sessionId, user]
   );
 
   const clearCart = useCallback(async () => {
+    assertStoreShoppingAllowed(user);
     setLoading(true);
     setError(null);
     try {
@@ -148,7 +153,7 @@ export function CartProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, sessionId]);
+  }, [isAuthenticated, sessionId, user]);
 
   const mergeAfterLogin = useCallback(async () => {
     const data = await cartService.mergeCart(sessionId);

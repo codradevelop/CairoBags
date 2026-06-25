@@ -1,10 +1,42 @@
 import { resolveMediaUrl } from "./mediaUrl.js";
 
+function getTranslationField(entity, locale, keys) {
+  if (!entity) return "";
+  const ar = entity.arabic ?? entity.Arabic;
+  const en = entity.english ?? entity.English;
+  const primary = locale === "ar" ? ar : en;
+  const fallback = locale === "ar" ? en : ar;
+
+  for (const key of keys) {
+    const value = primary?.[key];
+    if (value != null && String(value).trim()) return value;
+  }
+
+  for (const key of keys) {
+    const value = fallback?.[key];
+    if (value != null && String(value).trim()) return value;
+  }
+
+  return "";
+}
+
 export function pickTranslation(entity, locale = "en") {
   if (!entity) return null;
   const ar = entity.arabic ?? entity.Arabic;
   const en = entity.english ?? entity.English;
-  return locale === "ar" ? ar ?? en : en ?? ar;
+  const primary = locale === "ar" ? ar : en;
+  const fallback = locale === "ar" ? en : ar;
+
+  return {
+    ...(fallback ?? {}),
+    ...(primary ?? {}),
+    name: getTranslationField(entity, locale, ["name", "Name"]),
+    slug: getTranslationField(entity, locale, ["slug", "Slug"]),
+    shortDescription: getTranslationField(entity, locale, ["shortDescription", "ShortDescription"]),
+    description: getTranslationField(entity, locale, ["description", "Description"]),
+    metaTitle: getTranslationField(entity, locale, ["metaTitle", "MetaTitle"]),
+    metaDescription: getTranslationField(entity, locale, ["metaDescription", "MetaDescription"]),
+  };
 }
 
 export function getProductName(product, locale = "en") {

@@ -5,6 +5,7 @@ import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import {
   StatsCard,
   DashboardCharts,
+  LatestReviewsWidget,
   RecentOrdersTable,
   SalesChart,
 } from "../../components/admin/index.js";
@@ -126,12 +127,15 @@ export function DashboardPage() {
         <SalesChart orders={orders} loading={loading} />
       </div>
 
-      <Card variant="default" padding="md" className="mt-6">
-        <CardHeader title={locale === "ar" ? "أحدث الطلبات" : "Recent Orders"} />
-        <CardBody>
-          <RecentOrdersTable orders={recentOrders} loading={loading} />
-        </CardBody>
-      </Card>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <Card variant="default" padding="md">
+          <CardHeader title={locale === "ar" ? "أحدث الطلبات" : "Recent Orders"} />
+          <CardBody>
+            <RecentOrdersTable orders={recentOrders} loading={loading} />
+          </CardBody>
+        </Card>
+        <LatestReviewsWidget />
+      </div>
     </AdminLayout>
   );
 }

@@ -18,6 +18,7 @@ export function FileUpload({
   accept = "image/*",
   disabled = false,
   loading = false,
+  multiple = false,
   previewUrl,
   fileName,
   onChange,
@@ -53,6 +54,7 @@ export function FileUpload({
         id={inputId}
         type="file"
         accept={accept}
+        multiple={multiple}
         disabled={disabled || loading}
         onChange={onChange}
         className="sr-only"

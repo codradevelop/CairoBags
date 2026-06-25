@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/Button.jsx";
 import { FieldError, Input } from "../ui/Input.jsx";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { cn } from "../../utils/cn.js";
 
 const COPY = {
@@ -101,7 +102,7 @@ function WelcomeCouponSuccess({ copy, className }) {
   );
 }
 
-function WelcomeCouponForm({ copy, email, error, submitting, onEmailChange, onSubmit }) {
+function WelcomeCouponForm({ copy, email, error, submitting, disabled, onEmailChange, onSubmit }) {
   return (
     <div className="animate-fade-in motion-reduce:animate-none">
       <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
@@ -130,7 +131,7 @@ function WelcomeCouponForm({ copy, email, error, submitting, onEmailChange, onSu
             autoComplete="email"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "welcome-coupon-email-error" : undefined}
-            disabled={submitting}
+            disabled={disabled || submitting}
             className="transition-shadow duration-fast"
           />
           <FieldError id="welcome-coupon-email-error">{error}</FieldError>
@@ -142,7 +143,7 @@ function WelcomeCouponForm({ copy, email, error, submitting, onEmailChange, onSu
             variant="accent"
             size="lg"
             loading={submitting}
-            disabled={submitting}
+            disabled={disabled || submitting}
             className="h-12 min-w-[160px] px-6 text-base"
           >
             {copy.button}
@@ -159,6 +160,7 @@ function WelcomeCouponForm({ copy, email, error, submitting, onEmailChange, onSu
 
 export function NewsletterSection({ className }) {
   const { locale } = useLocale();
+  const readOnly = useStoreReadOnly();
   const copy = locale === "ar" ? COPY.ar : COPY.en;
 
   const [email, setEmail] = useState("");
@@ -175,6 +177,7 @@ export function NewsletterSection({ className }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (readOnly) return;
     const validationError = validateEmail(email, copy);
     if (validationError) {
       setError(validationError);
@@ -218,6 +221,7 @@ export function NewsletterSection({ className }) {
           email={email}
           error={error}
           submitting={submitting}
+          disabled={readOnly}
           onEmailChange={handleEmailChange}
           onSubmit={handleSubmit}
         />

@@ -14,6 +14,11 @@ import {
   startNotificationHub,
   stopNotificationHub,
 } from "../services/notificationHub.js";
+import {
+  parseReviewHighlightFromNotification,
+  requestReviewHighlight,
+} from "../utils/reviewScrollUtils.js";
+import { publishReviewChange } from "../utils/reviewEvents.js";
 import { normalizeError } from "../utils/normalizeError.js";
 import { useAuth } from "./AuthContext.jsx";
 
@@ -70,6 +75,11 @@ export function NotificationProvider({ children }) {
 
     connection.on(NOTIFICATION_EVENTS.RECEIVE, (notification) => {
       setLatestPush(notification);
+      if (notification?.type === "new_product_review") {
+        const reviewId = parseReviewHighlightFromNotification(notification);
+        if (reviewId) requestReviewHighlight(reviewId);
+        publishReviewChange({ action: "created", notification });
+      }
       setNotifications((prev) => {
         const exists = prev.some((n) => n.id === notification.id);
         if (exists) {

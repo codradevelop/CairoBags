@@ -20,7 +20,8 @@ public enum NotificationType : byte
     LowStockAlert = 11,
     SystemAnnouncement = 12,
     OrderCancelled = 13,
-    PaymentRefunded = 14
+    PaymentRefunded = 14,
+    NewProductReview = 15
 }
 
 [Table("Notifications")]
@@ -59,4 +60,10 @@ public class Notification
     /// Primary key of the deep-link target entity (OrderId, OrderPaymentId, ...).
     /// </summary>
     public int? TargetId { get; set; }
+
+    /// <summary>
+    /// Optional explicit client route (e.g. /products/42#reviews).
+    /// </summary>
+    [MaxLength(300)]
+    public string? DeepLinkPath { get; set; }
 }

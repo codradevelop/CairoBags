@@ -8,3 +8,4 @@ export { PaymentReviewModal } from "./PaymentReviewModal.jsx";
 export { DashboardCharts } from "./DashboardCharts.jsx";
 export { SalesChart } from "./SalesChart.jsx";
 export { RecentOrdersTable } from "./RecentOrdersTable.jsx";
+export { LatestReviewsWidget } from "./LatestReviewsWidget.jsx";

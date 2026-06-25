@@ -14,7 +14,14 @@ export function getNotificationLink(notification, { adminContext = false } = {})
     ) {
       return "/admin/payments";
     }
+    if (targetType === "ProductReview" || notification?.type === "new_product_review") {
+      const productId = deepLink?.match(/\/products\/(\d+)/)?.[1];
+      if (productId) return `/products/${productId}#reviews`;
+    }
     if (deepLink?.startsWith("/admin/")) {
+      return deepLink;
+    }
+    if (deepLink?.startsWith("/products/")) {
       return deepLink;
     }
   }

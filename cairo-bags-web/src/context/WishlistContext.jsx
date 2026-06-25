@@ -13,12 +13,13 @@ import {
   normalizeWishlistToggleResponse,
 } from "../utils/wishlistHelpers.js";
 import { normalizeError } from "../utils/normalizeError.js";
+import { assertStoreShoppingAllowed } from "../utils/storePermissions.js";
 import { useAuth } from "./AuthContext.jsx";
 
 const WishlistContext = createContext(null);
 
 export function WishlistProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -80,6 +81,7 @@ export function WishlistProvider({ children }) {
 
   const toggleWishlist = useCallback(
     async (productId) => {
+      assertStoreShoppingAllowed(user);
       if (!isAuthenticated) {
         const authError = normalizeError({ response: { status: 401, data: { message: "Authentication is required." } } });
         throw authError;
@@ -106,11 +108,12 @@ export function WishlistProvider({ children }) {
         throw normalized;
       }
     },
-    [isAuthenticated, loadWishlist]
+    [isAuthenticated, loadWishlist, user]
   );
 
   const remove = useCallback(
     async (productId) => {
+      assertStoreShoppingAllowed(user);
       if (!isAuthenticated) {
         const authError = normalizeError({ response: { status: 401, data: { message: "Authentication is required." } } });
         throw authError;
@@ -131,7 +134,7 @@ export function WishlistProvider({ children }) {
         throw normalized;
       }
     },
-    [isAuthenticated]
+    [isAuthenticated, user]
   );
 
   const isInWishlist = useCallback(

@@ -14,13 +14,28 @@ import {
   getProductVariants,
 } from "../../utils/productHelpers.js";
 
+function mapVariantToForm(variant) {
+  return {
+    id: variant?.id ?? variant?.Id,
+    colorNameAr: variant?.colorNameAr ?? variant?.ColorNameAr ?? "",
+    colorNameEn: variant?.colorNameEn ?? variant?.ColorNameEn ?? "",
+    sizeNameAr: variant?.sizeNameAr ?? variant?.SizeNameAr ?? "",
+    sizeNameEn: variant?.sizeNameEn ?? variant?.SizeNameEn ?? "",
+    sku: variant?.sku ?? variant?.Sku ?? "",
+    price: variant?.price ?? variant?.Price ?? "",
+    compareAtPrice: variant?.compareAtPrice ?? variant?.CompareAtPrice ?? "",
+    status: variant?.status ?? variant?.Status ?? 1,
+    isDefault: variant?.isDefault ?? variant?.IsDefault ?? false,
+    quantity: variant?.quantityOnHand ?? variant?.QuantityOnHand ?? 0,
+    lowStockThreshold: variant?.lowStockThreshold ?? variant?.LowStockThreshold ?? 5,
+  };
+}
+
 function mapProductToForm(product) {
   const ar = product?.arabic ?? product?.Arabic ?? {};
   const en = product?.english ?? product?.English ?? {};
   const variants = getProductVariants(product);
-  const defaultVariant = variants.find((v) => v.isDefault ?? v.IsDefault) ?? variants[0] ?? {};
   const images = getProductImages(product);
-  const primary = images.find((img) => img.isPrimary ?? img.IsPrimary) ?? images[0];
 
   return {
     categoryId: product?.categoryId ?? product?.CategoryId ?? "",
@@ -36,21 +51,18 @@ function mapProductToForm(product) {
     shortDescriptionEn: en.shortDescription ?? en.ShortDescription ?? "",
     descriptionAr: ar.description ?? ar.Description ?? "",
     descriptionEn: en.description ?? en.Description ?? "",
-    imageUrl: primary?.imageUrl ?? primary?.ImageUrl ?? getPrimaryImagePath(product) ?? "",
-    variants: [
-      {
-        id: defaultVariant.id ?? defaultVariant.Id,
-        colorNameAr: defaultVariant.colorNameAr ?? defaultVariant.ColorNameAr ?? "",
-        colorNameEn: defaultVariant.colorNameEn ?? defaultVariant.ColorNameEn ?? "",
-        sku: defaultVariant.sku ?? defaultVariant.Sku ?? "",
-        price: defaultVariant.price ?? defaultVariant.Price ?? "",
-        compareAtPrice: defaultVariant.compareAtPrice ?? defaultVariant.CompareAtPrice ?? "",
-        status: defaultVariant.status ?? defaultVariant.Status ?? 1,
-        quantity: defaultVariant.quantityOnHand ?? defaultVariant.QuantityOnHand ?? 0,
-        lowStockThreshold:
-          defaultVariant.lowStockThreshold ?? defaultVariant.LowStockThreshold ?? 5,
-      },
-    ],
+    imageUrl: getPrimaryImagePath(product) ?? "",
+    variants: variants.length > 0 ? variants.map(mapVariantToForm) : [mapVariantToForm(null)],
+    images:
+      images.length > 0
+        ? images.map((img, index) => ({
+            id: img?.id ?? img?.Id,
+            imageUrl: img?.imageUrl ?? img?.ImageUrl ?? "",
+            fileName: "",
+            isPrimary: img?.isPrimary ?? img?.IsPrimary ?? index === 0,
+            uploading: false,
+          }))
+        : [],
   };
 }
 

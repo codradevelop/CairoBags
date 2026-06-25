@@ -7,9 +7,11 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useWishlist } from "../../context/WishlistContext.jsx";
 import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../ui/Toast.jsx";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import * as productService from "../../services/productService.js";
 import { ProductPrice } from "./ProductPrice.jsx";
 import { ProductBadges } from "./ProductBadges.jsx";
+import { ProductRatingLine } from "../reviews/ProductRatingLine.jsx";
 import { QuickAddModal } from "./QuickAddModal.jsx";
 import {
   buildProductPath,
@@ -95,73 +97,14 @@ function getDiscountPercent(product) {
   return Math.round(((Number(compare) - Number(low)) / Number(compare)) * 100);
 }
 
-function getProductRating(product) {
-  return {
-    rating: Number(product?.averageRating ?? product?.AverageRating ?? 0),
-    count: Number(product?.reviewCount ?? product?.ReviewCount ?? 0),
-  };
-}
-
 function getPurchasableVariants(product) {
   return getProductVariants(product).filter((variant) => isVariantInStock(variant));
 }
 
-function StarIcon({ filled = false, className }) {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      className={cn(filled ? "text-brand-accent" : "text-brand-border", className)}
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-      />
-    </svg>
-  );
-}
-
-function ProductRating({ product, className }) {
-  const { locale } = useLocale();
-  const { rating, count } = getProductRating(product);
-  const displayRating = rating > 0 ? rating : 0;
-  const stars = Array.from({ length: 5 }, (_, index) => displayRating >= index + 1);
-
-  return (
-    <div
-      className={cn("flex items-center gap-1.5", className)}
-      aria-label={
-        displayRating > 0
-          ? locale === "ar"
-            ? `التقييم ${displayRating.toFixed(1)} من 5`
-            : `Rated ${displayRating.toFixed(1)} out of 5`
-          : locale === "ar"
-            ? "لا توجد تقييمات بعد"
-            : "No ratings yet"
-      }
-    >
-      <div className="flex items-center gap-0.5">
-        {stars.map((filled, index) => (
-          <StarIcon key={index} filled={filled} />
-        ))}
-      </div>
-      {displayRating > 0 ? (
-        <span className="text-xs text-brand-muted">
-          {displayRating.toFixed(1)}
-          {count > 0 ? ` (${count})` : ""}
-        </span>
-      ) : (
-        <span className="text-xs text-brand-muted/70">
-          {locale === "ar" ? "قريباً" : "Coming soon"}
-        </span>
-      )}
-    </div>
-  );
-}
-
 function WishlistButton({ productId, className }) {
+  const readOnly = useStoreReadOnly();
+  if (readOnly) return null;
+
   const { locale } = useLocale();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -380,6 +323,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
   const { locale } = useLocale();
   const navigate = useNavigate();
   const hoverCapable = useHoverCapable();
+  const readOnly = useStoreReadOnly();
   const { addItem } = useCart();
   const { success, error: toastError } = useToast();
 
@@ -397,6 +341,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
   const labels = useMemo(
     () => ({
       quickView: locale === "ar" ? "عرض سريع" : "Quick View",
+      viewProduct: locale === "ar" ? "عرض المنتج" : "View Product",
       addToCart: locale === "ar" ? "أضف للسلة" : "Add to Cart",
       soldOut: locale === "ar" ? "نفد" : "Sold Out",
       added: locale === "ar" ? "أُضيف إلى السلة" : "Added to cart",
@@ -489,28 +434,40 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
                 compact && "px-3 pb-3"
               )}
             >
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-brand-secondary/30 bg-brand-surface/95 text-brand-text backdrop-blur-sm hover:border-brand-accent hover:bg-brand-surface"
-                  onClick={handleQuickView}
-                >
-                  {labels.quickView}
-                </Button>
+              {readOnly ? (
                 <Button
                   type="button"
                   variant="accent"
                   size="sm"
-                  loading={adding}
-                  disabled={adding || !inStock}
                   className="w-full"
-                  onClick={handleAddToCart}
+                  onClick={handleQuickView}
                 >
-                  {inStock ? labels.addToCart : labels.soldOut}
+                  {labels.viewProduct}
                 </Button>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-brand-secondary/30 bg-brand-surface/95 text-brand-text backdrop-blur-sm hover:border-brand-accent hover:bg-brand-surface"
+                    onClick={handleQuickView}
+                  >
+                    {labels.quickView}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="accent"
+                    size="sm"
+                    loading={adding}
+                    disabled={adding || !inStock}
+                    className="w-full"
+                    onClick={handleAddToCart}
+                  >
+                    {inStock ? labels.addToCart : labels.soldOut}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -520,10 +477,12 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
           </div>
 
           <div className="absolute end-3 top-3 z-20">
-            <WishlistButton
-              productId={productId}
-              className="transition-all duration-300 group-hover:scale-105 sm:group-hover:scale-110"
-            />
+            {!readOnly ? (
+              <WishlistButton
+                productId={productId}
+                className="transition-all duration-300 group-hover:scale-105 sm:group-hover:scale-110"
+              />
+            ) : null}
           </div>
 
           <div
@@ -544,7 +503,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
                 {name}
               </h3>
 
-              <ProductRating product={product} />
+              <ProductRatingLine product={product} size="xs" linkToReviews={`${href}#reviews`} />
               <ProductPrice product={product} size="sm" />
               <ColorVariants product={product} className="sm:opacity-80 sm:group-hover:opacity-100" />
             </Link>
@@ -564,14 +523,16 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
         </div>
       </article>
 
-      <QuickAddModal
-        open={quickAddOpen}
-        product={quickAddProduct}
-        onClose={() => {
-          setQuickAddOpen(false);
-          setQuickAddProduct(null);
-        }}
-      />
+      {!readOnly ? (
+        <QuickAddModal
+          open={quickAddOpen}
+          product={quickAddProduct}
+          onClose={() => {
+            setQuickAddOpen(false);
+            setQuickAddProduct(null);
+          }}
+        />
+      ) : null}
     </>
   );
 });

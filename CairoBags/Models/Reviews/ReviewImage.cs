@@ -12,5 +12,7 @@ public class ReviewImage : BaseEntity
 
     public bool IsPrimary { get; set; }
 
+    public int SortOrder { get; set; }
+
     public virtual ProductReview ProductReview { get; set; } = null!;
 }

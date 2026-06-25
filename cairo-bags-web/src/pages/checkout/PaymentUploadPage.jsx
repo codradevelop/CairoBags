@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, Navigate } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
@@ -7,7 +7,17 @@ import { useToast } from "../../components/ui/Toast.jsx";
 import * as paymentService from "../../services/paymentService.js";
 import { formatCheckoutResponse } from "../../utils/cartHelpers.js";
 import { getPaymentMethodLabel } from "../../constants/paymentMethodOptions.js";
-import { Button, Card, CardBody, CardHeader, FieldError, Input, InputGroup, Label } from "../../components/ui/index.js";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  FieldError,
+  FileUpload,
+  Input,
+  InputGroup,
+  Label,
+} from "../../components/ui/index.js";
 
 export function PaymentUploadPage() {
   const { orderId } = useParams();
@@ -23,10 +33,40 @@ export function PaymentUploadPage() {
     transactionReference: "",
   });
   const [files, setFiles] = useState([]);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [selectedFileName, setSelectedFileName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
 
   usePageTitle(locale === "ar" ? "رفع إثبات الدفع" : "Upload Payment Proof");
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
+  function handleProofFilesChange(event) {
+    const selected = Array.from(event.target.files ?? []);
+    setFiles(selected);
+
+    setPreviewUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return selected[0] ? URL.createObjectURL(selected[0]) : null;
+    });
+
+    if (selected.length === 0) {
+      setSelectedFileName("");
+    } else if (selected.length === 1) {
+      setSelectedFileName(selected[0].name);
+    } else {
+      setSelectedFileName(
+        locale === "ar" ? `${selected.length} ملفات` : `${selected.length} files`
+      );
+    }
+  }
 
   if (!location.state?.checkout) {
     return <Navigate to="/account/orders" replace />;
@@ -134,11 +174,12 @@ export function PaymentUploadPage() {
               </InputGroup>
               <InputGroup>
                 <Label required>{locale === "ar" ? "صورة إثبات الدفع" : "Payment proof image"}</Label>
-                <Input
-                  type="file"
+                <FileUpload
                   accept="image/*"
                   multiple
-                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+                  previewUrl={previewUrl}
+                  fileName={selectedFileName}
+                  onChange={handleProofFilesChange}
                 />
                 <FieldError>{fieldErrors.files}</FieldError>
               </InputGroup>

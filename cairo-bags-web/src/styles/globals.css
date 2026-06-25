@@ -304,4 +304,27 @@
     z-index: 1;
     border-radius: inherit;
   }
+
+  /* ─── Review animations ─── */
+  .review-card-enter {
+    animation: review-card-enter 0.55s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+  }
+
+  .review-summary-glow {
+    box-shadow: var(--cb-shadow-glow);
+    border-color: rgba(201, 169, 98, 0.45);
+  }
+}
+
+@keyframes review-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+    box-shadow: 0 2px 8px -2px rgba(17, 17, 17, 0.04);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    box-shadow: var(--cb-shadow-card);
+  }
 }

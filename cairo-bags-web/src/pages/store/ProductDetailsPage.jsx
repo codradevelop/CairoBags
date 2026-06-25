@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
@@ -24,7 +24,20 @@ import {
   getVariantPrice,
   isVariantInStock,
 } from "../../utils/productHelpers.js";
+import {
+  getCartItemQuantity,
+  getCartItemVariantId,
+  getCartItems,
+} from "../../utils/cartHelpers.js";
 import { Button, Label } from "../../components/ui/index.js";
+import { AdminPreviewBadge } from "../../components/store/AdminPreviewBanner.jsx";
+import { ProductRatingHeader, ReviewSection } from "../../components/reviews/index.js";
+import { useProductRatings } from "../../context/ProductRatingContext.jsx";
+import {
+  requestReviewsHighlight,
+  scrollToReviewsSection,
+} from "../../utils/reviewScrollUtils.js";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { cn } from "../../utils/cn.js";
 
 // ── Size helper (mirrors QuickAddModal) ───────────────────────────────────────
@@ -37,9 +50,12 @@ function getVariantSizeName(variant, locale) {
 
 export function ProductDetailsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { locale } = useLocale();
-  const { addItem, loading: cartLoading } = useCart();
+  const { addItem, updateItem, cart } = useCart();
   const { success, error: toastError } = useToast();
+  const readOnly = useStoreReadOnly();
+  const { getRatingForProduct } = useProductRatings();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -47,6 +63,8 @@ export function ProductDetailsPage() {
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [buying, setBuying] = useState(false);
+  const [ratingStats, setRatingStats] = useState(null);
 
   const productName = product ? getProductName(product, locale) : "";
   usePageTitle(productName || (locale === "ar" ? "المنتج" : "Product"));
@@ -74,7 +92,29 @@ export function ProductDetailsPage() {
 
   useEffect(() => {
     loadProduct();
+    setRatingStats(null);
   }, [loadProduct]);
+
+  useEffect(() => {
+    if (loading || !product) return;
+    if (window.location.hash !== "#reviews") return;
+    requestReviewsHighlight();
+    const timer = window.setTimeout(() => {
+      scrollToReviewsSection();
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [loading, product]);
+
+  const displayRatingStats = useMemo(
+    () => ratingStats ?? getRatingForProduct(product),
+    [ratingStats, product, getRatingForProduct]
+  );
+
+  const scrollToReviews = useCallback(() => {
+    requestReviewsHighlight();
+    scrollToReviewsSection();
+    window.history.replaceState(null, "", `${window.location.pathname}#reviews`);
+  }, []);
 
   const variants = useMemo(
     () => (product ? getProductVariants(product) : []),
@@ -136,23 +176,73 @@ export function ProductDetailsPage() {
   const description = product ? getProductDescription(product, locale) : "";
   const inStock = selectedVariant ? isVariantInStock(selectedVariant) : false;
 
-  async function handleAddToCart() {
+  const labels = useMemo(
+    () => ({
+      buyNow: locale === "ar" ? "اشترِ الآن" : "Buy Now",
+      addToCart: locale === "ar" ? "أضف إلى السلة" : "Add to Cart",
+      selectVariant: locale === "ar" ? "اختر المتغير" : "Please select a variant",
+      outOfStock: locale === "ar" ? "غير متوفر" : "Out of stock",
+      added: locale === "ar" ? "أُضيف إلى السلة" : "Added to cart",
+      addFailed: locale === "ar" ? "فشل الإضافة" : "Could not add to cart",
+    }),
+    [locale]
+  );
+
+  const addOrUpdateCartItem = useCallback(
+    async (variantId, quantity) => {
+      const items = getCartItems(cart);
+      const existing = items.find((item) => getCartItemVariantId(item) === variantId);
+
+      if (existing) {
+        await updateItem(variantId, {
+          quantity: getCartItemQuantity(existing) + quantity,
+        });
+      } else {
+        await addItem({ productVariantId: variantId, quantity });
+      }
+    },
+    [addItem, cart, updateItem]
+  );
+
+  async function validateSelection() {
     if (!selectedVariantId) {
-      toastError(locale === "ar" ? "اختر المتغير" : "Please select a variant");
-      return;
+      toastError(labels.selectVariant);
+      return false;
     }
     if (!inStock) {
-      toastError(locale === "ar" ? "غير متوفر" : "Out of stock");
-      return;
+      toastError(labels.outOfStock);
+      return false;
     }
+    return true;
+  }
+
+  async function handleAddToCart() {
+    if (readOnly) return;
+    if (!(await validateSelection())) return;
+
     setAdding(true);
     try {
-      await addItem({ productVariantId: selectedVariantId, quantity: 1 });
-      success(locale === "ar" ? "أُضيف إلى السلة" : "Added to cart");
+      await addOrUpdateCartItem(selectedVariantId, 1);
+      success(labels.added);
     } catch (err) {
-      toastError(err.message || (locale === "ar" ? "فشل الإضافة" : "Could not add to cart"));
+      toastError(err.message || labels.addFailed);
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleBuyNow() {
+    if (readOnly) return;
+    if (!(await validateSelection())) return;
+
+    setBuying(true);
+    try {
+      await addOrUpdateCartItem(selectedVariantId, 1);
+      navigate("/checkout");
+    } catch (err) {
+      toastError(err.message || labels.addFailed);
+    } finally {
+      setBuying(false);
     }
   }
 
@@ -193,10 +283,21 @@ export function ProductDetailsPage() {
           <ProductGallery images={images} productName={productName} />
 
           <div>
-            <ProductBadges product={product} className="mb-4" />
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <ProductBadges product={product} />
+              <AdminPreviewBadge />
+            </div>
             <h1 className="font-display text-3xl font-medium text-brand-text md:text-4xl">
               {productName}
             </h1>
+
+            {displayRatingStats ? (
+              <ProductRatingHeader
+                stats={displayRatingStats}
+                onScrollToReviews={scrollToReviews}
+                loaded={!loading}
+              />
+            ) : null}
 
             <ProductPrice
               className="mt-4"
@@ -321,19 +422,42 @@ export function ProductDetailsPage() {
               </p>
             </div>
 
-            <Button
-              type="button"
-              variant="accent"
-              size="lg"
-              className="mt-8 w-full sm:w-auto"
-              disabled={!inStock || !selectedVariantId}
-              loading={adding || cartLoading}
-              onClick={handleAddToCart}
-            >
-              {locale === "ar" ? "أضف إلى السلة" : "Add to Cart"}
-            </Button>
+            {!readOnly && inStock ? (
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  variant="accent"
+                  size="lg"
+                  className="w-full sm:flex-1"
+                  disabled={!selectedVariantId}
+                  loading={buying}
+                  onClick={handleBuyNow}
+                >
+                  {labels.buyNow}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="w-full border-brand-accent/40 sm:flex-1 hover:border-brand-accent hover:bg-brand-accent/5"
+                  disabled={!selectedVariantId}
+                  loading={adding && !buying}
+                  onClick={handleAddToCart}
+                >
+                  {labels.addToCart}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
+      ) : null}
+
+      {!loading && !error && product ? (
+        <ReviewSection
+          productId={product.id ?? product.Id ?? id}
+          onStatsChange={setRatingStats}
+          className="mt-14"
+        />
       ) : null}
     </StoreLayout>
   );

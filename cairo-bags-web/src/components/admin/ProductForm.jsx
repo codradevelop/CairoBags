@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import * as fileService from "../../services/fileService.js";
-import { slugify } from "../../utils/pagination.js";
+import { useAutoTranslate } from "../../hooks/useAutoTranslate.js";
+import { useToast } from "../ui/Toast.jsx";
+import { generateSlug } from "../../utils/slugHelper.js";
 import { FileUpload } from "../ui/FileUpload.jsx";
 import {
   Button,
@@ -47,6 +49,30 @@ const EMPTY_PRODUCT = {
   variants: [{ ...DEFAULT_VARIANT }],
 };
 
+const PRODUCT_EN_KEYS = [
+  "nameEn",
+  "slugEn",
+  "shortDescriptionEn",
+  "descriptionEn",
+];
+
+const PRODUCT_AR_TO_EN = [
+  { ar: "nameAr", en: "nameEn", slugResult: false },
+  { ar: "nameAr", en: "slugEn", slugResult: true },
+  { ar: "slugAr", en: "slugEn", slugResult: true },
+  { ar: "shortDescriptionAr", en: "shortDescriptionEn", slugResult: false },
+  { ar: "descriptionAr", en: "descriptionEn", slugResult: false },
+];
+
+const VARIANT_AR_TO_EN = [
+  { ar: "colorNameAr", en: "colorNameEn", slugResult: false },
+  { ar: "sizeNameAr", en: "sizeNameEn", slugResult: false },
+];
+
+function variantEnKey(index, field) {
+  return `variant:${index}:${field}`;
+}
+
 function TrashIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -74,6 +100,7 @@ function StarIcon({ filled }) {
 export function ProductForm({ initialValues, categories = [], onSubmit, submitting }) {
   const { locale } = useLocale();
   const isAr = locale === "ar";
+  const { error: toastError } = useToast();
 
   const [form, setForm] = useState(() => {
     const merged = { ...EMPTY_PRODUCT, ...initialValues };
@@ -91,16 +118,57 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
     return merged;
   });
   const [errors, setErrors] = useState({});
+  const [waitingTranslation, setWaitingTranslation] = useState(false);
+  const formRef = useRef(form);
+
+  const { seedLockedEnglishFields, handleEnglishChange, queueTranslation, waitForPendingTranslations } =
+    useAutoTranslate({
+      onWarning: (message) => toastError(message),
+    });
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    const merged = { ...EMPTY_PRODUCT, ...initialValues };
+    const extraLocked = [];
+    (merged.variants ?? []).forEach((variant, index) => {
+      if (variant?.colorNameEn?.trim()) extraLocked.push(variantEnKey(index, "colorNameEn"));
+      if (variant?.sizeNameEn?.trim()) extraLocked.push(variantEnKey(index, "sizeNameEn"));
+    });
+    seedLockedEnglishFields(merged, PRODUCT_EN_KEYS, extraLocked);
+  }, [initialValues, seedLockedEnglishFields]);
 
   // ── Field helpers ─────────────────────────────────────────────────────────
+
+  function applyEnglishField(enKey, value) {
+    setForm((prev) => {
+      const next = { ...prev, [enKey]: value };
+      formRef.current = next;
+      return next;
+    });
+  }
 
   function updateField(key, value) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === "nameEn" && !prev.slugEn) next.slugEn = slugify(value);
-      if (key === "nameAr" && !prev.slugAr) next.slugAr = slugify(value);
+      if (key === "nameAr" && !prev.slugAr) next.slugAr = generateSlug(value);
       return next;
     });
+
+    PRODUCT_AR_TO_EN.filter((item) => item.ar === key).forEach((pair) => {
+      queueTranslation({
+        arText: value,
+        enKey: pair.en,
+        slugResult: pair.slugResult,
+        applyTranslation: applyEnglishField,
+      });
+    });
+  }
+
+  function updateEnglishField(key, value) {
+    handleEnglishChange(key, value, applyEnglishField);
   }
 
   function updateVariant(index, key, value) {
@@ -108,6 +176,38 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
       const variants = [...prev.variants];
       variants[index] = { ...variants[index], [key]: value };
       return { ...prev, variants };
+    });
+
+    const pair = VARIANT_AR_TO_EN.find((item) => item.ar === key);
+    if (pair) {
+      const enKey = variantEnKey(index, pair.en);
+      queueTranslation({
+        arText: value,
+        enKey,
+        slugResult: pair.slugResult,
+        applyTranslation: (_enKey, translated) => {
+          setForm((prev) => {
+            const variants = [...prev.variants];
+            variants[index] = { ...variants[index], [pair.en]: translated };
+            const next = { ...prev, variants };
+            formRef.current = next;
+            return next;
+          });
+        },
+      });
+    }
+  }
+
+  function updateVariantEnglish(index, key, value) {
+    const enKey = variantEnKey(index, key);
+    handleEnglishChange(enKey, value, (_field, nextValue) => {
+      setForm((prev) => {
+        const variants = [...prev.variants];
+        variants[index] = { ...variants[index], [key]: nextValue };
+        const next = { ...prev, variants };
+        formRef.current = next;
+        return next;
+      });
     });
   }
 
@@ -210,37 +310,47 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
     event.preventDefault();
     if (!validate()) return;
 
+    setWaitingTranslation(true);
+    try {
+      await waitForPendingTranslations();
+    } finally {
+      setWaitingTranslation(false);
+    }
+
+    const current = formRef.current;
+
     const payload = {
-      categoryId: Number(form.categoryId),
-      status: Number(form.status),
-      compareAtPrice: form.compareAtPrice ? Number(form.compareAtPrice) : null,
-      isFeatured: Boolean(form.isFeatured),
-      isNewArrival: Boolean(form.isNewArrival),
-      nameAr: form.nameAr.trim(),
-      nameEn: form.nameEn.trim(),
-      slugAr: form.slugAr.trim(),
-      slugEn: form.slugEn.trim(),
-      shortDescriptionAr: form.shortDescriptionAr?.trim() || null,
-      shortDescriptionEn: form.shortDescriptionEn?.trim() || null,
-      descriptionAr: form.descriptionAr?.trim() || null,
-      descriptionEn: form.descriptionEn?.trim() || null,
-      variants: form.variants.map((v, index) => ({
+      categoryId: Number(current.categoryId),
+      status: Number(current.status),
+      compareAtPrice: current.compareAtPrice ? Number(current.compareAtPrice) : null,
+      isFeatured: Boolean(current.isFeatured),
+      isNewArrival: Boolean(current.isNewArrival),
+      nameAr: current.nameAr.trim(),
+      nameEn: current.nameEn.trim(),
+      slugAr: current.slugAr.trim(),
+      slugEn: current.slugEn.trim(),
+      shortDescriptionAr: current.shortDescriptionAr?.trim() || null,
+      shortDescriptionEn: current.shortDescriptionEn?.trim() || null,
+      descriptionAr: current.descriptionAr?.trim() || null,
+      descriptionEn: current.descriptionEn?.trim() || null,
+      variants: current.variants.map((v) => ({
         id: v.id ?? undefined,
-        colorNameAr: v.colorNameAr?.trim() || form.nameAr,
-        colorNameEn: v.colorNameEn?.trim() || form.nameEn,
+        colorNameAr: v.colorNameAr?.trim() || current.nameAr,
+        colorNameEn: v.colorNameEn?.trim() || current.nameEn,
         sizeNameAr: v.sizeNameAr?.trim() || "",
         sizeNameEn: v.sizeNameEn?.trim() || "",
         sku: v.sku.trim(),
         price: Number(v.price) || 0,
         compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : null,
         status: Number(v.status) || 1,
-        isDefault: index === 0,
+        isDefault: Boolean(v.isDefault),
         quantity: Number(v.quantity) || 0,
         lowStockThreshold: Number(v.lowStockThreshold) || 5,
       })),
-      images: form.images
+      images: current.images
         .filter((img) => img.imageUrl)
         .map((img, i) => ({
+          id: img.id ?? undefined,
           imageUrl: img.imageUrl,
           isPrimary: img.isPrimary,
           sortOrder: i,
@@ -263,7 +373,9 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
     nameEn: isAr ? "الاسم (إنجليزي)" : "Name (English)",
     slugAr: isAr ? "الرابط (عربي)" : "Slug (Arabic)",
     slugEn: isAr ? "الرابط (إنجليزي)" : "Slug (English)",
+    shortDescAr: isAr ? "وصف قصير (عربي)" : "Short description (Arabic)",
     shortDescEn: isAr ? "وصف قصير (إنجليزي)" : "Short description (English)",
+    descAr: isAr ? "الوصف (عربي)" : "Description (Arabic)",
     descEn: isAr ? "الوصف (إنجليزي)" : "Description (English)",
     images: isAr ? "صور المنتج" : "Product images",
     imagesHint: isAr ? "انقر على النجمة لتعيين الصورة الرئيسية" : "Click the star to set the primary image",
@@ -337,7 +449,7 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
           </InputGroup>
           <InputGroup>
             <Label required>{t.nameEn}</Label>
-            <Input value={form.nameEn} onChange={(e) => updateField("nameEn", e.target.value)} />
+            <Input value={form.nameEn} onChange={(e) => updateEnglishField("nameEn", e.target.value)} />
             <FieldError>{errors.nameEn}</FieldError>
           </InputGroup>
 
@@ -349,18 +461,26 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
           </InputGroup>
           <InputGroup>
             <Label required>{t.slugEn}</Label>
-            <Input value={form.slugEn} onChange={(e) => updateField("slugEn", e.target.value)} />
+            <Input value={form.slugEn} onChange={(e) => updateEnglishField("slugEn", e.target.value)} />
             <FieldError>{errors.slugEn}</FieldError>
           </InputGroup>
 
           {/* Descriptions */}
           <InputGroup className="md:col-span-2">
+            <Label>{t.shortDescAr}</Label>
+            <Textarea value={form.shortDescriptionAr} onChange={(e) => updateField("shortDescriptionAr", e.target.value)} dir="rtl" />
+          </InputGroup>
+          <InputGroup className="md:col-span-2">
             <Label>{t.shortDescEn}</Label>
-            <Textarea value={form.shortDescriptionEn} onChange={(e) => updateField("shortDescriptionEn", e.target.value)} />
+            <Textarea value={form.shortDescriptionEn} onChange={(e) => updateEnglishField("shortDescriptionEn", e.target.value)} />
+          </InputGroup>
+          <InputGroup className="md:col-span-2">
+            <Label>{t.descAr}</Label>
+            <Textarea value={form.descriptionAr} onChange={(e) => updateField("descriptionAr", e.target.value)} dir="rtl" />
           </InputGroup>
           <InputGroup className="md:col-span-2">
             <Label>{t.descEn}</Label>
-            <Textarea value={form.descriptionEn} onChange={(e) => updateField("descriptionEn", e.target.value)} />
+            <Textarea value={form.descriptionEn} onChange={(e) => updateEnglishField("descriptionEn", e.target.value)} />
           </InputGroup>
 
           {/* ── Product images ─────────────────────────────────────────── */}
@@ -500,7 +620,7 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
                     </InputGroup>
                     <InputGroup>
                       <Label>{t.colorEn}</Label>
-                      <Input value={variant.colorNameEn} onChange={(e) => updateVariant(index, "colorNameEn", e.target.value)} placeholder="e.g. Black" />
+                      <Input value={variant.colorNameEn} onChange={(e) => updateVariantEnglish(index, "colorNameEn", e.target.value)} placeholder="e.g. Black" />
                     </InputGroup>
                     <InputGroup>
                       <Label>{t.sizeAr}</Label>
@@ -508,7 +628,7 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
                     </InputGroup>
                     <InputGroup>
                       <Label>{t.sizeEn}</Label>
-                      <Input value={variant.sizeNameEn} onChange={(e) => updateVariant(index, "sizeNameEn", e.target.value)} placeholder="e.g. Small, M, 40" />
+                      <Input value={variant.sizeNameEn} onChange={(e) => updateVariantEnglish(index, "sizeNameEn", e.target.value)} placeholder="e.g. Small, M, 40" />
                     </InputGroup>
                     <InputGroup>
                       <Label required>{t.sku}</Label>
@@ -561,7 +681,7 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
         </CardBody>
 
         <CardFooter>
-          <Button type="submit" variant="accent" loading={submitting || anyUploading}>
+          <Button type="submit" variant="accent" loading={submitting || anyUploading || waitingTranslation}>
             {t.save}
           </Button>
         </CardFooter>

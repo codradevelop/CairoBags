@@ -76,6 +76,8 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
 
     public virtual DbSet<ReviewImage> ReviewImages { get; set; }
 
+    public virtual DbSet<ReviewHelpful> ReviewHelpfuls { get; set; }
+
     public virtual DbSet<Coupon> Coupons { get; set; }
 
     public virtual DbSet<CouponUsage> CouponUsages { get; set; }
@@ -609,14 +611,19 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(e => e.UserId).HasMaxLength(450);
             entity.Property(e => e.Status).HasConversion<byte>();
+            entity.Property(e => e.Title).HasMaxLength(200);
             entity.Property(e => e.Comment).HasMaxLength(2000);
             entity.Property(e => e.AdminResponse).HasMaxLength(2000);
 
             entity.HasIndex(e => new { e.ProductId, e.UserId }).IsUnique();
             entity.HasIndex(e => e.ProductId);
             entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.OrderId);
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.IsVisible);
+            entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => new { e.ProductId, e.Status });
+            entity.HasIndex(e => new { e.ProductId, e.IsVisible });
 
             entity.ToTable(t => t.HasCheckConstraint(
                 "CK_ProductReviews_Rating",
@@ -631,6 +638,11 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
                 .WithMany(e => e.ProductReviews)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Order)
+                .WithMany()
+                .HasForeignKey(e => e.OrderId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<ReviewImage>(entity =>
@@ -648,6 +660,27 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
                 .WithMany(e => e.Images)
                 .HasForeignKey(e => e.ProductReviewId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ReviewHelpful>(entity =>
+        {
+            entity.ToTable("ReviewHelpfuls");
+
+            entity.Property(e => e.UserId).HasMaxLength(450);
+
+            entity.HasIndex(e => e.ProductReviewId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.ProductReviewId, e.UserId }).IsUnique();
+
+            entity.HasOne(e => e.ProductReview)
+                .WithMany(e => e.HelpfulVotes)
+                .HasForeignKey(e => e.ProductReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

@@ -4,6 +4,7 @@ import { Button } from "../ui/Button.jsx";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../ui/Toast.jsx";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { ProductPrice } from "./ProductPrice.jsx";
 import {
   getProductImageUrl,
@@ -53,6 +54,7 @@ function QuantityStepper({ value, onChange, min = 1, max = 99, disabled }) {
 
 export function QuickAddModal({ open, product, onClose }) {
   const { locale } = useLocale();
+  const readOnly = useStoreReadOnly();
   const { addItem } = useCart();
   const { success, error: toastError } = useToast();
 
@@ -170,6 +172,7 @@ export function QuickAddModal({ open, product, onClose }) {
 
   // ── Add to cart ───────────────────────────────────────────────────────────
   async function handleAddToCart() {
+    if (readOnly) return;
     if (!selectedVariantId) {
       toastError(labels.selectVariant);
       return;
@@ -191,7 +194,7 @@ export function QuickAddModal({ open, product, onClose }) {
     }
   }
 
-  if (!open || !product) return null;
+  if (!open || !product || readOnly) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[60]" role="presentation">

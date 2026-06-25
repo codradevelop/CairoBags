@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import * as fileService from "../../services/fileService.js";
-import { slugify } from "../../utils/pagination.js";
+import { useAutoTranslate } from "../../hooks/useAutoTranslate.js";
+import { useToast } from "../ui/Toast.jsx";
+import { generateSlug } from "../../utils/slugHelper.js";
 import {
   Button,
   Card,
@@ -28,24 +30,67 @@ const EMPTY_CATEGORY = {
   descriptionEn: "",
 };
 
+const EN_FIELD_KEYS = ["nameEn", "slugEn", "descriptionEn"];
+
+const AR_TO_EN_PAIRS = [
+  { ar: "nameAr", en: "nameEn", slugResult: false },
+  { ar: "nameAr", en: "slugEn", slugResult: true },
+  { ar: "slugAr", en: "slugEn", slugResult: true },
+  { ar: "descriptionAr", en: "descriptionEn", slugResult: false },
+];
+
 export function CategoryForm({ initialValues, categories = [], onSubmit, submitting }) {
   const { locale } = useLocale();
+  const { error: toastError } = useToast();
   const [form, setForm] = useState({ ...EMPTY_CATEGORY, ...initialValues });
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
+  const [waitingTranslation, setWaitingTranslation] = useState(false);
+  const formRef = useRef(form);
+
+  const { seedLockedEnglishFields, handleEnglishChange, queueTranslation, waitForPendingTranslations } =
+    useAutoTranslate({
+      onWarning: (message) => toastError(message),
+    });
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    seedLockedEnglishFields({ ...EMPTY_CATEGORY, ...initialValues }, EN_FIELD_KEYS);
+  }, [initialValues, seedLockedEnglishFields]);
+
+  function applyEnglishField(enKey, value) {
+    setForm((prev) => {
+      const next = { ...prev, [enKey]: value };
+      formRef.current = next;
+      return next;
+    });
+  }
 
   function updateField(key, value) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if ((key === "nameEn" || key === "nameAr") && !prev.slugEn && key === "nameEn") {
-        next.slugEn = slugify(value);
-      }
       if (key === "nameAr" && !prev.slugAr) {
-        next.slugAr = slugify(value);
+        next.slugAr = generateSlug(value);
       }
       return next;
     });
+
+    AR_TO_EN_PAIRS.filter((item) => item.ar === key).forEach((pair) => {
+      queueTranslation({
+        arText: value,
+        enKey: pair.en,
+        slugResult: pair.slugResult,
+        applyTranslation: applyEnglishField,
+      });
+    });
+  }
+
+  function updateEnglishField(key, value) {
+    handleEnglishChange(key, value, applyEnglishField);
   }
 
   async function handleImageChange(event) {
@@ -74,17 +119,26 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
   async function handleSubmit(event) {
     event.preventDefault();
     if (!validate()) return;
+
+    setWaitingTranslation(true);
+    try {
+      await waitForPendingTranslations();
+    } finally {
+      setWaitingTranslation(false);
+    }
+
+    const current = formRef.current;
     await onSubmit({
-      parentCategoryId: form.parentCategoryId ? Number(form.parentCategoryId) : null,
-      imageUrl: form.imageUrl || null,
-      sortOrder: Number(form.sortOrder) || 0,
-      isActive: Boolean(form.isActive),
-      nameAr: form.nameAr.trim(),
-      nameEn: form.nameEn.trim(),
-      slugAr: form.slugAr.trim(),
-      slugEn: form.slugEn.trim(),
-      descriptionAr: form.descriptionAr?.trim() || null,
-      descriptionEn: form.descriptionEn?.trim() || null,
+      parentCategoryId: current.parentCategoryId ? Number(current.parentCategoryId) : null,
+      imageUrl: current.imageUrl || null,
+      sortOrder: Number(current.sortOrder) || 0,
+      isActive: Boolean(current.isActive),
+      nameAr: current.nameAr.trim(),
+      nameEn: current.nameEn.trim(),
+      slugAr: current.slugAr.trim(),
+      slugEn: current.slugEn.trim(),
+      descriptionAr: current.descriptionAr?.trim() || null,
+      descriptionEn: current.descriptionEn?.trim() || null,
     });
   }
 
@@ -94,22 +148,22 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
         <CardBody className="grid gap-4 md:grid-cols-2">
           <InputGroup>
             <Label required>{locale === "ar" ? "الاسم (عربي)" : "Name (Arabic)"}</Label>
-            <Input value={form.nameAr} onChange={(e) => updateField("nameAr", e.target.value)} />
+            <Input value={form.nameAr} onChange={(e) => updateField("nameAr", e.target.value)} dir="rtl" />
             <FieldError>{errors.nameAr}</FieldError>
           </InputGroup>
           <InputGroup>
             <Label required>{locale === "ar" ? "الاسم (إنجليزي)" : "Name (English)"}</Label>
-            <Input value={form.nameEn} onChange={(e) => updateField("nameEn", e.target.value)} />
+            <Input value={form.nameEn} onChange={(e) => updateEnglishField("nameEn", e.target.value)} />
             <FieldError>{errors.nameEn}</FieldError>
           </InputGroup>
           <InputGroup>
             <Label required>{locale === "ar" ? "الرابط (عربي)" : "Slug (Arabic)"}</Label>
-            <Input value={form.slugAr} onChange={(e) => updateField("slugAr", e.target.value)} />
+            <Input value={form.slugAr} onChange={(e) => updateField("slugAr", e.target.value)} dir="rtl" />
             <FieldError>{errors.slugAr}</FieldError>
           </InputGroup>
           <InputGroup>
             <Label required>{locale === "ar" ? "الرابط (إنجليزي)" : "Slug (English)"}</Label>
-            <Input value={form.slugEn} onChange={(e) => updateField("slugEn", e.target.value)} />
+            <Input value={form.slugEn} onChange={(e) => updateEnglishField("slugEn", e.target.value)} />
             <FieldError>{errors.slugEn}</FieldError>
           </InputGroup>
           <InputGroup>
@@ -137,11 +191,11 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
           </InputGroup>
           <InputGroup className="md:col-span-2">
             <Label>{locale === "ar" ? "الوصف (عربي)" : "Description (Arabic)"}</Label>
-            <Textarea value={form.descriptionAr} onChange={(e) => updateField("descriptionAr", e.target.value)} />
+            <Textarea value={form.descriptionAr} onChange={(e) => updateField("descriptionAr", e.target.value)} dir="rtl" />
           </InputGroup>
           <InputGroup className="md:col-span-2">
             <Label>{locale === "ar" ? "الوصف (إنجليزي)" : "Description (English)"}</Label>
-            <Textarea value={form.descriptionEn} onChange={(e) => updateField("descriptionEn", e.target.value)} />
+            <Textarea value={form.descriptionEn} onChange={(e) => updateEnglishField("descriptionEn", e.target.value)} />
           </InputGroup>
           <InputGroup className="md:col-span-2">
             <Label>{locale === "ar" ? "صورة التصنيف" : "Category image"}</Label>
@@ -164,7 +218,7 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
           </label>
         </CardBody>
         <CardFooter>
-          <Button type="submit" variant="accent" loading={submitting || uploading}>
+          <Button type="submit" variant="accent" loading={submitting || uploading || waitingTranslation}>
             {locale === "ar" ? "حفظ" : "Save"}
           </Button>
         </CardFooter>

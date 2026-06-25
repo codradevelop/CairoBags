@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AccountLayout } from "../../layouts/AccountLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
@@ -19,7 +19,7 @@ export function OrdersPage() {
   const title = locale === "ar" ? "طلباتي" : "My Orders";
   usePageTitle(title);
 
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
     setLoading(true);
     orderService
       .getMyOrders()
@@ -30,6 +30,14 @@ export function OrdersPage() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  const handleReviewSaved = useCallback(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -97,7 +105,7 @@ export function OrdersPage() {
               : `${filteredOrders.length} order${filteredOrders.length === 1 ? "" : "s"}`}
           </p>
           {filteredOrders.map((order) => (
-            <OrderCard key={order.orderId ?? order.OrderId} order={order} />
+            <OrderCard key={order.orderId ?? order.OrderId} order={order} onReviewSaved={handleReviewSaved} />
           ))}
         </div>
       ) : null}

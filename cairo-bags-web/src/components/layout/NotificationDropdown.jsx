@@ -10,6 +10,10 @@ import {
   getNotificationId,
   getNotificationLink,
 } from "../../utils/notificationHelpers.js";
+import {
+  parseReviewHighlightFromNotification,
+  requestReviewHighlight,
+} from "../../utils/reviewScrollUtils.js";
 import { cn } from "../../utils/cn.js";
 
 function BellIcon() {
@@ -49,6 +53,8 @@ export function NotificationDropdown({ className, adminContext = false }) {
 
   async function handleNotificationClick(notification) {
     setOpen(false);
+    const reviewId = parseReviewHighlightFromNotification(notification);
+    if (reviewId) requestReviewHighlight(reviewId);
     const id = getNotificationId(notification);
     const isRead = notification?.isRead ?? notification?.IsRead;
     if (!isRead && id) {

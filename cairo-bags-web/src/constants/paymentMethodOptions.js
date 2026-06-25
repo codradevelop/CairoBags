@@ -1,5 +1,17 @@
 import { PAYMENT_METHOD, PAYMENT_METHOD_LABELS } from "./paymentMethods.js";
 
+export const INSTA_PAY_PAYMENT_METHOD = PAYMENT_METHOD.INSTA_PAY;
+/** Backend enum for the unified Mobile Wallet checkout UI. */
+export const MOBILE_WALLET_PAYMENT_METHOD = PAYMENT_METHOD.VODAFONE_CASH;
+
+export const PAYMENT_WALLET_NUMBER_DISPLAY = "+20 10 12729933";
+export const PAYMENT_WALLET_NUMBER_COPY = "+201012729933";
+
+/** @deprecated Use PAYMENT_WALLET_NUMBER_* */
+export const MOBILE_WALLET_NUMBER_DISPLAY = PAYMENT_WALLET_NUMBER_DISPLAY;
+/** @deprecated Use PAYMENT_WALLET_NUMBER_* */
+export const MOBILE_WALLET_NUMBER_COPY = PAYMENT_WALLET_NUMBER_COPY;
+
 export const PAYMENT_METHOD_OPTIONS = [
   {
     value: PAYMENT_METHOD.CASH_ON_DELIVERY,
@@ -10,61 +22,68 @@ export const PAYMENT_METHOD_OPTIONS = [
     isWallet: false,
   },
   {
-    value: PAYMENT_METHOD.INSTA_PAY,
+    value: INSTA_PAY_PAYMENT_METHOD,
     labelEn: "InstaPay",
     labelAr: "إنستاباي",
-    descriptionEn: "Transfer via InstaPay, then upload payment proof.",
-    descriptionAr: "حوّل عبر إنستاباي، ثم ارفع إثبات الدفع.",
+    descriptionEn: "Fast bank transfer via InstaPay — recommended for quickest verification.",
+    descriptionAr: "تحويل بنكي سريع عبر إنستاباي — موصى به لأسرع تحقق.",
     isWallet: true,
+    isInstaPay: true,
+    recommended: true,
   },
   {
-    value: PAYMENT_METHOD.VODAFONE_CASH,
-    labelEn: "Vodafone Cash",
-    labelAr: "فودافون كاش",
-    descriptionEn: "Send payment via Vodafone Cash wallet.",
-    descriptionAr: "أرسل الدفع عبر فودافون كاش.",
+    value: MOBILE_WALLET_PAYMENT_METHOD,
+    labelEn: "Mobile Wallet",
+    labelAr: "محفظة موبايل",
+    descriptionEn: "Pay via Vodafone Cash, Orange Money, Etisalat Cash, or WE Pay.",
+    descriptionAr: "ادفع عبر فودافون كاش، أورانج موني، اتصالات كاش، أو وي باي.",
     isWallet: true,
-  },
-  {
-    value: PAYMENT_METHOD.ORANGE_CASH,
-    labelEn: "Orange Cash",
-    labelAr: "أورانج كاش",
-    descriptionEn: "Send payment via Orange Cash wallet.",
-    descriptionAr: "أرسل الدفع عبر أورانج كاش.",
-    isWallet: true,
-  },
-  {
-    value: PAYMENT_METHOD.ETISALAT_CASH,
-    labelEn: "Etisalat Cash",
-    labelAr: "اتصالات كاش",
-    descriptionEn: "Send payment via Etisalat Cash wallet.",
-    descriptionAr: "أرسل الدفع عبر اتصالات كاش.",
-    isWallet: true,
-  },
-  {
-    value: PAYMENT_METHOD.WE_PAY,
-    labelEn: "WE Pay",
-    labelAr: "وي باي",
-    descriptionEn: "Complete payment via WE Pay wallet.",
-    descriptionAr: "أكمل الدفع عبر وي باي.",
-    isWallet: true,
+    isMobileWallet: true,
   },
 ];
 
 export function isWalletPaymentMethod(method) {
   const option = PAYMENT_METHOD_OPTIONS.find((m) => m.value === method);
-  return option?.isWallet ?? method !== PAYMENT_METHOD.CASH_ON_DELIVERY;
+  if (option) return option.isWallet;
+  return method !== PAYMENT_METHOD.CASH_ON_DELIVERY;
 }
+
+const LEGACY_WALLET_LABELS = {
+  [PAYMENT_METHOD.INSTA_PAY]: { en: "InstaPay", ar: "إنستاباي" },
+  [PAYMENT_METHOD.VODAFONE_CASH]: { en: "Vodafone Cash", ar: "فودافون كاش" },
+  [PAYMENT_METHOD.ORANGE_CASH]: { en: "Orange Money", ar: "أورانج موني" },
+  [PAYMENT_METHOD.ETISALAT_CASH]: { en: "Etisalat Cash", ar: "اتصالات كاش" },
+  [PAYMENT_METHOD.WE_PAY]: { en: "WE Pay", ar: "وي باي" },
+};
 
 export function getPaymentMethodLabel(method, locale = "en") {
   if (typeof method === "string") {
-    const option = PAYMENT_METHOD_OPTIONS.find(
-      (m) => PAYMENT_METHOD_LABELS[m.value] === method
-    );
-    if (option) return locale === "ar" ? option.labelAr : option.labelEn;
+    const byLabel = Object.entries(PAYMENT_METHOD_LABELS).find(([, label]) => label === method);
+    if (byLabel) {
+      const numeric = Number(byLabel[0]);
+      const option = PAYMENT_METHOD_OPTIONS.find((m) => m.value === numeric);
+      if (option?.isMobileWallet) {
+        return locale === "ar" ? option.labelAr : option.labelEn;
+      }
+      if (option?.isInstaPay) {
+        return locale === "ar" ? option.labelAr : option.labelEn;
+      }
+      if (LEGACY_WALLET_LABELS[numeric]) {
+        return locale === "ar" ? LEGACY_WALLET_LABELS[numeric].ar : LEGACY_WALLET_LABELS[numeric].en;
+      }
+    }
     return method;
   }
+
   const option = PAYMENT_METHOD_OPTIONS.find((m) => m.value === method);
-  if (!option) return String(method);
-  return locale === "ar" ? option.labelAr : option.labelEn;
+  if (option?.isMobileWallet || option?.isInstaPay) {
+    return locale === "ar" ? option.labelAr : option.labelEn;
+  }
+  if (option) return locale === "ar" ? option.labelAr : option.labelEn;
+
+  if (typeof method === "number" && LEGACY_WALLET_LABELS[method]) {
+    return locale === "ar" ? LEGACY_WALLET_LABELS[method].ar : LEGACY_WALLET_LABELS[method].en;
+  }
+
+  return String(method ?? "");
 }

@@ -23,6 +23,8 @@ public class Product : BaseEntity
 
     public int ReviewCount { get; set; }
 
+    public int VerifiedReviewCount { get; set; }
+
     public int TotalSold { get; set; }
 
     public DateTime? PublishedAt { get; set; }

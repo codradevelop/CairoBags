@@ -25,4 +25,5 @@ export {
 export { normalizeError, handleServiceCall } from "./normalizeError.js";
 export { decodeJwtPayload, getRoleFromToken, getUserIdFromToken } from "./jwt.js";
 export { resolveMediaUrl } from "./mediaUrl.js";
+export { isStoreReadOnly, assertStoreShoppingAllowed } from "./storePermissions.js";
 export { cn } from "./cn.js";

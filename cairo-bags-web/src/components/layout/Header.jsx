@@ -10,6 +10,7 @@ import { CartButton } from "./CartButton.jsx";
 import { WishlistHeaderButton } from "./WishlistButton.jsx";
 import { ProductSearch } from "../store/ProductSearch.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { cn } from "../../utils/cn.js";
 
 function MenuIcon() {
@@ -74,6 +75,7 @@ export function AnnouncementBar({ message, messageAr, href = "/shop", className 
 
 export function Header({ className, showAnnouncement = true, announcement }) {
   const { locale } = useLocale();
+  const readOnly = useStoreReadOnly();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -126,8 +128,8 @@ export function Header({ className, showAnnouncement = true, announcement }) {
             </Button>
             <LanguageSwitcher className="hidden sm:inline-flex" />
             <NotificationDropdown />
-            <WishlistHeaderButton />
-            <CartButton />
+            {!readOnly ? <WishlistHeaderButton /> : null}
+            {!readOnly ? <CartButton /> : null}
             <UserDropdown />
           </div>
         </div>

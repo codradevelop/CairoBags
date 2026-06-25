@@ -3,6 +3,7 @@ using CairoBags.Dto.Orders;
 using CairoBags.Models;
 using CairoBags.Models.Inventories;
 using CairoBags.Models.Orders;
+using CairoBags.Models.Reviews;
 using Microsoft.EntityFrameworkCore;
 
 namespace CairoBags.Service;
@@ -14,6 +15,12 @@ public class OrderService : IOrderService
         OrderStatus.Pending,
         OrderStatus.AwaitingPayment,
         OrderStatus.PaymentProofSubmitted
+    };
+
+    private static readonly OrderStatus[] ReviewEligibleOrderStatuses =
+    {
+        OrderStatus.Delivered,
+        OrderStatus.Completed,
     };
 
     private readonly CairoBagsContext _context;
@@ -38,7 +45,16 @@ public class OrderService : IOrderService
             .ThenByDescending(o => o.Id)
             .ToListAsync(cancellationToken);
 
-        return orders.Select(MapListItem).ToList();
+        var productIds = orders
+            .Where(o => ReviewEligibleOrderStatuses.Contains(o.Status))
+            .SelectMany(o => o.Items)
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToList();
+
+        var reviewLookup = await GetUserReviewLookupAsync(userId, productIds, cancellationToken);
+
+        return orders.Select(o => MapListItem(o, reviewLookup)).ToList();
     }
 
     public async Task<ServiceResult<OrderDetailDto>> GetOrderByIdAsync(
@@ -62,7 +78,7 @@ public class OrderService : IOrderService
                 StatusCodes.Status404NotFound);
         }
 
-        return ServiceResult<OrderDetailDto>.Ok(MapOrderDetail(order));
+        return ServiceResult<OrderDetailDto>.Ok(await MapOrderDetailAsync(order, userId, cancellationToken));
     }
 
     public async Task<ServiceResult<CancelOrderResponseDto>> CancelOrderAsync(
@@ -192,7 +208,9 @@ public class OrderService : IOrderService
         }
     }
 
-    private static OrderListItemDto MapListItem(Order order)
+    private static OrderListItemDto MapListItem(
+        Order order,
+        IReadOnlyDictionary<int, ProductReview> reviewLookup)
     {
         var primaryImage = order.Items
             .OrderBy(i => i.Id)
@@ -208,12 +226,34 @@ public class OrderService : IOrderService
             PaymentStatus = order.Payment?.Status.ToString(),
             TotalAmount = order.TotalAmount,
             ItemsCount = order.Items.Count,
-            PrimaryProductImage = primaryImage
+            PrimaryProductImage = primaryImage,
+            ReviewableItems = ReviewEligibleOrderStatuses.Contains(order.Status)
+                ? order.Items
+                    .GroupBy(i => i.ProductId)
+                    .Select(g =>
+                    {
+                        var item = g.First();
+                        reviewLookup.TryGetValue(item.ProductId, out var review);
+                        return MapReviewStatus(item, review);
+                    })
+                    .ToList()
+                : Array.Empty<OrderItemReviewStatusDto>()
         };
     }
 
-    private static OrderDetailDto MapOrderDetail(Order order) =>
-        new()
+    private async Task<OrderDetailDto> MapOrderDetailAsync(
+        Order order,
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyDictionary<int, ProductReview> reviewLookup = new Dictionary<int, ProductReview>();
+        if (ReviewEligibleOrderStatuses.Contains(order.Status))
+        {
+            var productIds = order.Items.Select(i => i.ProductId).Distinct().ToList();
+            reviewLookup = await GetUserReviewLookupAsync(userId, productIds, cancellationToken);
+        }
+
+        return new OrderDetailDto
         {
             Order = new OrderInformationDto
             {
@@ -252,7 +292,11 @@ public class OrderService : IOrderService
                 },
             Items = order.Items
                 .OrderBy(i => i.Id)
-                .Select(MapOrderItem)
+                .Select(item =>
+                {
+                    reviewLookup.TryGetValue(item.ProductId, out var review);
+                    return MapOrderItem(item, review);
+                })
                 .ToList(),
             Coupon = string.IsNullOrWhiteSpace(order.CouponCode)
                 ? null
@@ -267,8 +311,40 @@ public class OrderService : IOrderService
                 .Select(MapStatusHistory)
                 .ToList()
         };
+    }
 
-    private static OrderItemDto MapOrderItem(OrderItem item) =>
+    private async Task<Dictionary<int, ProductReview>> GetUserReviewLookupAsync(
+        string userId,
+        IReadOnlyCollection<int> productIds,
+        CancellationToken cancellationToken)
+    {
+        if (productIds.Count == 0)
+            return new Dictionary<int, ProductReview>();
+
+        var reviews = await _context.ProductReviews
+            .AsNoTracking()
+            .Where(r => r.UserId == userId && productIds.Contains(r.ProductId))
+            .ToListAsync(cancellationToken);
+
+        return reviews
+            .GroupBy(r => r.ProductId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).First());
+    }
+
+    private static OrderItemReviewStatusDto MapReviewStatus(OrderItem item, ProductReview? review) =>
+        new()
+        {
+            ProductId = item.ProductId,
+            ProductNameAr = item.ProductNameAr,
+            ProductNameEn = item.ProductNameEn,
+            HasReviewed = review != null,
+            ReviewId = review?.Id,
+            ReviewRating = review?.Rating,
+            ReviewTitle = review?.Title,
+            ReviewComment = review?.Comment,
+        };
+
+    private static OrderItemDto MapOrderItem(OrderItem item, ProductReview? review) =>
         new()
         {
             OrderItemId = item.Id,
@@ -282,7 +358,12 @@ public class OrderService : IOrderService
             Quantity = item.Quantity,
             UnitPrice = item.UnitPrice,
             LineTotal = item.UnitPrice * item.Quantity,
-            ImageUrl = item.ImageUrl
+            ImageUrl = item.ImageUrl,
+            HasReviewed = review != null,
+            ReviewId = review?.Id,
+            ReviewRating = review?.Rating,
+            ReviewTitle = review?.Title,
+            ReviewComment = review?.Comment,
         };
 
     private static OrderStatusHistoryDto MapStatusHistory(OrderStatusHistory history) =>

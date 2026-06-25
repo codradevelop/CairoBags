@@ -18,6 +18,9 @@ export const ENDPOINTS = {
   file: {
     upload: "/api/File/Upload",
   },
+  translate: {
+    text: "/api/translate",
+  },
   categories: {
     list: "/api/categories",
     tree: "/api/categories/tree",
@@ -119,5 +122,16 @@ export const ENDPOINTS = {
     toggle: (productId) => `/api/wishlist/${productId}`,
     remove: (productId) => `/api/wishlist/${productId}`,
     count: "/api/wishlist/count",
+  },
+  reviews: {
+    byProduct: (productId) => `/api/products/${productId}/reviews`,
+    summary: (productId) => `/api/products/${productId}/reviews/summary`,
+    create: (productId) => `/api/products/${productId}/reviews`,
+    update: (id) => `/api/reviews/${id}`,
+    delete: (id) => `/api/reviews/${id}`,
+    helpful: (id) => `/api/reviews/${id}/helpful`,
+    adminDelete: (id) => `/api/admin/reviews/${id}`,
+    adminVisibility: (id) => `/api/admin/reviews/${id}/visibility`,
+    adminLatest: "/api/admin/reviews/latest",
   },
 };

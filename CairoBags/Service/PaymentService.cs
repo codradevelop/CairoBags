@@ -502,7 +502,7 @@ public class PaymentService : IPaymentService
             NotificationType.PaymentSubmitted,
             NotificationTargetTypes.AdminPayments,
             order.Id,
-            cancellationToken);
+            cancellationToken: cancellationToken);
     }
 
     private void DeletePhysicalFiles(IEnumerable<string> relativePaths)

@@ -20,7 +20,7 @@ public static class NotificationDeepLinks
         {
             NotificationTargetTypes.Order => $"/orders/{targetId}",
             NotificationTargetTypes.OrderPayment => $"/orders/{targetId}/payment",
-            NotificationTargetTypes.ProductReview => $"/account/reviews/{targetId}",
+            NotificationTargetTypes.ProductReview => $"/products/{targetId}#reviews",
             NotificationTargetTypes.Coupon => $"/account/coupons/{targetId}",
             NotificationTargetTypes.ProductVariant => $"/admin/inventory/variants/{targetId}",
             NotificationTargetTypes.AdminPayments => "/admin/payments",
@@ -42,6 +42,7 @@ public static class NotificationDeepLinks
             NotificationType.OrderCancelled => NotificationTargetTypes.Order,
             NotificationType.PaymentRefunded => NotificationTargetTypes.OrderPayment,
             NotificationType.ReviewApproved => NotificationTargetTypes.ProductReview,
+            NotificationType.NewProductReview => NotificationTargetTypes.ProductReview,
             NotificationType.CouponAssigned => NotificationTargetTypes.Coupon,
             NotificationType.LowStockAlert => NotificationTargetTypes.ProductVariant,
             NotificationType.SystemAnnouncement => NotificationTargetTypes.System,

@@ -17,6 +17,8 @@ public class OrderListItemDto
     public int ItemsCount { get; set; }
 
     public string? PrimaryProductImage { get; set; }
+
+    public IReadOnlyList<OrderItemReviewStatusDto> ReviewableItems { get; set; } = Array.Empty<OrderItemReviewStatusDto>();
 }
 
 public class OrderDetailDto
@@ -116,6 +118,35 @@ public class OrderItemDto
     public decimal LineTotal { get; set; }
 
     public string? ImageUrl { get; set; }
+
+    public bool HasReviewed { get; set; }
+
+    public int? ReviewId { get; set; }
+
+    public byte? ReviewRating { get; set; }
+
+    public string? ReviewTitle { get; set; }
+
+    public string? ReviewComment { get; set; }
+}
+
+public class OrderItemReviewStatusDto
+{
+    public int ProductId { get; set; }
+
+    public string ProductNameAr { get; set; } = string.Empty;
+
+    public string ProductNameEn { get; set; } = string.Empty;
+
+    public bool HasReviewed { get; set; }
+
+    public int? ReviewId { get; set; }
+
+    public byte? ReviewRating { get; set; }
+
+    public string? ReviewTitle { get; set; }
+
+    public string? ReviewComment { get; set; }
 }
 
 public class OrderCouponInfoDto

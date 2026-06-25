@@ -18,13 +18,19 @@ import {
   getOrderDetailItems,
   getOrderDetailPayment,
   getOrderDetailShipping,
+  getOrderId,
   getOrderItemColor,
   getOrderItemImage,
   getOrderItemName,
+  getOrderItemProductId,
   getOrderNumber,
   getOrderStatus,
   getOrderStatusHistory,
+  isOrderReviewEligible,
+  orderItemHasReviewed,
 } from "../../utils/orderHelpers.js";
+import { OrderReviewButton } from "../../components/account/OrderReviewButton.jsx";
+import { useOrderReviewModal } from "../../components/account/OrderReviewActions.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
 import { getPaymentMethodLabel } from "../../constants/paymentMethodOptions.js";
 import { getPaymentStatusLabel } from "../../constants/orderStatusLabels.js";
@@ -82,6 +88,36 @@ export function OrderDetailsPage() {
   const history = detail ? getOrderStatusHistory(detail) : [];
   const status = order ? getOrderStatus(order) : "";
   const cancellable = canCancelOrder(status);
+  const reviewEligible = isOrderReviewEligible(status);
+
+  function patchItemReviewState(productId, review) {
+    setDetail((current) => {
+      if (!current) return current;
+      const items = (current.items ?? current.Items ?? []).map((item) => {
+        const itemProductId = getOrderItemProductId(item);
+        if (Number(itemProductId) !== Number(productId)) return item;
+        return {
+          ...item,
+          hasReviewed: true,
+          HasReviewed: true,
+          reviewId: review?.id,
+          ReviewId: review?.id,
+          reviewRating: review?.rating,
+          ReviewRating: review?.rating,
+          reviewTitle: review?.title,
+          ReviewTitle: review?.title,
+          reviewComment: review?.comment,
+          ReviewComment: review?.comment,
+        };
+      });
+      return { ...current, items, Items: items };
+    });
+  }
+
+  const { openForItem, modal: reviewModal } = useOrderReviewModal({
+    orderId: id,
+    onReviewSaved: (productId, review) => patchItemReviewState(productId, review),
+  });
 
   async function handleCancel() {
     setCancelling(true);
@@ -186,6 +222,14 @@ export function OrderDetailsPage() {
                     <p className="mt-2 text-sm text-brand-muted">
                       {locale === "ar" ? "الكمية" : "Qty"}: {item.quantity ?? item.Quantity}
                     </p>
+                    {reviewEligible ? (
+                      <div className="mt-3">
+                        <OrderReviewButton
+                          hasReviewed={orderItemHasReviewed(item)}
+                          onClick={() => openForItem(item)}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   <p className="font-medium text-brand-primary">
                     {formatPrice(item.lineTotal ?? item.LineTotal, locale)}
@@ -319,6 +363,7 @@ export function OrderDetailsPage() {
         confirmLabel={locale === "ar" ? "إلغاء الطلب" : "Cancel Order"}
         cancelLabel={locale === "ar" ? "رجوع" : "Go back"}
       />
+      {reviewModal}
     </AccountLayout>
   );
 }

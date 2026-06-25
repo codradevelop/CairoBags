@@ -104,6 +104,36 @@ export function getOrderItemColor(item, locale = "en") {
     : item?.colorNameEn ?? item?.ColorNameEn ?? item?.colorNameAr ?? item?.ColorNameAr;
 }
 
+export function getOrderItemProductId(item) {
+  return item?.productId ?? item?.ProductId;
+}
+
+export function orderItemHasReviewed(item) {
+  return Boolean(item?.hasReviewed ?? item?.HasReviewed);
+}
+
+export function getOrderItemReviewId(item) {
+  return item?.reviewId ?? item?.ReviewId ?? null;
+}
+
+export function getOrderItemReviewDraft(item) {
+  if (!orderItemHasReviewed(item)) return null;
+  return {
+    id: getOrderItemReviewId(item),
+    rating: Number(item?.reviewRating ?? item?.ReviewRating ?? 0),
+    title: item?.reviewTitle ?? item?.ReviewTitle ?? "",
+    comment: item?.reviewComment ?? item?.ReviewComment ?? "",
+  };
+}
+
+export function getOrderReviewableItems(order) {
+  return order?.reviewableItems ?? order?.ReviewableItems ?? [];
+}
+
+export function isOrderReviewEligible(status) {
+  return status === ORDER_STATUS.DELIVERED || status === ORDER_STATUS.COMPLETED;
+}
+
 export function canCancelOrder(status) {
   const normalized = status ?? "";
   return (

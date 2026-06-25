@@ -39,6 +39,7 @@ public class NotificationService
             NotificationType.SystemAnnouncement => "system_announcement",
             NotificationType.OrderCancelled => "order_cancelled",
             NotificationType.PaymentRefunded => "payment_refunded",
+            NotificationType.NewProductReview => "new_product_review",
             _ => "system_announcement"
         };
 
@@ -58,7 +59,9 @@ public class NotificationService
             Type = ToApiTypeString(n.Type),
             TargetType = targetType,
             ReferenceId = n.TargetId,
-            DeepLink = NotificationDeepLinks.Build(targetType, n.TargetId),
+            DeepLink = !string.IsNullOrWhiteSpace(n.DeepLinkPath)
+                ? n.DeepLinkPath
+                : NotificationDeepLinks.Build(targetType, n.TargetId),
             Title = n.Title,
             Message = n.Message,
             CreatedAt = createdUtc,
@@ -115,7 +118,8 @@ public class NotificationService
         string? targetType = null,
         int? targetId = null,
         string? referenceKey = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? deepLinkPath = null)
     {
         if (string.IsNullOrWhiteSpace(userId)) return null;
 
@@ -135,7 +139,8 @@ public class NotificationService
             CreatedAtUtc = DateTime.UtcNow,
             IsRead = false,
             TargetType = resolvedTargetType,
-            TargetId = targetId
+            TargetId = targetId,
+            DeepLinkPath = deepLinkPath
         };
 
         _context.Notifications.Add(entity);
@@ -185,7 +190,9 @@ public class NotificationService
         NotificationType type,
         string? targetType = null,
         int? targetId = null,
-        CancellationToken cancellationToken = default)
+        string? referenceKey = null,
+        CancellationToken cancellationToken = default,
+        string? deepLinkPath = null)
     {
         var distinctIds = userIds
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -219,7 +226,16 @@ public class NotificationService
         foreach (var user in users)
         {
             if (duplicateSet.Contains(user.Id)) continue;
-            await TryCreateAndNotifyAsync(user.Id, title, message, type, resolvedTargetType, targetId, cancellationToken: cancellationToken);
+            await TryCreateAndNotifyAsync(
+                user.Id,
+                title,
+                message,
+                type,
+                resolvedTargetType,
+                targetId,
+                referenceKey,
+                cancellationToken,
+                deepLinkPath);
         }
     }
 
