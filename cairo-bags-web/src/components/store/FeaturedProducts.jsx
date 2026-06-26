@@ -6,6 +6,7 @@ import { ProductCard } from "./ProductCard.jsx";
 import { ProductGridSkeleton } from "./ProductSkeleton.jsx";
 import { EmptyState } from "./EmptyState.jsx";
 import { Button } from "../ui/Button.jsx";
+import { ScrollReveal, StaggerReveal, StaggerItem } from "../ui/motion.jsx";
 import { cn } from "../../utils/cn.js";
 
 export function FeaturedProducts({ className, title, subtitle }) {
@@ -41,6 +42,7 @@ export function FeaturedProducts({ className, title, subtitle }) {
   return (
     <ProductSection
       className={className}
+      label={locale === "ar" ? "مختارات" : "Curated"}
       heading={heading}
       subtitle={sub}
       products={products}
@@ -84,6 +86,7 @@ export function NewArrivals({ className, title, subtitle }) {
   return (
     <ProductSection
       className={className}
+      label={locale === "ar" ? "جديد" : "Just In"}
       heading={heading}
       subtitle={sub}
       products={products}
@@ -97,6 +100,7 @@ export function NewArrivals({ className, title, subtitle }) {
 
 function ProductSection({
   className,
+  label,
   heading,
   subtitle,
   products,
@@ -107,34 +111,38 @@ function ProductSection({
 }) {
   return (
     <section className={cn(className)}>
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end md:mb-8">
+      <ScrollReveal className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end md:mb-10">
         <div>
-          <h2 className="font-display text-2xl font-medium text-brand-text md:text-3xl">{heading}</h2>
-          <p className="mt-2 text-sm text-brand-muted">{subtitle}</p>
+          <p className="cb-section-label">{label}</p>
+          <h2 className="cb-section-heading mt-2">{heading}</h2>
+          <p className="cb-section-subheading mt-3">{subtitle}</p>
         </div>
-        <Link to="/shop">
-          <Button variant="outline" size="sm">
+        <Link to="/shop" className="shrink-0">
+          <Button variant="outline" size="sm" className="rounded-full px-5">
             {locale === "ar" ? "عرض الكل" : "View All"}
           </Button>
         </Link>
-      </div>
+      </ScrollReveal>
 
-      {loading ? <ProductGridSkeleton count={4} /> : null}
+      {loading ? <ProductGridSkeleton count={10} compact /> : null}
       {!loading && error ? (
-        <EmptyState title={emptyTitle} description={error.message} />
+        <EmptyState variant="error" title={emptyTitle} description={error.message} />
       ) : null}
       {!loading && !error && products.length === 0 ? (
         <EmptyState
+          variant="products"
           title={emptyTitle}
           description={locale === "ar" ? "عد قريباً" : "Check back soon"}
         />
       ) : null}
       {!loading && !error && products.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        <StaggerReveal className="cb-product-grid">
           {products.map((product) => (
-            <ProductCard key={product.id ?? product.Id} product={product} variant="landing" />
+            <StaggerItem key={product.id ?? product.Id}>
+              <ProductCard product={product} variant="landing" />
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerReveal>
       ) : null}
     </section>
   );

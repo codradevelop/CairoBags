@@ -1,9 +1,9 @@
 import { cn } from "../../utils/cn.js";
 
 const variants = {
-  default: "bg-brand-surface border border-brand-border",
-  elevated: "bg-brand-surface border border-brand-border",
-  bordered: "bg-transparent border border-brand-border",
+  default: "bg-brand-surface border border-brand-border/80",
+  elevated: "bg-brand-surface border border-brand-border/80",
+  bordered: "bg-transparent border border-brand-border/80",
   flat: "bg-brand-secondary border border-transparent",
 };
 
@@ -15,39 +15,18 @@ const paddings = {
 };
 
 export function Card({ className, variant = "default", padding = "md", hover = false, children, ...props }) {
-  const baseStyle = {
-    boxShadow: "var(--cb-shadow-card)",
-    transition: "box-shadow 350ms ease, border-color 350ms ease, transform 350ms ease",
-  };
-
   return (
     <div
       className={cn(
-        "rounded-xl transition-all",
+        "rounded-xl transition-all duration-300",
         variants[variant],
         paddings[padding],
-        hover && "cursor-pointer",
+        hover && "cursor-pointer hover:border-brand-accent/25",
         className
       )}
-      style={baseStyle}
-      onMouseEnter={
-        hover
-          ? (e) => {
-              e.currentTarget.style.boxShadow = "var(--cb-shadow-hover)";
-              e.currentTarget.style.borderColor = "rgba(201, 169, 98, 0.3)";
-              e.currentTarget.style.transform = "translateY(-2px)";
-            }
-          : undefined
-      }
-      onMouseLeave={
-        hover
-          ? (e) => {
-              e.currentTarget.style.boxShadow = "var(--cb-shadow-card)";
-              e.currentTarget.style.borderColor = "";
-              e.currentTarget.style.transform = "translateY(0)";
-            }
-          : undefined
-      }
+      style={{
+        boxShadow: "var(--cb-shadow-card)",
+      }}
       {...props}
     >
       {children}
@@ -60,14 +39,11 @@ export function CardHeader({ className, title, subtitle, action, children, ...pr
     <div className={cn("mb-4 flex items-start justify-between gap-4", className)} {...props}>
       <div className="min-w-0 flex-1">
         {title ? (
-          <h3
-            className="font-display text-xl font-medium text-brand-text"
-            style={{ letterSpacing: "-0.01em" }}
-          >
+          <h3 className="font-display text-lg font-light tracking-tight text-brand-text md:text-xl">
             {title}
           </h3>
         ) : null}
-        {subtitle ? <p className="mt-1 text-sm text-brand-muted">{subtitle}</p> : null}
+        {subtitle ? <p className="mt-1 text-[13px] text-brand-muted">{subtitle}</p> : null}
         {children}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -87,7 +63,7 @@ export function CardFooter({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "mt-6 flex items-center justify-end gap-3 border-t border-brand-border pt-4",
+        "mt-6 flex items-center justify-end gap-3 border-t border-brand-border/60 pt-4",
         className
       )}
       {...props}

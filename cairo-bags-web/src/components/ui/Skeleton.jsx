@@ -3,7 +3,7 @@ import { cn } from "../../utils/cn.js";
 export function Skeleton({ className, ...props }) {
   return (
     <div
-      className={cn("cb-shimmer animate-shimmer rounded-md bg-brand-secondary", className)}
+      className={cn("cb-shimmer rounded-[var(--cb-radius-control)] bg-brand-secondary/80", className)}
       aria-hidden="true"
       {...props}
     />

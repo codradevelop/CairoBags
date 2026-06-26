@@ -14,4 +14,6 @@ export {
   SkeletonTableRow,
 } from "./Skeleton.jsx";
 export { ToastProvider, useToast } from "./Toast.jsx";
+export { ScrollReveal, StaggerReveal, StaggerItem, motion, fadeIn, slideUp } from "./motion.jsx";
+export { PageTransition, AnimatedCounter, DURATION, pageTransition } from "./animation.jsx";
 

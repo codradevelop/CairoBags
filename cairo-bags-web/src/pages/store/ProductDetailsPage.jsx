@@ -247,19 +247,19 @@ export function ProductDetailsPage() {
   }
 
   return (
-    <StoreLayout contentClassName="!py-6 md:!py-10">
-      <nav className="mb-6 text-sm text-brand-muted">
-        <Link to="/" className="hover:text-brand-accent">
+    <StoreLayout contentClassName="!py-6 md:!py-12">
+      <nav className="mb-8 flex flex-wrap items-center gap-1 text-xs tracking-wide text-brand-muted">
+        <Link to="/" className="transition-colors hover:text-brand-accent">
           {locale === "ar" ? "الرئيسية" : "Home"}
         </Link>
-        <span className="mx-2">/</span>
-        <Link to="/shop" className="hover:text-brand-accent">
+        <span className="text-brand-border">/</span>
+        <Link to="/shop" className="transition-colors hover:text-brand-accent">
           {locale === "ar" ? "تسوق" : "Shop"}
         </Link>
         {productName ? (
           <>
-            <span className="mx-2">/</span>
-            <span className="text-brand-text">{productName}</span>
+            <span className="text-brand-border">/</span>
+            <span className="line-clamp-1 text-brand-text">{productName}</span>
           </>
         ) : null}
       </nav>
@@ -268,6 +268,7 @@ export function ProductDetailsPage() {
 
       {!loading && error ? (
         <EmptyState
+          variant="error"
           title={locale === "ar" ? "المنتج غير موجود" : "Product not found"}
           description={error.message}
           action={
@@ -279,15 +280,15 @@ export function ProductDetailsPage() {
       ) : null}
 
       {!loading && !error && product ? (
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-14">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 xl:gap-20">
           <ProductGallery images={images} productName={productName} />
 
-          <div>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="lg:pt-2">
+            <div className="mb-5 flex flex-wrap items-center gap-2">
               <ProductBadges product={product} />
               <AdminPreviewBadge />
             </div>
-            <h1 className="font-display text-3xl font-medium text-brand-text md:text-4xl">
+            <h1 className="font-display text-3xl font-light leading-tight tracking-tight text-brand-text md:text-4xl lg:text-[2.75rem]">
               {productName}
             </h1>
 
@@ -308,14 +309,14 @@ export function ProductDetailsPage() {
             />
 
             {description ? (
-              <p className="mt-6 text-sm leading-relaxed text-brand-muted md:text-base">
+              <p className="mt-6 max-w-prose text-sm leading-relaxed text-brand-muted md:text-[15px]">
                 {description}
               </p>
             ) : null}
 
             {/* ── Color selector ─────────────────────────────────────────── */}
             {colorOptions.length > 0 ? (
-              <div className="mt-8">
+              <div className="mt-10 border-t border-brand-border/60 pt-8">
                 <Label className="mb-3">
                   {locale === "ar" ? "اللون" : "Color"}
                   {selectedColor ? (
@@ -336,11 +337,11 @@ export function ProductDetailsPage() {
                         disabled={!hasStock}
                         onClick={() => handleColorChange(color)}
                         className={cn(
-                          "rounded-full border px-4 py-2 text-sm font-medium transition-colors",
+                          "rounded-full border px-4 py-2 text-xs font-medium tracking-wide transition-all duration-300",
                           selected
-                            ? "border-brand-primary bg-brand-primary text-brand-secondary"
+                            ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
                             : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
-                          !hasStock && "cursor-not-allowed opacity-50"
+                          !hasStock && "cursor-not-allowed opacity-40"
                         )}
                         aria-pressed={selected}
                       >
@@ -380,11 +381,11 @@ export function ProductDetailsPage() {
                         disabled={!hasStock}
                         onClick={() => setSelectedSize(size)}
                         className={cn(
-                          "relative flex min-w-[4rem] flex-col items-center rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
+                          "relative flex min-w-[4rem] flex-col items-center rounded-xl border px-3 py-2 text-xs font-medium tracking-wide transition-all duration-300",
                           selected
-                            ? "border-brand-primary bg-brand-primary text-brand-secondary"
+                            ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
                             : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
-                          !hasStock && "cursor-not-allowed opacity-50"
+                          !hasStock && "cursor-not-allowed opacity-40"
                         )}
                         aria-pressed={selected}
                       >
@@ -409,13 +410,19 @@ export function ProductDetailsPage() {
             ) : null}
 
             {/* ── Stock badge ────────────────────────────────────────────── */}
-            <div className="mt-5">
+            <div className="mt-6">
               <p
                 className={cn(
-                  "text-sm font-medium",
+                  "inline-flex items-center gap-2 text-xs font-medium tracking-wide uppercase",
                   inStock ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"
                 )}
               >
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    inStock ? "bg-emerald-600" : "bg-red-600"
+                  )}
+                />
                 {inStock
                   ? locale === "ar" ? "متوفر" : "In stock"
                   : locale === "ar" ? "غير متوفر" : "Out of stock"}
@@ -423,12 +430,12 @@ export function ProductDetailsPage() {
             </div>
 
             {!readOnly && inStock ? (
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="mt-10 flex flex-col gap-3 border-t border-brand-border/60 pt-8 sm:flex-row sm:items-center">
                 <Button
                   type="button"
                   variant="accent"
                   size="lg"
-                  className="w-full sm:flex-1"
+                  className="w-full rounded-full sm:flex-1"
                   disabled={!selectedVariantId}
                   loading={buying}
                   onClick={handleBuyNow}
@@ -439,7 +446,7 @@ export function ProductDetailsPage() {
                   type="button"
                   variant="outline"
                   size="lg"
-                  className="w-full border-brand-accent/40 sm:flex-1 hover:border-brand-accent hover:bg-brand-accent/5"
+                  className="w-full rounded-full border-brand-accent/40 sm:flex-1 hover:border-brand-accent hover:bg-brand-accent/5"
                   disabled={!selectedVariantId}
                   loading={adding && !buying}
                   onClick={handleAddToCart}
@@ -456,7 +463,7 @@ export function ProductDetailsPage() {
         <ReviewSection
           productId={product.id ?? product.Id ?? id}
           onStatsChange={setRatingStats}
-          className="mt-14"
+          className="mt-16 border-t border-brand-border/60 pt-16 md:mt-20 md:pt-20"
         />
       ) : null}
     </StoreLayout>

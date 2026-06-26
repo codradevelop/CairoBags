@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
+import { AnimatedCounter } from "../ui/animation.jsx";
 import { getRatingDistribution } from "../../utils/reviewHelpers.js";
 import { StarRating } from "./StarRating.jsx";
 import { cn } from "../../utils/cn.js";
@@ -37,14 +38,21 @@ export const ReviewSummaryPanel = memo(function ReviewSummaryPanel({
             label={`${summary.averageRating.toFixed(1)} out of 5`}
           />
           <p className="mt-3 text-sm text-brand-muted">
-            {locale === "ar"
-              ? `بناءً على ${summary.reviewCount} تقييم`
-              : `Based on ${summary.reviewCount} review${summary.reviewCount === 1 ? "" : "s"}`}
+            {locale === "ar" ? (
+              <>
+                بناءً على <AnimatedCounter value={summary.reviewCount} className="font-medium text-brand-text" /> تقييم
+              </>
+            ) : (
+              <>
+                Based on <AnimatedCounter value={summary.reviewCount} className="font-medium text-brand-text" /> review
+                {summary.reviewCount === 1 ? "" : "s"}
+              </>
+            )}
           </p>
           {summary.verifiedReviewCount > 0 ? (
             <p className="mt-2 text-sm text-brand-muted">
               <span>{locale === "ar" ? "مشتريات موثّقة:" : "Verified Purchases:"}</span>{" "}
-              <span className="font-medium text-brand-accent">{summary.verifiedReviewCount}</span>
+              <AnimatedCounter value={summary.verifiedReviewCount} className="font-medium text-brand-accent" />
             </p>
           ) : null}
         </div>

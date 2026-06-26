@@ -38,7 +38,7 @@ export const ProductRatingLine = memo(function ProductRatingLine({
 
   const content = hasReviews ? (
     <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 transition-transform duration-300 ease-out group-hover:scale-[1.03]">
         <StarRating value={displayRating} size={size} gold label={ariaLabel} />
         <span className="font-display text-sm font-medium tracking-tight text-brand-text">
           {displayRating.toFixed(1)}
@@ -55,7 +55,7 @@ export const ProductRatingLine = memo(function ProductRatingLine({
   );
 
   const wrapperClass = cn(
-    "block rounded-md transition-opacity duration-200 hover:opacity-85",
+    "group block rounded-md transition-opacity duration-200 hover:opacity-90",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent focus-visible:ring-offset-1",
     className
   );

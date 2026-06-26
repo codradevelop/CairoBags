@@ -30,6 +30,8 @@ import {
   isVariantInStock,
 } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
+import { useCardTilt } from "../ui/useCardTilt.jsx";
+import { ShopProductCard } from "./shop/ShopProductCard.jsx";
 
 const SWATCH_TONES = [
   "bg-brand-primary",
@@ -144,8 +146,8 @@ function WishlistButton({ productId, className }) {
       disabled={pending}
       className={cn(
         "flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-sm transition-all duration-300",
-        "hover:scale-110 active:scale-95 disabled:opacity-70",
-        pulse && "animate-[pulse_0.45s_ease-out]",
+        "hover:scale-110 active:scale-90 disabled:opacity-70",
+        pulse && "scale-125",
         active
           ? "border-brand-accent bg-brand-accent/20 text-brand-accent"
           : "border-brand-border/80 bg-brand-surface/90 text-brand-text hover:border-brand-accent hover:text-brand-accent",
@@ -233,14 +235,17 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
 
   const [secondaryUrl, setSecondaryUrl] = useState(inlineSecondary);
   const [showSecondary, setShowSecondary] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const fetchStartedRef = useRef(false);
 
   useEffect(() => {
     setSecondaryUrl(inlineSecondary);
+    setImageLoaded(false);
     fetchStartedRef.current = false;
   }, [productId, inlineSecondary]);
 
   const handlePrimaryLoad = useCallback(() => {
+    setImageLoaded(true);
     if (secondaryUrl) {
       preloadImage(secondaryUrl);
       return;
@@ -264,11 +269,14 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
 
   return (
     <div
-      className="relative aspect-[3/4] overflow-hidden bg-brand-secondary"
+      className="cb-product-aspect relative overflow-hidden bg-brand-secondary/60"
       onMouseEnter={() => canCrossfade && setShowSecondary(true)}
       onMouseLeave={() => setShowSecondary(false)}
     >
-      <Link to={href} className="absolute inset-0 z-0 block" aria-label={name}>
+      {!imageLoaded && primaryUrl ? (
+        <div className="cb-shimmer absolute inset-0 z-[1] animate-shimmer" aria-hidden="true" />
+      ) : null}
+      <Link to={href} className="absolute inset-0 z-[2] block" aria-label={name}>
         {primaryUrl ? (
           <div className="relative h-full w-full">
             <img
@@ -278,9 +286,10 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
               decoding="async"
               onLoad={handlePrimaryLoad}
               className={cn(
-                "absolute inset-0 h-full w-full object-cover object-center transition-all duration-500 ease-out-expo",
-                canCrossfade && showSecondary ? "scale-105 opacity-0" : "scale-100 opacity-100",
-                "group-hover:scale-105"
+                "cb-product-image absolute inset-0 transition-all duration-500 ease-out-expo",
+                canCrossfade && showSecondary ? "scale-[1.03] opacity-0" : "scale-100 opacity-100",
+                imageLoaded ? "opacity-100" : "opacity-0",
+                "group-hover:scale-[1.03]"
               )}
             />
             {canCrossfade ? (
@@ -291,8 +300,8 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
                 loading="lazy"
                 decoding="async"
                 className={cn(
-                  "absolute inset-0 h-full w-full object-cover object-center transition-all duration-500 ease-out-expo",
-                  showSecondary ? "scale-105 opacity-100" : "scale-100 opacity-0"
+                  "cb-product-image absolute inset-0 transition-all duration-500 ease-out-expo",
+                  showSecondary ? "scale-[1.03] opacity-100" : "scale-100 opacity-0"
                 )}
               />
             ) : null}
@@ -323,6 +332,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
   const { locale } = useLocale();
   const navigate = useNavigate();
   const hoverCapable = useHoverCapable();
+  const { ref: tiltRef, onMove, onLeave, enabled: tiltEnabled } = useCardTilt(hoverCapable);
   const readOnly = useStoreReadOnly();
   const { addItem } = useCart();
   const { success, error: toastError } = useToast();
@@ -407,19 +417,17 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
     <>
       <article className={cn("group relative flex h-full flex-col", className)}>
         <div
+          ref={tiltRef}
+          onMouseMove={tiltEnabled ? onMove : undefined}
+          onMouseLeave={tiltEnabled ? onLeave : undefined}
           className={cn(
-            "relative flex flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-brand-border bg-brand-surface",
-            "shadow-card transition-all duration-500 ease-out-expo",
-            "group-hover:-translate-y-1.5 group-hover:border-brand-accent/45 group-hover:shadow-card-hover",
+            "cb-product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-brand-border/70 bg-brand-surface",
+            "group-hover:-translate-y-0.5",
             "dark:border-brand-border dark:bg-brand-surface-dark"
           )}
+          style={{ transformStyle: "preserve-3d", transition: "transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.5s ease" }}
         >
-          <div
-            className="pointer-events-none absolute -end-8 -top-8 h-32 w-32 rounded-full bg-brand-accent/10 transition-all duration-700 ease-out-expo group-hover:scale-[2.2] group-hover:bg-brand-accent/18"
-            aria-hidden="true"
-          />
-
-          <div className="relative block flex-1">
+          <div className="relative block shrink-0">
             <ProductCardImage
               product={product}
               name={name}
@@ -429,9 +437,9 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
 
             <div
               className={cn(
-                "absolute inset-x-0 bottom-0 z-20 flex translate-y-0 flex-col gap-2 px-4 pb-4 opacity-100 transition-all duration-500 ease-out-expo",
-                "sm:translate-y-3 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100",
-                compact && "px-3 pb-3"
+                "absolute inset-x-0 bottom-0 z-20 flex translate-y-0 flex-col gap-1.5 px-3 pb-3 opacity-100 transition-all duration-500 ease-out-expo",
+                "sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100",
+                compact && "px-2.5 pb-2.5"
               )}
             >
               {readOnly ? (
@@ -471,12 +479,12 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
             </div>
           </div>
 
-          <div className="absolute start-3 top-3 z-20 flex flex-wrap gap-1.5">
+          <div className="absolute start-2.5 top-2.5 z-20 flex flex-wrap gap-1">
             <ProductBadges product={product} showStock={false} />
             {discount ? <DiscountBadge product={product} /> : null}
           </div>
 
-          <div className="absolute end-3 top-3 z-20">
+          <div className="absolute end-2.5 top-2.5 z-20">
             {!readOnly ? (
               <WishlistButton
                 productId={productId}
@@ -487,29 +495,30 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
 
           <div
             className={cn(
-              "relative z-10 border-t border-brand-border/70 bg-brand-surface px-4 py-4 transition-all duration-500 ease-out-expo dark:bg-brand-surface-dark",
-              "group-hover:pb-5",
-              compact ? "px-3 py-3" : "px-4 py-4"
+              "cb-product-card-body relative z-10 flex flex-1 flex-col border-t border-brand-border/50 bg-brand-surface dark:bg-brand-surface-dark",
+              compact && "px-2.5 py-2.5"
             )}
           >
-            <Link to={href} className="block space-y-2">
-              {categoryName ? (
-                <p className="text-[10px] font-medium tracking-[0.22em] text-brand-accent uppercase">
-                  {categoryName}
-                </p>
-              ) : null}
+            <Link to={href} className="flex flex-1 flex-col">
+              <p className="cb-product-card-meta text-[9px] font-medium tracking-[0.18em] text-brand-accent uppercase">
+                {categoryName || "\u00A0"}
+              </p>
 
-              <h3 className="font-display text-base font-medium leading-snug text-brand-text transition-colors duration-300 group-hover:text-brand-accent md:text-lg">
+              <h3 className="cb-product-card-title mt-1 transition-colors duration-300 group-hover:text-brand-accent">
                 {name}
               </h3>
 
-              <ProductRatingLine product={product} size="xs" linkToReviews={`${href}#reviews`} />
-              <ProductPrice product={product} size="sm" />
-              <ColorVariants product={product} className="sm:opacity-80 sm:group-hover:opacity-100" />
+              <div className="cb-product-card-meta mt-1.5 transition-opacity duration-300 group-hover:opacity-100">
+                <ProductRatingLine product={product} size="xs" linkToReviews={`${href}#reviews`} />
+              </div>
+              <div className="cb-product-card-price mt-1">
+                <ProductPrice product={product} size="sm" />
+              </div>
+              <ColorVariants product={product} className="mt-1.5 hidden sm:flex sm:opacity-70 sm:group-hover:opacity-100" />
             </Link>
 
-            <div className="mt-3 flex items-center justify-between gap-2">
-              <Badge variant={inStock ? "success" : "outline"} size="sm">
+            <div className="mt-auto flex items-center pt-2.5">
+              <Badge variant={inStock ? "success" : "outline"} size="sm" className="text-[10px]">
                 {inStock
                   ? locale === "ar"
                     ? "متوفر"
@@ -538,6 +547,10 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
 });
 
 export const ProductCard = memo(function ProductCard({ product, className, variant = "store" }) {
+  if (variant === "shop") {
+    return <ShopProductCard product={product} className={className} />;
+  }
+
   return (
     <LuxuryProductCard
       product={product}

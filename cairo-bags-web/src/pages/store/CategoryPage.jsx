@@ -75,10 +75,10 @@ export function CategoryPage() {
 
       <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">
-          <h1 className="font-display text-3xl font-medium text-brand-text md:text-4xl">
+          <h1 className="cb-page-title">
             {categoryName || (locale === "ar" ? "التصنيف" : "Category")}
           </h1>
-          {description ? <p className="mt-3 text-sm text-brand-muted md:text-base">{description}</p> : null}
+          {description ? <p className="cb-page-lead">{description}</p> : null}
         </div>
         {imageUrl ? (
           <div className="h-32 w-full overflow-hidden rounded-lg border border-brand-border md:h-36 md:w-56">
@@ -90,6 +90,7 @@ export function CategoryPage() {
       {loading ? <ProductGridSkeleton /> : null}
       {!loading && error ? (
         <EmptyState
+          variant="error"
           title={locale === "ar" ? "تعذر تحميل التصنيف" : "Unable to load category"}
           description={error.message}
           action={
@@ -101,6 +102,7 @@ export function CategoryPage() {
       ) : null}
       {!loading && !error && products.length === 0 ? (
         <EmptyState
+          variant="category"
           title={locale === "ar" ? "لا توجد منتجات" : "No products in this category"}
           description={
             locale === "ar" ? "تصفح مجموعات أخرى" : "Browse other collections"
@@ -113,7 +115,7 @@ export function CategoryPage() {
         />
       ) : null}
       {!loading && !error && products.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 md:gap-6">
+        <div className="cb-product-grid">
           {products.map((product) => (
             <ProductCard key={product.id ?? product.Id} product={product} />
           ))}

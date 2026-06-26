@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Button } from "../ui/Button.jsx";
+import { EmptyState, EmptyStateAction } from "../store/EmptyState.jsx";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
 
@@ -7,27 +7,26 @@ export function EmptyCart({ className, onContinue }) {
   const { locale } = useLocale();
 
   return (
-    <div className={cn("py-12 text-center", className)}>
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-brand-accent/30 bg-brand-secondary text-2xl text-brand-accent">
-        ◇
-      </div>
-      <h3 className="font-display text-xl font-medium text-brand-text">
-        {locale === "ar" ? "سلتك فارغة" : "Your bag is empty"}
-      </h3>
-      <p className="mt-2 text-sm text-brand-muted">
-        {locale === "ar"
+    <EmptyState
+      className={cn("max-w-lg", className)}
+      variant="cart"
+      title={locale === "ar" ? "سلتك فارغة" : "Your bag is empty"}
+      description={
+        locale === "ar"
           ? "اكتشف مجموعتنا الفاخرة من الحقائب"
-          : "Discover our luxury handbag collection"}
-      </p>
-      {onContinue ? (
-        <Button type="button" variant="accent" className="mt-6" onClick={onContinue}>
-          {locale === "ar" ? "تسوق الآن" : "Shop Now"}
-        </Button>
-      ) : (
-        <Link to="/shop" className="mt-6 inline-block">
-          <Button variant="accent">{locale === "ar" ? "تسوق الآن" : "Shop Now"}</Button>
-        </Link>
-      )}
-    </div>
+          : "Discover our luxury handbag collection"
+      }
+      action={
+        onContinue ? (
+          <EmptyStateAction type="button" onClick={onContinue}>
+            {locale === "ar" ? "تسوق الآن" : "Shop Now"}
+          </EmptyStateAction>
+        ) : (
+          <Link to="/shop">
+            <EmptyStateAction>{locale === "ar" ? "تسوق الآن" : "Shop Now"}</EmptyStateAction>
+          </Link>
+        )
+      }
+    />
   );
 }

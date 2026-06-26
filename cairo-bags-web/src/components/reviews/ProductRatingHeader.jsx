@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
+import { AnimatedCounter } from "../ui/animation.jsx";
 import { StarRating } from "./StarRating.jsx";
 import { cn } from "../../utils/cn.js";
 
@@ -46,14 +47,21 @@ export const ProductRatingHeader = memo(function ProductRatingHeader({
             {stats.averageRating.toFixed(1)}
           </p>
           <p className="text-sm text-brand-muted transition-colors group-hover:text-brand-text md:text-base">
-            {locale === "ar"
-              ? `بناءً على ${stats.reviewCount} تقييم`
-              : `Based on ${stats.reviewCount} Review${stats.reviewCount === 1 ? "" : "s"}`}
+            {locale === "ar" ? (
+              <>
+                بناءً على <AnimatedCounter value={stats.reviewCount} className="font-medium text-brand-text" /> تقييم
+              </>
+            ) : (
+              <>
+                Based on <AnimatedCounter value={stats.reviewCount} className="font-medium text-brand-text" /> Review
+                {stats.reviewCount === 1 ? "" : "s"}
+              </>
+            )}
           </p>
           {stats.verifiedReviewCount > 0 ? (
             <p className="text-sm text-brand-muted">
               <span>{locale === "ar" ? "مشتريات موثّقة:" : "Verified Purchases:"}</span>{" "}
-              <span className="font-medium text-brand-accent">{stats.verifiedReviewCount}</span>
+              <AnimatedCounter value={stats.verifiedReviewCount} className="font-medium text-brand-accent" />
             </p>
           ) : null}
         </div>

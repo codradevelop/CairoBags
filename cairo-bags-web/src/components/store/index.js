@@ -11,3 +11,11 @@ export { ProductSkeleton, ProductGridSkeleton, CategoryGridSkeleton, ProductDeta
 export { EmptyState } from "./EmptyState.jsx";
 export { NewsletterSection, WhyChooseSection } from "./NewsletterSection.jsx";
 export { AdminPreviewBanner, AdminPreviewBadge } from "./AdminPreviewBanner.jsx";
+export { SectionDivider, FloatingBackground } from "./SectionDivider.jsx";
+export { MouseGlow } from "./MouseGlow.jsx";
+export { ShopHero } from "./shop/ShopHero.jsx";
+export { ShopSearchBar } from "./shop/ShopSearchBar.jsx";
+export { ShopFiltersSidebar } from "./shop/ShopFiltersSidebar.jsx";
+export { ShopToolbar } from "./shop/ShopToolbar.jsx";
+export { ShopFeatureBar } from "./shop/ShopFeatureBar.jsx";
+export { ShopProductCard } from "./shop/ShopProductCard.jsx";

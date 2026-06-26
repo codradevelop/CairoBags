@@ -12,6 +12,7 @@ import {
   WhyChooseSection,
   NewsletterSection,
 } from "../../components/store/index.js";
+import { SectionDivider, FloatingBackground } from "../../components/store/SectionDivider.jsx";
 
 export function HomePage() {
   const { locale } = useLocale();
@@ -32,18 +33,29 @@ export function HomePage() {
   return (
     <StoreLayout fullWidth contentClassName="!py-0">
       <HeroSection />
-      <div className="cb-container space-y-16 py-12 md:space-y-20 md:py-16">
-        <section id="categories" className="scroll-mt-28">
-          <CategoryGrid />
-        </section>
-        <section id="featured" className="scroll-mt-28">
-          <FeaturedProducts />
-        </section>
-        <section id="new-arrivals" className="scroll-mt-28">
-          <NewArrivals />
-        </section>
-        <WhyChooseSection />
-        <NewsletterSection />
+      <div className="relative">
+        <FloatingBackground />
+        <div className="cb-container-wide relative space-y-0">
+          <section id="categories" className="cb-section-tight scroll-mt-28">
+            <CategoryGrid />
+          </section>
+          <SectionDivider />
+          <section id="featured" className="cb-section-tight scroll-mt-28">
+            <FeaturedProducts />
+          </section>
+          <SectionDivider />
+          <section id="new-arrivals" className="cb-section-tight scroll-mt-28">
+            <NewArrivals />
+          </section>
+          <SectionDivider label={locale === "ar" ? "القيمة" : "Values"} />
+          <section className="cb-section-tight">
+            <WhyChooseSection />
+          </section>
+          <SectionDivider />
+          <section id="newsletter" className="cb-section-tight scroll-mt-28 pb-16 md:pb-20">
+            <NewsletterSection />
+          </section>
+        </div>
       </div>
     </StoreLayout>
   );

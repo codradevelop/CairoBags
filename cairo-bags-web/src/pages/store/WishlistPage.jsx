@@ -20,22 +20,24 @@ function WishlistItemCard({ item, locale, onRemove, onAddToCart, removing }) {
 
   return (
     <article
-      className={cn(
-        "overflow-hidden rounded-[1.25rem] border border-brand-border bg-brand-surface shadow-card transition-all duration-500",
-        removing ? "pointer-events-none scale-95 opacity-0" : "opacity-100"
+        className={cn(
+        "overflow-hidden rounded-xl border border-brand-border/70 bg-brand-surface transition-all duration-500",
+        removing ? "pointer-events-none scale-[0.98] opacity-0" : "opacity-100"
       )}
+      style={{ boxShadow: "var(--cb-shadow-card)" }}
     >
       <div className="grid gap-4 p-4 sm:grid-cols-[120px_1fr] sm:items-center">
-        <Link to={href} className="block overflow-hidden rounded-xl border border-brand-border bg-brand-secondary">
+        <Link to={href} className="block overflow-hidden rounded-lg border border-brand-border/70 bg-brand-secondary">
           {item.primaryImage ? (
             <img
               src={item.primaryImage}
               alt={name}
               loading="lazy"
-              className="aspect-[3/4] h-full w-full object-cover object-center transition-transform duration-500 hover:scale-105"
+              decoding="async"
+              className="cb-product-aspect cb-product-image transition-transform duration-500 hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex aspect-[3/4] items-center justify-center font-display text-brand-muted">CB</div>
+            <div className="cb-product-aspect flex items-center justify-center font-display text-brand-muted/50">CB</div>
           )}
         </Link>
 
@@ -144,10 +146,10 @@ export function WishlistPage() {
 
   return (
     <StoreLayout>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-medium text-brand-text md:text-4xl">{title}</h1>
+      <div className="mb-10">
+        <h1 className="cb-page-title">{title}</h1>
         {items.length > 0 ? (
-          <p className="mt-2 text-sm text-brand-muted">
+          <p className="cb-page-lead">
             {locale === "ar"
               ? `${items.length} منتج`
               : `${items.length} item${items.length === 1 ? "" : "s"}`}
@@ -163,13 +165,13 @@ export function WishlistPage() {
 
       {!loading && items.length === 0 ? (
         <EmptyState
+          variant="wishlist"
           title={locale === "ar" ? "قائمة المفضلة فارغة" : "Your wishlist is empty"}
           description={
             locale === "ar"
               ? "احفظ القطع التي تعجبك لتعود إليها لاحقاً"
               : "Save pieces you love and come back to them anytime"
           }
-          icon="♡"
           action={
             <Button variant="accent" onClick={() => navigate("/shop")}>
               {locale === "ar" ? "تسوق الآن" : "Shop Now"}

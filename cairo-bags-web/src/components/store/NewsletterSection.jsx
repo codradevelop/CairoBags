@@ -81,13 +81,13 @@ function WelcomeCouponSuccess({ copy, className }) {
       <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
         {copy.label}
       </p>
-      <h2 className="mt-3 font-display text-2xl font-medium text-brand-text md:text-3xl">
+      <h2 className="mt-3 font-display text-2xl font-light text-brand-secondary md:text-3xl">
         {copy.successTitle}
       </h2>
-      <p className="mt-3 text-sm leading-relaxed text-brand-muted md:text-base">
+      <p className="mt-3 text-sm leading-relaxed text-brand-secondary/60 md:text-base">
         {copy.successLead}
       </p>
-      <p className="mt-2 text-sm text-brand-muted/90">{copy.successHint}</p>
+      <p className="mt-2 text-sm text-brand-secondary/45">{copy.successHint}</p>
 
       <Button
         type="button"
@@ -105,13 +105,13 @@ function WelcomeCouponSuccess({ copy, className }) {
 function WelcomeCouponForm({ copy, email, error, submitting, disabled, onEmailChange, onSubmit }) {
   return (
     <div className="animate-fade-in motion-reduce:animate-none">
-      <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
+      <p className="text-xs font-medium tracking-luxury text-brand-accent uppercase">
         {copy.label}
       </p>
-      <h2 className="mt-3 font-display text-2xl font-medium text-brand-text md:text-3xl">
+      <h2 className="mt-3 font-display text-2xl font-light text-brand-secondary md:text-3xl">
         {copy.title}
       </h2>
-      <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-brand-muted md:text-base">
+      <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-brand-secondary/60 md:text-base">
         {copy.description}
       </p>
 
@@ -151,7 +151,7 @@ function WelcomeCouponForm({ copy, email, error, submitting, disabled, onEmailCh
         </div>
       </form>
 
-      <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-brand-muted/90">
+      <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-brand-secondary/45">
         {copy.disclaimer}
       </p>
     </div>
@@ -203,13 +203,19 @@ export function NewsletterSection({ className }) {
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-brand-border bg-brand-secondary px-6 py-10 text-center shadow-soft md:px-12 md:py-14",
-        "transition-all duration-slow dark:border-brand-border dark:bg-brand-surface-dark",
+        "relative overflow-hidden rounded-2xl border border-brand-border/70 bg-brand-primary px-6 py-12 text-center md:px-14 md:py-16",
         className
       )}
     >
       <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent/60 to-transparent"
+        className="pointer-events-none absolute inset-0 opacity-60"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 0%, rgba(201,169,98,0.15) 0%, transparent 55%)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent/50 to-transparent"
         aria-hidden="true"
       />
 
@@ -259,20 +265,24 @@ export function WhyChooseSection({ className }) {
 
   return (
     <section className={cn(className)}>
-      <div className="mb-8 text-center">
-        <h2 className="font-display text-2xl font-medium text-brand-text md:text-3xl">
+      <div className="mb-10 text-center">
+        <p className="cb-section-label">{locale === "ar" ? "قيمنا" : "Our Values"}</p>
+        <h2 className="cb-section-heading mt-2">
           {locale === "ar" ? "لماذا Cairo Bags؟" : "Why Cairo Bags?"}
         </h2>
       </div>
-      <div className="grid gap-6 md:grid-cols-3">
-        {items.map((item) => (
+      <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+        {items.map((item, index) => (
           <div
             key={item.title}
-            className="rounded-lg border border-brand-border bg-brand-surface p-6 text-center dark:bg-brand-surface-dark"
+            className="group rounded-xl border border-brand-border/70 bg-brand-surface p-6 text-center transition-all duration-500 hover:border-brand-accent/30 hover:shadow-card dark:bg-brand-surface-dark"
+            style={{ transitionDelay: `${index * 50}ms` }}
           >
-            <div className="mx-auto mb-4 h-px w-10 bg-brand-accent" />
+            <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-brand-accent/30 bg-brand-accent/5 font-display text-sm text-brand-accent">
+              {String(index + 1).padStart(2, "0")}
+            </div>
             <h3 className="font-display text-lg font-medium text-brand-text">{item.title}</h3>
-            <p className="mt-2 text-sm text-brand-muted">{item.desc}</p>
+            <p className="mt-2 text-sm leading-relaxed text-brand-muted">{item.desc}</p>
           </div>
         ))}
       </div>

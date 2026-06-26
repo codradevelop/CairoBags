@@ -6,7 +6,10 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "../../utils/cn.js";
+import { EASE_LUXURY } from "./motion.jsx";
+import { DURATION } from "./animation.jsx";
 
 const ToastContext = createContext(null);
 
@@ -14,23 +17,23 @@ let toastId = 0;
 
 const variantStyles = {
   default:
-    "border-brand-accent/50 bg-brand-primary text-brand-secondary shadow-glow-gold dark:border-brand-accent/45 dark:bg-brand-surface dark:text-brand-text",
+    "border-brand-accent/35 bg-brand-surface/90 text-brand-text backdrop-blur-md dark:bg-brand-surface-dark/92",
   success:
-    "border-brand-accent/60 bg-brand-primary text-brand-secondary shadow-glow-gold dark:border-brand-accent/50 dark:bg-brand-surface dark:text-brand-text",
+    "border-brand-accent/40 bg-brand-surface/90 text-brand-text backdrop-blur-md dark:bg-brand-surface-dark/92",
   warning:
-    "border-gold-500/55 bg-brand-primary text-brand-secondary shadow-glow-gold dark:border-gold-500/45 dark:bg-brand-surface dark:text-brand-text",
+    "border-gold-500/40 bg-brand-surface/90 text-brand-text backdrop-blur-md dark:bg-brand-surface-dark/92",
   error:
-    "border-[#C45C5C]/55 bg-brand-primary text-brand-secondary shadow-[0_12px_40px_-8px_rgba(155,34,38,0.25)] dark:border-[#C45C5C]/45 dark:bg-brand-surface dark:text-brand-text",
+    "border-red-700/35 bg-brand-surface/90 text-brand-text backdrop-blur-md dark:bg-brand-surface-dark/92",
   info:
-    "border-brand-accent/50 bg-brand-primary text-brand-secondary shadow-glow-gold dark:border-brand-accent/45 dark:bg-brand-surface dark:text-brand-text",
+    "border-brand-accent/35 bg-brand-surface/90 text-brand-text backdrop-blur-md dark:bg-brand-surface-dark/92",
 };
 
 const iconStyles = {
-  default: "bg-brand-accent/25 text-brand-accent",
-  success: "bg-brand-accent/30 text-brand-accent-muted ring-1 ring-brand-accent/30",
-  warning: "bg-gold-600/30 text-gold-200",
-  error: "bg-[#9B2226]/35 text-[#F8C4C4]",
-  info: "bg-brand-accent/25 text-brand-accent",
+  default: "bg-brand-accent/15 text-brand-accent ring-1 ring-brand-accent/20",
+  success: "bg-brand-accent/20 text-brand-accent-deep ring-1 ring-brand-accent/25",
+  warning: "bg-gold-600/15 text-gold-700",
+  error: "bg-red-700/10 text-red-800",
+  info: "bg-brand-accent/15 text-brand-accent",
 };
 
 const icons = {
@@ -41,21 +44,26 @@ const icons = {
   default: "•",
 };
 
-function ToastItem({ toast, onDismiss }) {
+function ToastItem({ toast, onDismiss, prefersReduced }) {
   const variant = toast.variant || "default";
 
   return (
-    <div
+    <motion.div
+      layout
       role="status"
+      initial={prefersReduced ? false : { opacity: 0, y: -12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={prefersReduced ? undefined : { opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ duration: DURATION.base, ease: EASE_LUXURY }}
       className={cn(
-        "pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border px-5 py-3.5",
-        "animate-slide-down",
+        "pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-2xl border px-5 py-3.5",
         variantStyles[variant]
       )}
+      style={{ boxShadow: "var(--cb-shadow-dropdown)" }}
     >
       <span
         className={cn(
-          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold",
           iconStyles[variant]
         )}
         aria-hidden="true"
@@ -68,9 +76,7 @@ function ToastItem({ toast, onDismiss }) {
           <p
             className={cn(
               "text-sm leading-snug",
-              toast.title
-                ? "mt-0.5 text-brand-secondary/90 dark:text-brand-muted"
-                : "font-medium text-brand-secondary dark:text-brand-text"
+              toast.title ? "mt-0.5 text-brand-muted" : "font-medium"
             )}
           >
             {toast.message}
@@ -80,16 +86,18 @@ function ToastItem({ toast, onDismiss }) {
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        className="shrink-0 rounded-md p-1 text-brand-accent-muted transition-opacity hover:text-brand-accent dark:text-brand-muted dark:hover:text-brand-text"
+        className="shrink-0 rounded-lg p-1.5 text-brand-muted transition-colors hover:bg-brand-secondary/80 hover:text-brand-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent"
         aria-label="Dismiss"
       >
         ×
       </button>
-    </div>
+    </motion.div>
   );
 }
 
 function ToastViewport({ toasts, onDismiss }) {
+  const prefersReduced = useReducedMotion();
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
@@ -98,9 +106,16 @@ function ToastViewport({ toasts, onDismiss }) {
       aria-live="polite"
       aria-relevant="additions"
     >
-      {toasts.map((toast) => (
-        <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
-      ))}
+      <AnimatePresence mode="popLayout">
+        {toasts.map((toast) => (
+          <ToastItem
+            key={toast.id}
+            toast={toast}
+            onDismiss={onDismiss}
+            prefersReduced={prefersReduced}
+          />
+        ))}
+      </AnimatePresence>
     </div>,
     document.body
   );

@@ -64,10 +64,8 @@ export function SearchResultsPage() {
 
   return (
     <StoreLayout>
-      <div className="mb-8">
-        <h1 className="font-display text-3xl font-medium text-brand-text md:text-4xl">
-          {locale === "ar" ? "نتائج البحث" : "Search Results"}
-        </h1>
+      <div className="mb-10">
+        <h1 className="cb-page-title">{locale === "ar" ? "نتائج البحث" : "Search Results"}</h1>
       </div>
 
       <ProductSearch
@@ -78,6 +76,7 @@ export function SearchResultsPage() {
 
       {!query ? (
         <EmptyState
+          variant="search"
           title={locale === "ar" ? "ابدأ البحث" : "Start searching"}
           description={
             locale === "ar"
@@ -92,6 +91,7 @@ export function SearchResultsPage() {
       {query && loading ? <ProductGridSkeleton /> : null}
       {query && !loading && error ? (
         <EmptyState
+          variant="error"
           title={locale === "ar" ? "تعذر البحث" : "Search failed"}
           description={error.message}
           action={
@@ -103,6 +103,7 @@ export function SearchResultsPage() {
       ) : null}
       {query && !loading && !error && products.length === 0 ? (
         <EmptyState
+          variant="search"
           title={locale === "ar" ? "لا توجد نتائج" : "No results found"}
           description={
             locale === "ar"
@@ -117,7 +118,7 @@ export function SearchResultsPage() {
         />
       ) : null}
       {query && !loading && !error && products.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 md:gap-6">
+        <div className="cb-product-grid">
           {products.map((product) => (
             <ProductCard key={product.id ?? product.Id} product={product} />
           ))}

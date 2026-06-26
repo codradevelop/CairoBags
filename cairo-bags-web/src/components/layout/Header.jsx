@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/Button.jsx";
 import { Navbar } from "./Navbar.jsx";
 import { MobileMenu } from "./MobileMenu.jsx";
@@ -40,33 +41,25 @@ export function AnnouncementBar({ message, messageAr, href = "/shop", className 
 
   return (
     <div className={cn("relative overflow-hidden", className)}>
-      {/* Deep dark base */}
       <div className="absolute inset-0 bg-brand-primary" />
-      {/* Animated gold shimmer sweep */}
       <div
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-15"
         style={{
           background:
-            "linear-gradient(105deg, transparent 30%, rgba(201,169,98,0.8) 50%, transparent 70%)",
+            "linear-gradient(105deg, transparent 30%, rgba(201,169,98,0.9) 50%, transparent 70%)",
           backgroundSize: "300% 100%",
-          animation: "shimmer-gold 4s ease-in-out infinite",
+          animation: "shimmer-gold 5s ease-in-out infinite",
         }}
       />
       <div className="cb-container relative">
         <Link
           to={href}
-          className="flex min-h-10 items-center justify-center gap-2 px-4 py-2 text-center text-xs font-medium tracking-[0.2em] uppercase transition-opacity hover:opacity-80 sm:text-sm"
+          className="flex min-h-9 items-center justify-center gap-3 px-4 py-2 text-center text-[10px] font-medium tracking-luxury uppercase transition-opacity hover:opacity-75 sm:text-[11px]"
           style={{ color: "#e8d5a3" }}
         >
-          <span
-            className="inline-block h-px w-6 opacity-60"
-            style={{ background: "linear-gradient(90deg, transparent, #c9a962)" }}
-          />
+          <span className="hidden h-px w-8 bg-gradient-to-r from-transparent to-brand-accent/70 sm:block" />
           {text}
-          <span
-            className="inline-block h-px w-6 opacity-60"
-            style={{ background: "linear-gradient(90deg, #c9a962, transparent)" }}
-          />
+          <span className="hidden h-px w-8 bg-gradient-to-l from-transparent to-brand-accent/70 sm:block" />
         </Link>
       </div>
     </div>
@@ -78,50 +71,67 @@ export function Header({ className, showAnnouncement = true, announcement }) {
   const readOnly = useStoreReadOnly();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const searchPlaceholder = locale === "ar" ? "ابحث عن حقائب..." : "Search bags...";
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className={cn("sticky top-0 z-40 cb-glass", className)}>
+    <header
+      className={cn(
+        "cb-header-floating cb-glass transition-all duration-500",
+        scrolled && "cb-header-scrolled cb-header-compact",
+        className
+      )}
+    >
       {showAnnouncement ? <AnnouncementBar {...announcement} /> : null}
 
       <div className="cb-container">
-        <div className="flex h-16 items-center justify-between gap-4 md:h-[4.5rem]">
-          <div className="flex items-center gap-3">
+        <div className="cb-header-inner flex h-16 items-center justify-between gap-3 transition-all duration-500 md:h-[4.5rem] md:gap-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="shrink-0 lg:hidden"
               aria-label={locale === "ar" ? "فتح القائمة" : "Open menu"}
               onClick={() => setMobileOpen(true)}
             >
               <MenuIcon />
             </Button>
 
-            {/* Logo with gold gradient treatment */}
             <Link
               to="/"
-              className="group font-display text-xl font-semibold tracking-tight text-brand-primary transition-colors hover:text-brand-accent md:text-2xl"
-              style={{ letterSpacing: "-0.02em" }}
+              className="group shrink-0 font-display text-lg font-medium tracking-tight text-brand-primary transition-colors duration-300 hover:text-brand-accent sm:text-xl md:text-[1.35rem]"
+              style={{ letterSpacing: "-0.03em" }}
             >
-              Cairo Bags
+              <span className="relative">
+                Cairo Bags
+                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-brand-accent transition-all duration-500 group-hover:w-full" />
+              </span>
             </Link>
           </div>
 
-          <Navbar className="mx-4 flex-1 justify-center" />
+          <Navbar className="mx-2 hidden flex-1 justify-center lg:flex xl:mx-6" />
 
-          <div className="hidden max-w-sm flex-1 lg:block">
+          <div className="hidden max-w-xs flex-1 lg:block xl:max-w-sm">
             <ProductSearch compact />
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Button
               type="button"
               variant="ghost"
               size="icon"
               className="lg:hidden"
               aria-label={searchPlaceholder}
+              aria-expanded={searchOpen}
               onClick={() => setSearchOpen((v) => !v)}
             >
               <SearchIcon />
@@ -134,11 +144,21 @@ export function Header({ className, showAnnouncement = true, announcement }) {
           </div>
         </div>
 
-        {searchOpen ? (
-          <div className="border-t border-brand-border/50 py-3 lg:hidden animate-slide-down">
-            <ProductSearch autoFocus onSubmit={() => setSearchOpen(false)} />
-          </div>
-        ) : null}
+        <AnimatePresence>
+          {searchOpen ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
+              className="overflow-hidden border-t border-brand-border/40 lg:hidden"
+            >
+              <div className="py-3">
+                <ProductSearch autoFocus onSubmit={() => setSearchOpen(false)} />
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
