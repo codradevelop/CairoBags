@@ -13,7 +13,7 @@ const columns = {
     { href: "/shop", en: "All Bags", ar: "كل الحقائب" },
     { href: "/#new-arrivals", en: "New Arrivals", ar: "وصل حديثاً" },
     { href: "/#categories", en: "Categories", ar: "التصنيفات" },
-    { href: "/#featured", en: "Featured", ar: "مميز" },
+    { href: "/#features", en: "Featured", ar: "مميز" },
   ],
   support: [
     { href: "/contact", en: "Contact", ar: "تواصل معنا" },

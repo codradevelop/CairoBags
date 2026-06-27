@@ -265,22 +265,16 @@ export function WhyChooseSection({ className }) {
 
   return (
     <section className={cn(className)}>
-      <div className="mb-10 text-center">
+      <div className="cb-store-section-header mb-10">
         <p className="cb-section-label">{locale === "ar" ? "قيمنا" : "Our Values"}</p>
         <h2 className="cb-section-heading mt-2">
           {locale === "ar" ? "لماذا Cairo Bags؟" : "Why Cairo Bags?"}
         </h2>
       </div>
-      <div className="grid gap-4 md:grid-cols-3 md:gap-6">
+      <div className="cb-values-grid">
         {items.map((item, index) => (
-          <div
-            key={item.title}
-            className="group rounded-xl border border-brand-border/70 bg-brand-surface p-6 text-center transition-all duration-500 hover:border-brand-accent/30 hover:shadow-card dark:bg-brand-surface-dark"
-            style={{ transitionDelay: `${index * 50}ms` }}
-          >
-            <div className="mx-auto mb-5 flex h-10 w-10 items-center justify-center rounded-full border border-brand-accent/30 bg-brand-accent/5 font-display text-sm text-brand-accent">
-              {String(index + 1).padStart(2, "0")}
-            </div>
+          <div key={item.title} className="cb-value-card" style={{ animationDelay: `${index * 80}ms` }}>
+            <div className="cb-value-card-index">{String(index + 1).padStart(2, "0")}</div>
             <h3 className="font-display text-lg font-medium text-brand-text">{item.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-brand-muted">{item.desc}</p>
           </div>

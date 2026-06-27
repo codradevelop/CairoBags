@@ -124,7 +124,7 @@ export const ShopProductCard = memo(function ShopProductCard({ product, classNam
 
   const productId = getProductId(product);
   const name = getProductName(product, locale);
-  const href = buildProductPath(product);
+  const href = buildProductPath(product, locale);
   const inStock = isProductInStock(product);
   const isNew = isProductNewArrival(product);
   const imageUrl = getProductImageUrl(product);

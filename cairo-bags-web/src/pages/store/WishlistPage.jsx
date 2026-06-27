@@ -11,33 +11,30 @@ import { ProductPrice } from "../../components/store/ProductPrice.jsx";
 import { Button, Spinner } from "../../components/ui/index.js";
 import * as productService from "../../services/productService.js";
 import { getWishlistItemName } from "../../utils/wishlistHelpers.js";
-import { buildProductPath } from "../../utils/productHelpers.js";
+import { buildProductPathFromRefs } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
 
 function WishlistItemCard({ item, locale, onRemove, onAddToCart, removing }) {
   const name = getWishlistItemName(item, locale);
-  const href = buildProductPath({ id: item.productId });
+  const href = buildProductPathFromRefs(
+    {
+      productId: item.productId,
+      productSlugAr: item.productSlugAr ?? item.ProductSlugAr,
+      productSlugEn: item.productSlugEn ?? item.ProductSlugEn,
+    },
+    locale
+  );
 
   return (
     <article
-        className={cn(
-        "overflow-hidden rounded-xl border border-brand-border/70 bg-brand-surface transition-all duration-500",
-        removing ? "pointer-events-none scale-[0.98] opacity-0" : "opacity-100"
-      )}
-      style={{ boxShadow: "var(--cb-shadow-card)" }}
+      className={cn("cb-wishlist-card", removing && "pointer-events-none scale-[0.98] opacity-0")}
     >
-      <div className="grid gap-4 p-4 sm:grid-cols-[120px_1fr] sm:items-center">
-        <Link to={href} className="block overflow-hidden rounded-lg border border-brand-border/70 bg-brand-secondary">
+      <div className="cb-wishlist-card-inner">
+        <Link to={href} className="cb-wishlist-thumb">
           {item.primaryImage ? (
-            <img
-              src={item.primaryImage}
-              alt={name}
-              loading="lazy"
-              decoding="async"
-              className="cb-product-aspect cb-product-image transition-transform duration-500 hover:scale-[1.03]"
-            />
+            <img src={item.primaryImage} alt={name} loading="lazy" decoding="async" />
           ) : (
-            <div className="cb-product-aspect flex items-center justify-center font-display text-brand-muted/50">CB</div>
+            <div className="flex h-full items-center justify-center font-display text-brand-muted/50">CB</div>
           )}
         </Link>
 
@@ -181,7 +178,7 @@ export function WishlistPage() {
       ) : null}
 
       {items.length > 0 ? (
-        <div className="grid gap-4">
+        <div className="cb-wishlist-list">
           {items.map((item) => (
             <WishlistItemCard
               key={item.productId}

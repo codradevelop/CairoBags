@@ -38,7 +38,7 @@ export function CategoryGridSkeleton({ count = 4, className }) {
     <div className={cn("cb-category-grid", className)}>
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="space-y-2">
-          <Skeleton className="aspect-[3/4] w-full rounded-xl" />
+          <Skeleton className="cb-category-aspect w-full rounded-xl" />
           <Skeleton className="h-3 w-2/3" />
         </div>
       ))}
@@ -48,15 +48,30 @@ export function CategoryGridSkeleton({ count = 4, className }) {
 
 export function ProductDetailSkeleton({ className }) {
   return (
-    <div className={cn("grid gap-10 lg:grid-cols-2 lg:gap-16", className)}>
-      <Skeleton className="cb-product-aspect w-full rounded-xl" />
-      <div className="space-y-4">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-10 w-3/4" />
-        <Skeleton className="h-6 w-1/3" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="mt-8 h-11 w-full rounded-[var(--cb-radius-control)]" />
+    <div className={cn("cb-product-detail-grid", className)}>
+      <Skeleton className="cb-product-detail-gallery cb-product-aspect w-full rounded-xl" />
+      <div className="cb-product-detail-panel space-y-4">
+        <Skeleton className="h-5 w-28 rounded-full" />
+        <Skeleton className="h-10 w-4/5" />
+        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-9 w-40" />
+        <Skeleton className="h-16 w-full rounded-xl" />
+        <div className="space-y-3 rounded-xl border border-brand-border/60 p-4">
+          <Skeleton className="h-3 w-16" />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-10 w-28 rounded-full" />
+            <Skeleton className="h-10 w-32 rounded-full" />
+            <Skeleton className="h-10 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-14" />
+          <div className="grid grid-cols-4 gap-2">
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+            <Skeleton className="h-14 rounded-lg" />
+          </div>
+          <Skeleton className="h-11 w-full rounded-full" />
+        </div>
       </div>
     </div>
   );

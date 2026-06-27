@@ -9,7 +9,7 @@ export const storeNavLinks = [
   },
   {
     key: "featured",
-    homeSection: "featured",
+    homeSection: "features",
     labelEn: "Featured",
     labelAr: "مميز",
   },

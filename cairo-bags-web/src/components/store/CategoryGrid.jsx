@@ -85,13 +85,13 @@ export function CategoryGrid({ className, title, subtitle }) {
             const imageUrl = getCategoryImageUrl(category);
             return (
               <StaggerItem key={id}>
-                <Link to={buildCategoryPath(category)} className="group block">
-                  <div className="cb-luxury-card relative aspect-[3/4] overflow-hidden bg-brand-secondary">
+                <Link to={buildCategoryPath(category, locale)} className="group block">
+                  <div className="cb-category-card">
                     {imageUrl ? (
                       <img
                         src={imageUrl}
                         alt={name}
-                        className="h-full w-full object-cover transition-transform duration-700 ease-out-expo group-hover:scale-105"
+                        className="cb-category-card-img"
                         loading="lazy"
                       />
                     ) : (
@@ -99,12 +99,12 @@ export function CategoryGrid({ className, title, subtitle }) {
                         CB
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/70 via-brand-primary/10 to-transparent opacity-80 transition-opacity duration-500 group-hover:opacity-90" />
-                    <div className="absolute inset-x-0 bottom-0 p-4">
-                      <p className="font-display text-base font-medium text-brand-secondary md:text-lg">
+                    <div className="cb-category-card-overlay" aria-hidden="true" />
+                    <div className="cb-category-card-label">
+                      <p className="font-display text-sm font-medium text-brand-secondary md:text-base">
                         {name}
                       </p>
-                      <span className="mt-2 inline-flex items-center gap-1 text-[10px] tracking-wide text-brand-accent uppercase opacity-0 transition-all duration-300 group-hover:opacity-100">
+                      <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] tracking-wide text-brand-accent uppercase opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100">
                         {locale === "ar" ? "استكشف" : "Explore"}
                         <span aria-hidden="true">→</span>
                       </span>

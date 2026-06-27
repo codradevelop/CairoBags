@@ -40,7 +40,7 @@ export function HomePage() {
             <CategoryGrid />
           </section>
           <SectionDivider />
-          <section id="featured" className="cb-section-tight scroll-mt-28">
+          <section id="features" className="cb-section-tight scroll-mt-28">
             <FeaturedProducts />
           </section>
           <SectionDivider />

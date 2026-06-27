@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
@@ -55,18 +55,25 @@ export function SearchResultsPage() {
     loadResults();
   }, [loadResults]);
 
-  const countLabel = useMemo(() => {
-    if (!query) return "";
-    return locale === "ar"
-      ? `${products.length} نتيجة لـ "${query}"`
-      : `${products.length} result${products.length === 1 ? "" : "s"} for "${query}"`;
-  }, [locale, products.length, query]);
-
   return (
     <StoreLayout>
-      <div className="mb-10">
+      <header className="cb-search-hero cb-store-page-header">
         <h1 className="cb-page-title">{locale === "ar" ? "نتائج البحث" : "Search Results"}</h1>
-      </div>
+        {query ? (
+          <p className="cb-search-meta">
+            {locale === "ar" ? (
+              <>
+                <strong>{products.length}</strong> نتيجة لـ &ldquo;{query}&rdquo;
+              </>
+            ) : (
+              <>
+                <strong>{products.length}</strong> result{products.length === 1 ? "" : "s"} for &ldquo;
+                {query}&rdquo;
+              </>
+            )}
+          </p>
+        ) : null}
+      </header>
 
       <ProductSearch
         className="mb-8 max-w-xl"
@@ -85,8 +92,6 @@ export function SearchResultsPage() {
           }
         />
       ) : null}
-
-      {query ? <p className="mb-4 text-sm text-brand-muted">{countLabel}</p> : null}
 
       {query && loading ? <ProductGridSkeleton /> : null}
       {query && !loading && error ? (
@@ -118,7 +123,7 @@ export function SearchResultsPage() {
         />
       ) : null}
       {query && !loading && !error && products.length > 0 ? (
-        <div className="cb-product-grid">
+        <div className="cb-product-grid cb-animate-grid">
           {products.map((product) => (
             <ProductCard key={product.id ?? product.Id} product={product} />
           ))}

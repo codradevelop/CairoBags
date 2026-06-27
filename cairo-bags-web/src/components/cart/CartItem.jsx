@@ -12,6 +12,7 @@ import {
   getCartItemLineTotal,
   getCartItemMaxQuantity,
   getCartItemName,
+  getCartItemProductPath,
   getCartItemQuantity,
   getCartItemUnitPrice,
   getCartItemVariantId,
@@ -33,7 +34,7 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
   const maxQty = getCartItemMaxQuantity(item);
   const stockWarning = hasStockWarning(item);
   const available = getCartItemAvailableStock(item);
-  const productId = item?.productId ?? item?.ProductId;
+  const productHref = getCartItemProductPath(item, locale);
 
   async function handleQuantityChange(nextQty) {
     try {
@@ -62,7 +63,7 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
       )}
     >
       <Link
-        to={productId ? `/products/${productId}` : "/shop"}
+        to={productHref}
         className="h-24 w-20 shrink-0 overflow-hidden rounded-md border border-brand-border bg-brand-secondary sm:h-28 sm:w-24"
       >
         {imageUrl ? (
@@ -75,10 +76,7 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <Link
-              to={productId ? `/products/${productId}` : "/shop"}
-              className="font-medium text-brand-text hover:text-brand-accent"
-            >
+            <Link to={productHref} className="font-medium text-brand-text hover:text-brand-accent">
               {name}
             </Link>
             {color ? <p className="mt-0.5 text-xs text-brand-muted">{color}</p> : null}

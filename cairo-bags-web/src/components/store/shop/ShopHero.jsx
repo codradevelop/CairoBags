@@ -33,7 +33,7 @@ function ShopHeroScene() {
       <div className="cb-shop-hero-pedestal" />
       <div className="cb-shop-hero-podium" />
       <img
-        src="/images/shop-hero-lifestyle.jpg"
+        src="/images/travelbags-set.jpg"
         alt=""
         className="cb-shop-hero-bag"
         loading="eager"
@@ -78,7 +78,7 @@ export function ShopHero({ categories = [], activeCategoryId = "", onCategorySel
           </p>
           <span className="cb-shop-hero-accent-line" aria-hidden="true" />
 
-          <div
+          {/* <div
             className="cb-shop-pills"
             role="tablist"
             aria-label={locale === "ar" ? "التصنيفات" : "Categories"}
@@ -98,7 +98,7 @@ export function ShopHero({ categories = [], activeCategoryId = "", onCategorySel
                 </button>
               );
             })}
-          </div>
+          </div> */}
         </div>
 
         <ShopHeroScene />

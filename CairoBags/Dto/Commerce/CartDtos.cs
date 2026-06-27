@@ -27,6 +27,10 @@ public class CartItemDto
 
     public string ProductNameEn { get; set; } = string.Empty;
 
+    public string ProductSlugAr { get; set; } = string.Empty;
+
+    public string ProductSlugEn { get; set; } = string.Empty;
+
     public string ColorNameAr { get; set; } = string.Empty;
 
     public string ColorNameEn { get; set; } = string.Empty;

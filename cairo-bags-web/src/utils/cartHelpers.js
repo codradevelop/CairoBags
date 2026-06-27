@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from "./mediaUrl.js";
+import { buildProductPathFromRefs } from "./productHelpers.js";
 
 export function getCartItems(cart) {
   return cart?.items ?? cart?.Items ?? [];
@@ -49,6 +50,17 @@ export function getCartItemAvailableStock(item) {
 
 export function getCartItemMaxQuantity(item) {
   return item?.maxAllowedQuantity ?? item?.MaxAllowedQuantity ?? getCartItemAvailableStock(item);
+}
+
+export function getCartItemProductPath(item, locale = "en") {
+  return buildProductPathFromRefs(
+    {
+      productId: getCartItemProductId(item),
+      productSlugAr: item?.productSlugAr ?? item?.ProductSlugAr,
+      productSlugEn: item?.productSlugEn ?? item?.ProductSlugEn,
+    },
+    locale
+  );
 }
 
 export function hasStockWarning(item) {

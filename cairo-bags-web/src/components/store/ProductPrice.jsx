@@ -18,6 +18,7 @@ export function ProductPrice({
     sm: "text-sm",
     md: "text-base",
     lg: "text-xl",
+    detail: "cb-product-detail-price-value",
   };
 
   if (displayPrice == null) return null;
@@ -30,10 +31,10 @@ export function ProductPrice({
   const hasCompare = displayCompare != null && Number(displayCompare) > Number(displayPrice);
 
   return (
-    <div className={cn("flex flex-wrap items-baseline gap-2", className)}>
+    <div className={cn("cb-product-price", size === "detail" && "cb-product-price--detail", className)}>
       <span className={cn("font-medium text-brand-primary", sizes[size])}>{priceLabel}</span>
       {hasCompare ? (
-        <span className="text-sm text-brand-muted line-through">
+        <span className={cn("text-brand-muted line-through", size === "detail" ? "cb-product-detail-compare" : "text-sm")}>
           {formatPrice(displayCompare, locale)}
         </span>
       ) : null}

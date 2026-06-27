@@ -8,8 +8,7 @@ import { useToast } from "../../components/ui/Toast.jsx";
 import * as productService from "../../services/productService.js";
 import {
   ProductGallery,
-  ProductPrice,
-  ProductBadges,
+  ProductDetailPanel,
   ProductDetailSkeleton,
   EmptyState,
 } from "../../components/store/index.js";
@@ -17,11 +16,12 @@ import {
   getProductDescription,
   getProductImages,
   getProductName,
+  getProductSlug,
+  buildProductPath,
   getProductVariants,
   getVariantColorName,
-  getVariantComparePrice,
   getVariantId,
-  getVariantPrice,
+  getVariantAvailableStock,
   isVariantInStock,
 } from "../../utils/productHelpers.js";
 import {
@@ -29,16 +29,14 @@ import {
   getCartItemVariantId,
   getCartItems,
 } from "../../utils/cartHelpers.js";
-import { Button, Label } from "../../components/ui/index.js";
-import { AdminPreviewBadge } from "../../components/store/AdminPreviewBanner.jsx";
-import { ProductRatingHeader, ReviewSection } from "../../components/reviews/index.js";
-import { useProductRatings } from "../../context/ProductRatingContext.jsx";
+import { Button } from "../../components/ui/index.js";
+import { ReviewSection } from "../../components/reviews/index.js";
 import {
   requestReviewsHighlight,
   scrollToReviewsSection,
 } from "../../utils/reviewScrollUtils.js";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
-import { cn } from "../../utils/cn.js";
+import { normalizeSlug } from "../../utils/slugHelper.js";
 
 // ── Size helper (mirrors QuickAddModal) ───────────────────────────────────────
 function getVariantSizeName(variant, locale) {
@@ -49,13 +47,13 @@ function getVariantSizeName(variant, locale) {
 }
 
 export function ProductDetailsPage() {
-  const { id } = useParams();
+  const { slug: slugParam } = useParams();
+  const identifier = decodeURIComponent(slugParam ?? "");
   const navigate = useNavigate();
   const { locale } = useLocale();
   const { addItem, updateItem, cart } = useCart();
   const { success, error: toastError } = useToast();
   const readOnly = useStoreReadOnly();
-  const { getRatingForProduct } = useProductRatings();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +62,7 @@ export function ProductDetailsPage() {
   const [selectedSize, setSelectedSize] = useState(null);
   const [adding, setAdding] = useState(false);
   const [buying, setBuying] = useState(false);
+  const [quantity, setQuantity] = useState(1);
   const [ratingStats, setRatingStats] = useState(null);
 
   const productName = product ? getProductName(product, locale) : "";
@@ -73,7 +72,7 @@ export function ProductDetailsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await productService.getProductById(id);
+      const data = await productService.getProductByIdentifier(identifier);
       setProduct(data);
       const variants = getProductVariants(data);
       const defaultVariant =
@@ -88,12 +87,19 @@ export function ProductDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, locale]);
+  }, [identifier, locale]);
 
   useEffect(() => {
     loadProduct();
     setRatingStats(null);
   }, [loadProduct]);
+
+  useEffect(() => {
+    if (!product) return;
+    const canonicalSlug = getProductSlug(product, locale);
+    if (!canonicalSlug || normalizeSlug(canonicalSlug) === normalizeSlug(identifier)) return;
+    navigate(`${buildProductPath(product, locale)}${window.location.hash}`, { replace: true });
+  }, [product, locale, identifier, navigate]);
 
   useEffect(() => {
     if (loading || !product) return;
@@ -104,11 +110,6 @@ export function ProductDetailsPage() {
     }, 150);
     return () => window.clearTimeout(timer);
   }, [loading, product]);
-
-  const displayRatingStats = useMemo(
-    () => ratingStats ?? getRatingForProduct(product),
-    [ratingStats, product, getRatingForProduct]
-  );
 
   const scrollToReviews = useCallback(() => {
     requestReviewsHighlight();
@@ -160,10 +161,22 @@ export function ProductDetailsPage() {
   }, [variants, selectedColor, selectedSize, hasSizes, locale]);
 
   const selectedVariantId = selectedVariant ? getVariantId(selectedVariant) : null;
+  const maxQuantity = selectedVariant ? Math.max(getVariantAvailableStock(selectedVariant), 0) : 0;
+
+  useEffect(() => {
+    setQuantity(1);
+  }, [selectedVariantId]);
+
+  useEffect(() => {
+    if (maxQuantity > 0 && quantity > maxQuantity) {
+      setQuantity(maxQuantity);
+    }
+  }, [maxQuantity, quantity]);
 
   // When color changes, reset size to the first available for that color
   function handleColorChange(color) {
     setSelectedColor(color);
+    setQuantity(1);
     if (hasSizes) {
       const firstForColor = variants.find(
         (v) => getVariantColorName(v, locale) === color && getVariantSizeName(v, locale) !== ""
@@ -222,7 +235,7 @@ export function ProductDetailsPage() {
 
     setAdding(true);
     try {
-      await addOrUpdateCartItem(selectedVariantId, 1);
+      await addOrUpdateCartItem(selectedVariantId, quantity);
       success(labels.added);
     } catch (err) {
       toastError(err.message || labels.addFailed);
@@ -237,7 +250,7 @@ export function ProductDetailsPage() {
 
     setBuying(true);
     try {
-      await addOrUpdateCartItem(selectedVariantId, 1);
+      await addOrUpdateCartItem(selectedVariantId, quantity);
       navigate("/checkout");
     } catch (err) {
       toastError(err.message || labels.addFailed);
@@ -248,17 +261,13 @@ export function ProductDetailsPage() {
 
   return (
     <StoreLayout contentClassName="!py-6 md:!py-12">
-      <nav className="mb-8 flex flex-wrap items-center gap-1 text-xs tracking-wide text-brand-muted">
-        <Link to="/" className="transition-colors hover:text-brand-accent">
-          {locale === "ar" ? "الرئيسية" : "Home"}
-        </Link>
-        <span className="text-brand-border">/</span>
-        <Link to="/shop" className="transition-colors hover:text-brand-accent">
-          {locale === "ar" ? "تسوق" : "Shop"}
-        </Link>
+      <nav className="cb-store-breadcrumbs" aria-label="Breadcrumb">
+        <Link to="/">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
+        <span className="cb-store-breadcrumbs-sep">/</span>
+        <Link to="/shop">{locale === "ar" ? "تسوق" : "Shop"}</Link>
         {productName ? (
           <>
-            <span className="text-brand-border">/</span>
+            <span className="cb-store-breadcrumbs-sep">/</span>
             <span className="line-clamp-1 text-brand-text">{productName}</span>
           </>
         ) : null}
@@ -280,188 +289,44 @@ export function ProductDetailsPage() {
       ) : null}
 
       {!loading && !error && product ? (
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 xl:gap-20">
-          <ProductGallery images={images} productName={productName} />
+        <div className="cb-product-detail-grid">
+          <ProductGallery images={images} productName={productName} className="cb-product-detail-gallery" />
 
-          <div className="lg:pt-2">
-            <div className="mb-5 flex flex-wrap items-center gap-2">
-              <ProductBadges product={product} />
-              <AdminPreviewBadge />
-            </div>
-            <h1 className="font-display text-3xl font-light leading-tight tracking-tight text-brand-text md:text-4xl lg:text-[2.75rem]">
-              {productName}
-            </h1>
-
-            {displayRatingStats ? (
-              <ProductRatingHeader
-                stats={displayRatingStats}
-                onScrollToReviews={scrollToReviews}
-                loaded={!loading}
-              />
-            ) : null}
-
-            <ProductPrice
-              className="mt-4"
-              size="lg"
-              price={selectedVariant ? getVariantPrice(selectedVariant) : undefined}
-              comparePrice={selectedVariant ? getVariantComparePrice(selectedVariant) : undefined}
-              product={!selectedVariant ? product : undefined}
-            />
-
-            {description ? (
-              <p className="mt-6 max-w-prose text-sm leading-relaxed text-brand-muted md:text-[15px]">
-                {description}
-              </p>
-            ) : null}
-
-            {/* ── Color selector ─────────────────────────────────────────── */}
-            {colorOptions.length > 0 ? (
-              <div className="mt-10 border-t border-brand-border/60 pt-8">
-                <Label className="mb-3">
-                  {locale === "ar" ? "اللون" : "Color"}
-                  {selectedColor ? (
-                    <span className="ms-2 font-normal text-brand-muted">— {selectedColor}</span>
-                  ) : null}
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {colorOptions.map((color) => {
-                    const selected = color === selectedColor;
-                    // check if any variant with this color is in stock
-                    const hasStock = variants
-                      .filter((v) => getVariantColorName(v, locale) === color)
-                      .some((v) => isVariantInStock(v));
-                    return (
-                      <button
-                        key={color}
-                        type="button"
-                        disabled={!hasStock}
-                        onClick={() => handleColorChange(color)}
-                        className={cn(
-                          "rounded-full border px-4 py-2 text-xs font-medium tracking-wide transition-all duration-300",
-                          selected
-                            ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
-                            : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
-                          !hasStock && "cursor-not-allowed opacity-40"
-                        )}
-                        aria-pressed={selected}
-                      >
-                        {color}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {/* ── Size selector ──────────────────────────────────────────── */}
-            {hasSizes && sizeOptions.length > 0 ? (
-              <div className="mt-5">
-                <Label className="mb-3">
-                  {locale === "ar" ? "المقاس" : "Size"}
-                  {selectedSize ? (
-                    <span className="ms-2 font-normal text-brand-muted">— {selectedSize}</span>
-                  ) : null}
-                </Label>
-                <div className="flex flex-wrap gap-2">
-                  {sizeOptions.map((size) => {
-                    const selected = size === selectedSize;
-                    // stock for this specific color + size
-                    const matchingVariant = variants.find(
-                      (v) =>
-                        (!selectedColor || getVariantColorName(v, locale) === selectedColor) &&
-                        getVariantSizeName(v, locale) === size
-                    );
-                    const hasStock = matchingVariant ? isVariantInStock(matchingVariant) : false;
-                    // price for this size
-                    const sizePrice = matchingVariant ? getVariantPrice(matchingVariant) : null;
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        disabled={!hasStock}
-                        onClick={() => setSelectedSize(size)}
-                        className={cn(
-                          "relative flex min-w-[4rem] flex-col items-center rounded-xl border px-3 py-2 text-xs font-medium tracking-wide transition-all duration-300",
-                          selected
-                            ? "border-brand-primary bg-brand-primary text-brand-secondary shadow-sm"
-                            : "border-brand-border bg-brand-surface text-brand-text hover:border-brand-accent",
-                          !hasStock && "cursor-not-allowed opacity-40"
-                        )}
-                        aria-pressed={selected}
-                      >
-                        <span>{size}</span>
-                        {sizePrice != null ? (
-                          <span className={cn(
-                            "mt-0.5 text-xs opacity-80",
-                            selected ? "text-brand-secondary" : "text-brand-muted"
-                          )}>
-                            {new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
-                              style: "currency",
-                              currency: "EGP",
-                              maximumFractionDigits: 0,
-                            }).format(sizePrice)}
-                          </span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-
-            {/* ── Stock badge ────────────────────────────────────────────── */}
-            <div className="mt-6">
-              <p
-                className={cn(
-                  "inline-flex items-center gap-2 text-xs font-medium tracking-wide uppercase",
-                  inStock ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"
-                )}
-              >
-                <span
-                  className={cn(
-                    "h-1.5 w-1.5 rounded-full",
-                    inStock ? "bg-emerald-600" : "bg-red-600"
-                  )}
-                />
-                {inStock
-                  ? locale === "ar" ? "متوفر" : "In stock"
-                  : locale === "ar" ? "غير متوفر" : "Out of stock"}
-              </p>
-            </div>
-
-            {!readOnly && inStock ? (
-              <div className="mt-10 flex flex-col gap-3 border-t border-brand-border/60 pt-8 sm:flex-row sm:items-center">
-                <Button
-                  type="button"
-                  variant="accent"
-                  size="lg"
-                  className="w-full rounded-full sm:flex-1"
-                  disabled={!selectedVariantId}
-                  loading={buying}
-                  onClick={handleBuyNow}
-                >
-                  {labels.buyNow}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-full border-brand-accent/40 sm:flex-1 hover:border-brand-accent hover:bg-brand-accent/5"
-                  disabled={!selectedVariantId}
-                  loading={adding && !buying}
-                  onClick={handleAddToCart}
-                >
-                  {labels.addToCart}
-                </Button>
-              </div>
-            ) : null}
-          </div>
+          <ProductDetailPanel
+            product={product}
+            productName={productName}
+            description={description}
+            productImages={images}
+            variants={variants}
+            colorOptions={colorOptions}
+            sizeOptions={sizeOptions}
+            hasSizes={hasSizes}
+            selectedColor={selectedColor}
+            selectedSize={selectedSize}
+            selectedVariant={selectedVariant}
+            inStock={inStock}
+            quantity={quantity}
+            maxQuantity={maxQuantity}
+            readOnly={readOnly}
+            labels={labels}
+            adding={adding}
+            buying={buying}
+            onColorChange={handleColorChange}
+            onSizeChange={(size) => {
+              setSelectedSize(size);
+              setQuantity(1);
+            }}
+            onQuantityChange={setQuantity}
+            onScrollToReviews={scrollToReviews}
+            onBuyNow={handleBuyNow}
+            onAddToCart={handleAddToCart}
+          />
         </div>
       ) : null}
 
       {!loading && !error && product ? (
         <ReviewSection
-          productId={product.id ?? product.Id ?? id}
+          productId={product.id ?? product.Id ?? identifier}
           onStatsChange={setRatingStats}
           className="mt-16 border-t border-brand-border/60 pt-16 md:mt-20 md:pt-20"
         />

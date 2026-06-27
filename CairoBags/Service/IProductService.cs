@@ -11,6 +11,8 @@ public interface IProductService
 
     Task<ProductDetailsDto?> GetByIdAsync(int id, bool storefront, CancellationToken cancellationToken = default);
 
+    Task<ProductDetailsDto?> GetBySlugAsync(string slug, bool storefront, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<ProductSummaryDto>> GetFeaturedAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ProductSummaryDto>> GetNewArrivalsAsync(CancellationToken cancellationToken = default);

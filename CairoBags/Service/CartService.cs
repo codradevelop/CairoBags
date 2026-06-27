@@ -334,6 +334,8 @@ public class CartService : ICartService
                 VariantId = variant.Id,
                 ProductNameAr = variant.Product.Translations.FirstOrDefault(t => t.LanguageCode == "ar")?.Name ?? string.Empty,
                 ProductNameEn = variant.Product.Translations.FirstOrDefault(t => t.LanguageCode == "en")?.Name ?? string.Empty,
+                ProductSlugAr = variant.Product.Translations.FirstOrDefault(t => t.LanguageCode == "ar")?.Slug ?? string.Empty,
+                ProductSlugEn = variant.Product.Translations.FirstOrDefault(t => t.LanguageCode == "en")?.Slug ?? string.Empty,
                 ColorNameAr = variant.ColorNameAr,
                 ColorNameEn = variant.ColorNameEn,
                 ImageUrl = ResolveImageUrl(variant),

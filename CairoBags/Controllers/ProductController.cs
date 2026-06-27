@@ -61,17 +61,21 @@ public class ProductController : ControllerBase
         return Ok(products);
     }
 
-    [HttpGet("/api/products/{id:int}")]
+    [HttpGet("/api/products/{identifier}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetById(
-        int id,
+    public async Task<IActionResult> GetByIdentifier(
+        string identifier,
         [FromQuery] bool includeDraft = false,
         CancellationToken cancellationToken = default)
     {
         if (includeDraft && !User.IsInRole("Admin"))
             return Forbid();
 
-        var product = await _productService.GetByIdAsync(id, storefront: !includeDraft, cancellationToken);
+        var storefront = !includeDraft;
+        var product = int.TryParse(identifier, out var id)
+            ? await _productService.GetByIdAsync(id, storefront, cancellationToken)
+            : await _productService.GetBySlugAsync(identifier, storefront, cancellationToken);
+
         if (product == null)
             return NotFound(new { message = "Product not found." });
 

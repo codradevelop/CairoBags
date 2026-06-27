@@ -2,6 +2,7 @@ export { HeroSection } from "./HeroSection.jsx";
 export { CategoryGrid } from "./CategoryGrid.jsx";
 export { FeaturedProducts, NewArrivals } from "./FeaturedProducts.jsx";
 export { ProductCard } from "./ProductCard.jsx";
+export { ProductDetailPanel } from "./ProductDetailPanel.jsx";
 export { ProductGallery } from "./ProductGallery.jsx";
 export { ProductFilters } from "./ProductFilters.jsx";
 export { ProductSearch } from "./ProductSearch.jsx";

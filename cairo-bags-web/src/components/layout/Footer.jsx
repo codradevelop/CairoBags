@@ -8,7 +8,7 @@ const footerLinks = {
     { href: "/shop", labelEn: "All Bags", labelAr: "كل الحقائب" },
     { href: "/shop?filter=new", labelEn: "New Arrivals", labelAr: "وصل حديثاً" },
     { href: "/#categories", labelEn: "Categories", labelAr: "التصنيفات" },
-    { href: "/#featured", labelEn: "Featured", labelAr: "مميز" },
+    { href: "/#features", labelEn: "Featured", labelAr: "مميز" },
   ],
   support: [
     { href: "/contact", labelEn: "Contact", labelAr: "تواصل معنا" },

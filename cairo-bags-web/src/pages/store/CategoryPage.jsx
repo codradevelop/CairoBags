@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
@@ -12,14 +12,20 @@ import {
 } from "../../components/store/index.js";
 import { buildProductQueryParams } from "../../utils/shopFilters.js";
 import {
+  buildCategoryPath,
   getCategoryDescription,
+  getCategoryId,
   getCategoryImageUrl,
   getCategoryName,
+  getCategorySlug,
 } from "../../utils/productHelpers.js";
+import { normalizeSlug } from "../../utils/slugHelper.js";
 import { Button } from "../../components/ui/index.js";
 
 export function CategoryPage() {
-  const { id } = useParams();
+  const { slug: slugParam } = useParams();
+  const identifier = decodeURIComponent(slugParam ?? "");
+  const navigate = useNavigate();
   const { locale } = useLocale();
   const [category, setCategory] = useState(null);
   const [products, setProducts] = useState([]);
@@ -33,10 +39,11 @@ export function CategoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const [cat, prods] = await Promise.all([
-        categoryService.getCategoryById(id),
-        productService.getProducts(buildProductQueryParams({ categoryId: id })),
-      ]);
+      const cat = await categoryService.getCategoryByIdentifier(identifier);
+      const categoryId = getCategoryId(cat);
+      const prods = await productService.getProducts(
+        buildProductQueryParams({ categoryId: String(categoryId) })
+      );
       setCategory(cat);
       setProducts(Array.isArray(prods) ? prods : []);
     } catch (err) {
@@ -46,46 +53,64 @@ export function CategoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [identifier]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!category) return;
+    const canonicalSlug = getCategorySlug(category, locale);
+    if (!canonicalSlug || normalizeSlug(canonicalSlug) === normalizeSlug(identifier)) return;
+    navigate(buildCategoryPath(category, locale), { replace: true });
+  }, [category, locale, identifier, navigate]);
 
   const description = category ? getCategoryDescription(category, locale) : "";
   const imageUrl = category ? getCategoryImageUrl(category) : null;
 
   return (
     <StoreLayout>
-      <nav className="mb-6 text-sm text-brand-muted">
-        <Link to="/" className="hover:text-brand-accent">
-          {locale === "ar" ? "الرئيسية" : "Home"}
-        </Link>
-        <span className="mx-2">/</span>
-        <Link to="/shop" className="hover:text-brand-accent">
-          {locale === "ar" ? "تسوق" : "Shop"}
-        </Link>
+      <nav className="cb-store-breadcrumbs" aria-label="Breadcrumb">
+        <Link to="/">{locale === "ar" ? "الرئيسية" : "Home"}</Link>
+        <span className="cb-store-breadcrumbs-sep">/</span>
+        <Link to="/shop">{locale === "ar" ? "تسوق" : "Shop"}</Link>
         {categoryName ? (
           <>
-            <span className="mx-2">/</span>
+            <span className="cb-store-breadcrumbs-sep">/</span>
             <span className="text-brand-text">{categoryName}</span>
           </>
         ) : null}
       </nav>
 
-      <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="cb-page-title">
-            {categoryName || (locale === "ar" ? "التصنيف" : "Category")}
-          </h1>
-          {description ? <p className="cb-page-lead">{description}</p> : null}
-        </div>
-        {imageUrl ? (
-          <div className="h-32 w-full overflow-hidden rounded-lg border border-brand-border md:h-36 md:w-56">
-            <img src={imageUrl} alt={categoryName} className="h-full w-full object-cover" />
+      <header className="cb-category-hero cb-store-page-header">
+        <div className="cb-category-hero-inner">
+          <div className="max-w-2xl">
+            <p className="cb-section-label">{locale === "ar" ? "المجموعة" : "Collection"}</p>
+            <h1 className="cb-page-title mt-2">
+              {categoryName || (locale === "ar" ? "التصنيف" : "Category")}
+            </h1>
+            {description ? <p className="cb-page-lead">{description}</p> : null}
+            {!loading && products.length > 0 ? (
+              <span className="cb-category-hero-count">
+                {products.length}{" "}
+                {locale === "ar"
+                  ? products.length === 1
+                    ? "منتج"
+                    : "منتجات"
+                  : products.length === 1
+                    ? "Product"
+                    : "Products"}
+              </span>
+            ) : null}
           </div>
-        ) : null}
-      </div>
+          {imageUrl ? (
+            <div className="cb-category-hero-media">
+              <img src={imageUrl} alt={categoryName} loading="lazy" />
+            </div>
+          ) : null}
+        </div>
+      </header>
 
       {loading ? <ProductGridSkeleton /> : null}
       {!loading && error ? (
@@ -104,9 +129,7 @@ export function CategoryPage() {
         <EmptyState
           variant="category"
           title={locale === "ar" ? "لا توجد منتجات" : "No products in this category"}
-          description={
-            locale === "ar" ? "تصفح مجموعات أخرى" : "Browse other collections"
-          }
+          description={locale === "ar" ? "تصفح مجموعات أخرى" : "Browse other collections"}
           action={
             <Link to="/shop">
               <Button variant="outline">{locale === "ar" ? "تسوق الكل" : "Shop All"}</Button>
@@ -115,7 +138,7 @@ export function CategoryPage() {
         />
       ) : null}
       {!loading && !error && products.length > 0 ? (
-        <div className="cb-product-grid">
+        <div className="cb-product-grid cb-animate-grid">
           {products.map((product) => (
             <ProductCard key={product.id ?? product.Id} product={product} />
           ))}

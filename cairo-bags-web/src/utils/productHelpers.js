@@ -1,4 +1,5 @@
 import { resolveMediaUrl } from "./mediaUrl.js";
+import { normalizeSlug } from "./slugHelper.js";
 
 function getTranslationField(entity, locale, keys) {
   if (!entity) return "";
@@ -44,9 +45,50 @@ export function getProductName(product, locale = "en") {
   return t?.name ?? t?.Name ?? `Product #${product?.id ?? product?.Id ?? ""}`;
 }
 
+export function getCategorySlug(category, locale = "en") {
+  const t = pickTranslation(category, locale);
+  const slug = t?.slug ?? t?.Slug;
+  if (slug) return slug;
+  const id = getCategoryId(category);
+  return id != null ? String(id) : "";
+}
+
 export function getProductSlug(product, locale = "en") {
   const t = pickTranslation(product, locale);
-  return t?.slug ?? t?.Slug ?? String(product?.id ?? product?.Id ?? "");
+  const slug = t?.slug ?? t?.Slug;
+  if (slug) return slug;
+  const id = getProductId(product);
+  return id != null ? String(id) : "";
+}
+
+function encodePathSegment(value) {
+  return encodeURIComponent(normalizeSlug(String(value ?? "")));
+}
+
+export function buildProductPath(product, locale = "en") {
+  const slug = getProductSlug(product, locale);
+  if (!slug) return "/shop";
+  return `/products/${encodePathSegment(slug)}`;
+}
+
+export function buildCategoryPath(category, locale = "en") {
+  const slug = getCategorySlug(category, locale);
+  if (!slug) return "/shop";
+  return `/categories/${encodePathSegment(slug)}`;
+}
+
+export function buildProductPathFromRefs(
+  { productId, productSlugEn, productSlugAr, slugEn, slugAr, english, arabic },
+  locale = "en"
+) {
+  const slug =
+    locale === "ar"
+      ? productSlugAr ?? slugAr ?? arabic?.slug ?? arabic?.Slug ?? productSlugEn ?? slugEn ?? english?.slug ?? english?.Slug
+      : productSlugEn ?? slugEn ?? english?.slug ?? english?.Slug ?? productSlugAr ?? slugAr ?? arabic?.slug ?? arabic?.Slug;
+
+  if (slug) return `/products/${encodePathSegment(slug)}`;
+  if (productId != null) return `/products/${productId}`;
+  return "/shop";
 }
 
 export function getProductShortDescription(product, locale = "en") {
@@ -163,6 +205,25 @@ export function isVariantInStock(variant) {
   return variant?.isInStock ?? variant?.IsInStock ?? false;
 }
 
+export function getVariantAvailableStock(variant) {
+  const available = variant?.availableStock ?? variant?.AvailableStock;
+  if (available != null) return Math.max(0, Number(available));
+  return isVariantInStock(variant) ? 99 : 0;
+}
+
+export function getVariantImageForColor(variants, colorName, locale, images = []) {
+  if (!colorName || !variants.length) return null;
+  const variantIds = variants
+    .filter((v) => getVariantColorName(v, locale) === colorName)
+    .map((v) => getVariantId(v))
+    .filter(Boolean);
+
+  if (!variantIds.length) return null;
+
+  const match = images.find((img) => variantIds.includes(img?.variantId ?? img?.VariantId));
+  return match ? getProductImageAssetUrl(match) : null;
+}
+
 export function getProductImages(product) {
   return product?.images ?? product?.Images ?? [];
 }
@@ -179,14 +240,4 @@ export function formatPrice(amount, locale = "en") {
     currency: "EGP",
     maximumFractionDigits: 0,
   }).format(value);
-}
-
-export function buildProductPath(product) {
-  const id = getProductId(product);
-  return `/products/${id}`;
-}
-
-export function buildCategoryPath(category) {
-  const id = getCategoryId(category);
-  return `/categories/${id}`;
 }

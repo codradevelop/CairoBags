@@ -37,8 +37,8 @@ export function AppRouter() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/shop" element={<ShopPage />} />
-      <Route path="/categories/:id" element={<CategoryPage />} />
-      <Route path="/products/:id" element={<ProductDetailsPage />} />
+      <Route path="/categories/:slug" element={<CategoryPage />} />
+      <Route path="/products/:slug" element={<ProductDetailsPage />} />
       <Route path="/search" element={<SearchResultsPage />} />
 
       <Route element={<AdminShoppingBlockRoute />}>

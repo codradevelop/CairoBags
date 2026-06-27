@@ -53,6 +53,24 @@ public class CategoryService : ICategoryService
         return category == null ? null : MapToDto(category);
     }
 
+    public async Task<CategoryDto?> GetBySlugAsync(string slug, bool includeInactive, CancellationToken cancellationToken = default)
+    {
+        var normalized = NormalizeSlug(slug);
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        var categoryId = await _context.CategoryTranslations
+            .AsNoTracking()
+            .Where(t => t.Slug == normalized)
+            .Select(t => (int?)t.CategoryId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (categoryId == null)
+            return null;
+
+        return await GetByIdAsync(categoryId.Value, includeInactive, cancellationToken);
+    }
+
     public async Task<ServiceResult<CategoryDto>> CreateAsync(
         CreateCategoryRequest request,
         string? userId,

@@ -20,6 +20,13 @@ export async function getCategoryById(id, params = {}) {
   );
 }
 
+export async function getCategoryByIdentifier(identifier, params = {}) {
+  const encoded = encodeURIComponent(String(identifier));
+  return handleServiceCall(
+    axiosInstance.get(ENDPOINTS.categories.byId(encoded), { params }).then(({ data }) => data)
+  );
+}
+
 export async function createCategory(payload) {
   return handleServiceCall(
     axiosInstance.post(ENDPOINTS.categories.adminCreate, payload).then(({ data }) => data)

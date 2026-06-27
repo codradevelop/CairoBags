@@ -229,8 +229,10 @@ public class WishlistService : IWishlistService
 
     private static WishlistItemDto MapWishlistItem(Product product, DateTime addedAt)
     {
-        var nameAr = product.Translations.FirstOrDefault(t => t.LanguageCode == "ar")?.Name ?? string.Empty;
-        var nameEn = product.Translations.FirstOrDefault(t => t.LanguageCode == "en")?.Name ?? string.Empty;
+        var arTranslation = product.Translations.FirstOrDefault(t => t.LanguageCode == "ar");
+        var enTranslation = product.Translations.FirstOrDefault(t => t.LanguageCode == "en");
+        var nameAr = arTranslation?.Name ?? string.Empty;
+        var nameEn = enTranslation?.Name ?? string.Empty;
         var categoryEn = product.Category?.Translations.FirstOrDefault(t => t.LanguageCode == "en")?.Name ?? string.Empty;
 
         var activeVariants = product.Variants
@@ -256,6 +258,8 @@ public class WishlistService : IWishlistService
             ProductId = product.Id,
             ProductNameAr = nameAr,
             ProductNameEn = nameEn,
+            ProductSlugAr = arTranslation?.Slug ?? string.Empty,
+            ProductSlugEn = enTranslation?.Slug ?? string.Empty,
             PrimaryImage = primaryImage?.ThumbnailUrl ?? primaryImage?.ImageUrl,
             Price = prices.Count == 0 ? null : prices.Min(),
             CompareAtPrice = product.CompareAtPrice,

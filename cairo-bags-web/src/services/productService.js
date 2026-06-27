@@ -32,6 +32,13 @@ export async function getProductById(id, params = {}) {
   );
 }
 
+export async function getProductByIdentifier(identifier, params = {}) {
+  const encoded = encodeURIComponent(String(identifier));
+  return handleServiceCall(
+    axiosInstance.get(ENDPOINTS.products.byId(encoded), { params }).then(({ data }) => data)
+  );
+}
+
 export async function createProduct(payload) {
   return handleServiceCall(
     axiosInstance.post(ENDPOINTS.products.adminCreate, payload).then(({ data }) => data)

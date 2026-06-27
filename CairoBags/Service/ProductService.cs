@@ -38,6 +38,24 @@ public class ProductService : IProductService
         return product == null ? null : MapToDetails(product, activeVariantsOnly: storefront);
     }
 
+    public async Task<ProductDetailsDto?> GetBySlugAsync(string slug, bool storefront, CancellationToken cancellationToken = default)
+    {
+        var normalized = NormalizeSlug(slug);
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        var productId = await _context.ProductTranslations
+            .AsNoTracking()
+            .Where(t => t.Slug == normalized)
+            .Select(t => (int?)t.ProductId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (productId == null)
+            return null;
+
+        return await GetByIdAsync(productId.Value, storefront, cancellationToken);
+    }
+
     public Task<IReadOnlyList<ProductSummaryDto>> GetFeaturedAsync(CancellationToken cancellationToken = default) =>
         ListProductsAsync(new ProductQueryFilters(), storefront: true, featuredOnly: true, newArrivalsOnly: false, cancellationToken);
 

@@ -6,27 +6,27 @@
 }
 
 .auth-page {
-  --main-color: #c9a962;
-  --main-dark: #111111;
-  --main-light: #e8d5a3;
-  --accent-soft: rgba(201, 169, 98, 0.14);
-  --accent-glow: rgba(201, 169, 98, 0.22);
-  --text-main: #111111;
-  --text-muted: #666666;
+  --main-color: #c59b27;
+  --main-dark: #0c0b0a;
+  --main-light: #ebd494;
+  --accent-soft: rgba(197, 155, 39, 0.15);
+  --accent-glow: rgba(197, 155, 39, 0.25);
+  --text-main: #1c1a17;
+  --text-muted: #736b5e;
   --surface-main: #ffffff;
-  --surface-soft: #f9f7f3;
-  --border-soft: #d8d0c2;
-  --panel-text: #f5f1e8;
+  --surface-soft: #faf8f5;
+  --border-soft: #e8ded1;
+  --panel-text: #faf8f5;
   --panel-gradient: linear-gradient(
     135deg,
-    #111111 0%,
-    #1a1710 30%,
-    #2a2310 50%,
-    #1a1710 70%,
-    #111111 100%
+    #0c0b0a 0%,
+    #1b1916 30%,
+    #2b2518 50%,
+    #1b1916 70%,
+    #0c0b0a 100%
   );
-  --button-shadow: 0 4px 12px rgba(17, 17, 17, 0.2);
-  --button-shadow-hover: 0 6px 16px rgba(17, 17, 17, 0.28);
+  --button-shadow: 0 4px 14px rgba(12, 11, 10, 0.16);
+  --button-shadow-hover: 0 6px 20px rgba(197, 155, 39, 0.3);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -38,27 +38,28 @@
 }
 
 .dark .auth-page {
-  --text-main: #f5f1e8;
-  --text-muted: #a8a29e;
-  --surface-main: #1a1a17;
-  --surface-soft: #1e1c19;
-  --border-soft: #3d3a35;
-  --panel-text: #f5f1e8;
+  --text-main: #faf8f5;
+  --text-muted: #a39c91;
+  --surface-main: #141311;
+  --surface-soft: #1b1a17;
+  --border-soft: #38342e;
+  --panel-text: #faf8f5;
 }
 
 .auth-page h1 {
   font-weight: 700;
   margin: 0;
-  font-size: 28px;
+  font-size: 30px;
   color: var(--text-main);
   transition: color 0.3s ease;
+  letter-spacing: -0.02em;
 }
 
 .auth-page p {
   font-size: 15px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 24px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   margin: 20px 0 30px;
   color: var(--text-main);
   transition: color 0.3s ease;
@@ -73,6 +74,7 @@
 .auth-page a {
   color: var(--main-color);
   font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
   margin: 15px 0;
   transition: color 0.25s ease;
@@ -85,22 +87,23 @@
 .auth-page button:not(.password-toggle-btn):not(.transparent-btn) {
   border-radius: 25px;
   border: none;
-  background: var(--main-dark);
+  background: linear-gradient(135deg, #0c0b0a 0%, #1b1916 100%);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 14px 50px;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), filter 0.3s ease;
   cursor: pointer;
   box-shadow: var(--button-shadow);
 }
 
 .auth-page button:not(.password-toggle-btn):not(.transparent-btn):hover:not(:disabled) {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #c59b27 0%, #ebd494 100%);
+  color: #0c0b0a;
   box-shadow: var(--button-shadow-hover);
-  filter: brightness(1.02);
 }
 
 .auth-page button:not(.password-toggle-btn):not(.transparent-btn):active {
@@ -122,9 +125,9 @@
   background: transparent;
   color: #ffffff;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   padding: 14px 50px;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
   transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
   cursor: pointer;
@@ -132,9 +135,9 @@
 }
 
 .auth-page button.transparent-btn:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.25);
   filter: none;
 }
 
@@ -174,7 +177,7 @@
   outline: none;
   border-color: var(--main-color);
   background-color: var(--surface-main);
-  box-shadow: 0 0 0 3px var(--accent-soft), 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 0 12px var(--accent-glow);
 }
 
 .auth-page .password-field-wrap {
@@ -240,13 +243,13 @@
 .auth-page .auth-wrapper {
   background-color: var(--surface-main);
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(17, 17, 17, 0.18);
+  box-shadow: 0 20px 60px rgba(12, 11, 10, 0.15);
   position: relative;
   overflow: hidden;
   width: 850px;
   max-width: 100%;
   min-height: 550px;
-  border: 1px solid color-mix(in srgb, var(--main-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--main-color) 20%, transparent);
   transition: background-color 0.35s ease, border-color 0.35s ease;
 }
 
@@ -258,7 +261,7 @@
   position: absolute;
   top: 0;
   height: 100%;
-  transition: all 0.6s ease-in-out;
+  transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .auth-page .login-form-box {
@@ -282,7 +285,7 @@
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
-  animation: auth-show 0.6s;
+  animation: auth-show 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 @keyframes auth-show {
@@ -305,7 +308,7 @@
   width: 50%;
   height: 100%;
   overflow: hidden;
-  transition: transform 0.6s ease-in-out;
+  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
   z-index: 100;
 }
 
@@ -323,7 +326,7 @@
   height: 100%;
   width: 200%;
   transform: translateX(0);
-  transition: transform 0.6s ease-in-out;
+  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .auth-page .auth-wrapper.panel-active .slide-panel {
@@ -342,7 +345,7 @@
   height: 100%;
   width: 50%;
   transform: translateX(0);
-  transition: transform 0.6s ease-in-out;
+  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .auth-page .panel-content h1 {
@@ -350,7 +353,7 @@
 }
 
 .auth-page .panel-content p {
-  color: rgba(245, 241, 232, 0.88);
+  color: rgba(250, 248, 245, 0.9);
 }
 
 .auth-page .panel-content-left {
@@ -383,22 +386,22 @@
   margin: 0 8px;
   height: 45px;
   width: 45px;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease,
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.25s ease,
     border-color 0.25s ease, color 0.25s ease;
   color: var(--main-color);
 }
 
 .auth-page .social-links a svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .auth-page .social-links a:hover {
   border-color: var(--main-color);
   background: var(--main-color);
   color: #fff;
-  transform: translateY(-1px) scale(1.03);
-  box-shadow: 0 0 10px var(--accent-glow), 0 4px 12px rgba(201, 169, 98, 0.25);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 0 12px var(--accent-glow), 0 4px 14px rgba(197, 155, 39, 0.3);
 }
 
 .auth-page .auth-forgot-link {
@@ -420,7 +423,7 @@
     min-height: auto;
     width: 100%;
     max-width: 100%;
-    border-radius: 15px;
+    border-radius: 16px;
   }
 
   .auth-page .auth-form-box {
@@ -457,35 +460,35 @@
   }
 
   .auth-page form {
-    padding: 30px 25px;
+    padding: 32px 28px;
     position: static;
     height: auto;
   }
 
   .auth-page h1 {
-    font-size: 22px;
-    margin-bottom: 10px;
+    font-size: 24px;
+    margin-bottom: 12px;
   }
 
   .auth-page input {
-    padding: 12px 15px;
+    padding: 12px 16px;
     font-size: 14px;
   }
 
   .auth-page button {
-    padding: 12px 40px;
+    padding: 12px 42px;
     font-size: 12px;
   }
 
   .auth-page .social-links a {
-    height: 40px;
-    width: 40px;
-    margin: 0 5px;
+    height: 42px;
+    width: 42px;
+    margin: 0 6px;
   }
 
   .auth-page .mobile-switch {
     display: block;
-    margin-top: 20px;
+    margin-top: 22px;
     color: var(--main-color);
     font-size: 14px;
   }
@@ -499,13 +502,13 @@
     background: transparent;
     color: var(--main-color);
     border: 2px solid var(--main-color);
-    padding: 10px 30px;
-    margin-top: 10px;
+    padding: 10px 32px;
+    margin-top: 12px;
     box-shadow: none;
   }
 
   .auth-page .mobile-switch button:hover {
     background: var(--main-color);
-    color: #111111;
+    color: #0c0b0a;
   }
 }

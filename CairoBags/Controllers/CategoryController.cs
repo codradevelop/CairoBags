@@ -42,14 +42,20 @@ public class CategoryController : ControllerBase
         return Ok(tree);
     }
 
-    [HttpGet("/api/categories/{id:int}")]
+    [HttpGet("/api/categories/{identifier}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetById(int id, [FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetByIdentifier(
+        string identifier,
+        [FromQuery] bool includeInactive = false,
+        CancellationToken cancellationToken = default)
     {
         if (includeInactive && !User.IsInRole("Admin"))
             return Forbid();
 
-        var category = await _categoryService.GetByIdAsync(id, includeInactive, cancellationToken);
+        var category = int.TryParse(identifier, out var id)
+            ? await _categoryService.GetByIdAsync(id, includeInactive, cancellationToken)
+            : await _categoryService.GetBySlugAsync(identifier, includeInactive, cancellationToken);
+
         if (category == null)
             return NotFound(new { message = "Category not found." });
 
@@ -64,7 +70,7 @@ public class CategoryController : ControllerBase
             return BadRequest(ModelState);
 
         var result = await _categoryService.CreateAsync(request, GetUserId(), cancellationToken);
-        return ToActionResult(result, created => CreatedAtAction(nameof(GetById), new { id = created.Id, includeInactive = true }, created));
+        return ToActionResult(result, created => CreatedAtAction(nameof(GetByIdentifier), new { identifier = created.Id, includeInactive = true }, created));
     }
 
     [HttpPut("/api/admin/categories/{id:int}")]

@@ -8,6 +8,10 @@ public class WishlistItemDto
 
     public string ProductNameEn { get; set; } = string.Empty;
 
+    public string ProductSlugAr { get; set; } = string.Empty;
+
+    public string ProductSlugEn { get; set; } = string.Empty;
+
     public string? PrimaryImage { get; set; }
 
     public decimal? Price { get; set; }

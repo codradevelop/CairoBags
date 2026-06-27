@@ -111,7 +111,7 @@ function ProductSection({
 }) {
   return (
     <section className={cn(className)}>
-      <ScrollReveal className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end md:mb-10">
+      <ScrollReveal className="cb-store-section-header cb-store-section-header--split mb-8 md:mb-10">
         <div>
           <p className="cb-section-label">{label}</p>
           <h2 className="cb-section-heading mt-2">{heading}</h2>

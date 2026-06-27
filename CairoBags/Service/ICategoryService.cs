@@ -12,6 +12,8 @@ public interface ICategoryService
 
     Task<CategoryDto?> GetByIdAsync(int id, bool includeInactive, CancellationToken cancellationToken = default);
 
+    Task<CategoryDto?> GetBySlugAsync(string slug, bool includeInactive, CancellationToken cancellationToken = default);
+
     Task<ServiceResult<CategoryDto>> CreateAsync(CreateCategoryRequest request, string? userId, CancellationToken cancellationToken = default);
 
     Task<ServiceResult<CategoryDto>> UpdateAsync(int id, UpdateCategoryRequest request, string? userId, CancellationToken cancellationToken = default);

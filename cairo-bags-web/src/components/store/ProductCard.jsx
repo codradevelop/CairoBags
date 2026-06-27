@@ -33,13 +33,7 @@ import { cn } from "../../utils/cn.js";
 import { useCardTilt } from "../ui/useCardTilt.jsx";
 import { ShopProductCard } from "./shop/ShopProductCard.jsx";
 
-const SWATCH_TONES = [
-  "bg-brand-primary",
-  "bg-brand-accent",
-  "bg-[#8B7355]",
-  "bg-[#C4B5A0]",
-  "bg-[#2A2824]",
-];
+import { getColorFromName } from "../../utils/colorSwatchUtils.js";
 
 const productDetailsCache = new Map();
 
@@ -189,7 +183,8 @@ function ColorVariants({ product, className }) {
   const colors = variants.slice(0, 5).map((variant, index) => ({
     id: getVariantId(variant),
     name: getVariantColorName(variant, locale),
-    tone: SWATCH_TONES[index % SWATCH_TONES.length],
+    hex: getColorFromName(getVariantColorName(variant, locale)),
+    index,
   }));
 
   return (
@@ -202,10 +197,8 @@ function ColorVariants({ product, className }) {
           <span
             key={color.id}
             title={color.name}
-            className={cn(
-              "h-3.5 w-3.5 rounded-full ring-1 ring-brand-border transition-transform duration-300 group-hover:scale-110",
-              color.tone
-            )}
+            className="h-3.5 w-3.5 rounded-full ring-1 ring-brand-border transition-transform duration-300 group-hover:scale-110"
+            style={{ backgroundColor: color.hex }}
           />
         ))}
       </div>
@@ -344,7 +337,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
   const productId = getProductId(product);
   const name = getProductName(product, locale);
   const categoryName = getProductCategoryName(product, locale);
-  const href = buildProductPath(product);
+  const href = buildProductPath(product, locale);
   const inStock = isProductInStock(product);
   const discount = getDiscountPercent(product);
 

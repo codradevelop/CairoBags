@@ -176,6 +176,7 @@ export function ShopPage() {
               <div
                 className={viewMode === "grid" ? "cb-shop-product-grid" : "cb-shop-product-list"}
                 data-count={viewMode === "grid" && sortedProducts.length <= 3 ? String(sortedProducts.length) : undefined}
+                key={`${viewMode}-${sortedProducts.length}`}
               >
                 {sortedProducts.map((product) => (
                   <ShopProductCard
