@@ -111,9 +111,20 @@ export function ReviewFormModal({
         </div>
 
         {error ? (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-            {error}
-          </p>
+          <div
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
+            aria-live="polite"
+          >
+            {typeof error === "object" && error?.title ? (
+              <>
+                <p className="font-medium text-red-800">{error.title}</p>
+                {error.message ? <p className="mt-1 text-red-700">{error.message}</p> : null}
+              </>
+            ) : (
+              <p>{typeof error === "string" ? error : error?.message}</p>
+            )}
+          </div>
         ) : null}
       </form>
     </Modal>

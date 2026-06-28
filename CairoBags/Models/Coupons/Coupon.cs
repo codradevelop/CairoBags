@@ -25,7 +25,12 @@ public class Coupon : BaseEntity
 
     public int UsageCount { get; set; }
 
+    public int PerCustomerUsageLimit { get; set; } = 1;
+
     public bool IsActive { get; set; } = true;
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
 
     public int? ProductId { get; set; }
 

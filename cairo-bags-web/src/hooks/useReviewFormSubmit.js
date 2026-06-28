@@ -3,17 +3,8 @@ import { useLocale } from "../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../components/ui/Toast.jsx";
 import { useProductRatings } from "../context/ProductRatingContext.jsx";
 import * as reviewService from "../services/reviewService.js";
-import { normalizeReview, normalizeReviewSummary } from "../utils/reviewHelpers.js";
+import { normalizeReview, normalizeReviewSummary, getReviewSubmitError, getReviewSubmitErrorMessage } from "../utils/reviewHelpers.js";
 import { publishReviewChange } from "../utils/reviewEvents.js";
-
-function extractErrorMessage(error) {
-  return (
-    error?.message ??
-    error?.response?.data?.message ??
-    error?.response?.data?.title ??
-    "Something went wrong"
-  );
-}
 
 export function useReviewFormSubmit() {
   const { locale } = useLocale();
@@ -59,9 +50,9 @@ export function useReviewFormSubmit() {
         });
         return normalized;
       } catch (err) {
-        const message = extractErrorMessage(err);
-        setError(message);
-        toastError(message);
+        const reviewError = getReviewSubmitError(err, locale);
+        setError(reviewError);
+        toastError(getReviewSubmitErrorMessage(err, locale));
         throw err;
       } finally {
         setLoading(false);

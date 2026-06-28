@@ -5,6 +5,7 @@ import {
   getNotificationId,
   getNotificationLink,
 } from "../../utils/notificationHelpers.js";
+import { handlePaymentNotificationNavigation } from "../../utils/paymentScrollUtils.js";
 import { cn } from "../../utils/cn.js";
 
 export function NotificationItem({ notification, onMarkRead, className }) {
@@ -17,6 +18,7 @@ export function NotificationItem({ notification, onMarkRead, className }) {
   const link = getNotificationLink(notification);
 
   async function handleClick() {
+    handlePaymentNotificationNavigation(notification);
     if (!isRead && onMarkRead) {
       await onMarkRead(id);
     }

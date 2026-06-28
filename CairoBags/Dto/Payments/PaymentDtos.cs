@@ -75,6 +75,10 @@ public class PaymentDetailDto
     public string? TransactionReference { get; set; }
 
     public IReadOnlyList<PaymentProofImageDto> ProofImages { get; set; } = Array.Empty<PaymentProofImageDto>();
+
+    public string? RejectionReason { get; set; }
+
+    public DateTime? RejectedAt { get; set; }
 }
 
 public class AdminPendingPaymentDto

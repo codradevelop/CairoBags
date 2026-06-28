@@ -69,6 +69,21 @@ export const ENDPOINTS = {
   checkout: {
     create: "/api/checkout",
   },
+  coupons: {
+    validate: "/api/coupons/validate",
+  },
+  adminCoupons: {
+    stats: "/api/admin/coupons/stats",
+    list: "/api/admin/coupons",
+    byId: (id) => `/api/admin/coupons/${id}`,
+    usage: (id) => `/api/admin/coupons/${id}/usage`,
+    create: "/api/admin/coupons",
+    update: (id) => `/api/admin/coupons/${id}`,
+    delete: (id) => `/api/admin/coupons/${id}`,
+    activate: (id) => `/api/admin/coupons/${id}/activate`,
+    deactivate: (id) => `/api/admin/coupons/${id}/deactivate`,
+    duplicate: (id) => `/api/admin/coupons/${id}/duplicate`,
+  },
   shippingAddresses: {
     list: "/api/shipping-addresses",
     create: "/api/shipping-addresses",

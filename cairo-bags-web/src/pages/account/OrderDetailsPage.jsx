@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { AccountLayout } from "../../layouts/AccountLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
@@ -9,6 +9,7 @@ import * as paymentService from "../../services/paymentService.js";
 import {
   OrderStatusBadge,
   OrderTimeline,
+  OrderPaymentSection,
 } from "../../components/account/index.js";
 import {
   canCancelOrder,
@@ -32,8 +33,10 @@ import {
 import { OrderReviewButton } from "../../components/account/OrderReviewButton.jsx";
 import { useOrderReviewModal } from "../../components/account/OrderReviewActions.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
-import { getPaymentMethodLabel } from "../../constants/paymentMethodOptions.js";
-import { getPaymentStatusLabel } from "../../constants/orderStatusLabels.js";
+import {
+  consumePaymentHighlight,
+  scrollToPaymentSection,
+} from "../../utils/paymentScrollUtils.js";
 import {
   Button,
   Card,
@@ -54,13 +57,18 @@ export function OrderDetailsPage() {
   const [error, setError] = useState(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [paymentHighlighted, setPaymentHighlighted] = useState(false);
+  const location = useLocation();
+  const highlightHandledRef = useRef(false);
 
   const order = detail ? getOrderDetailInfo(detail) : null;
   const orderNumber = order ? getOrderNumber(order) : "";
   usePageTitle(orderNumber ? `${locale === "ar" ? "طلب" : "Order"} ${orderNumber}` : titleFallback(locale));
 
-  const loadOrder = useCallback(async () => {
-    setLoading(true);
+  const loadOrder = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [orderData, paymentData] = await Promise.all([
@@ -71,15 +79,44 @@ export function OrderDetailsPage() {
       setPayment(paymentData);
     } catch (err) {
       setError(err);
-      setDetail(null);
+      if (!silent) {
+        setDetail(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [id]);
 
   useEffect(() => {
     loadOrder();
   }, [loadOrder]);
+
+  useEffect(() => {
+    if (!location.state?.highlightPayment) return;
+    highlightHandledRef.current = false;
+    loadOrder({ silent: true });
+  }, [location.state?.highlightPayment, loadOrder]);
+
+  useEffect(() => {
+    if (loading || highlightHandledRef.current) return;
+
+    const shouldHighlight =
+      location.state?.highlightPayment || consumePaymentHighlight() || location.hash === "#payment";
+
+    if (!shouldHighlight) return;
+
+    highlightHandledRef.current = true;
+    const timer = window.setTimeout(() => {
+      scrollToPaymentSection();
+      setPaymentHighlighted(true);
+      document.getElementById("order-payment-section")?.focus({ preventScroll: true });
+      window.setTimeout(() => setPaymentHighlighted(false), 1000);
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, location.state?.highlightPayment, location.hash]);
 
   const items = detail ? getOrderDetailItems(detail) : [];
   const shipping = detail ? getOrderDetailShipping(detail) : null;
@@ -258,45 +295,11 @@ export function OrderDetailsPage() {
           </Card>
 
           {paymentInfo ? (
-            <Card variant="default" padding="md">
-              <CardHeader title={locale === "ar" ? "الدفع" : "Payment"} />
-              <CardBody className="space-y-2 text-sm">
-                <p>
-                  <span className="text-brand-muted">{locale === "ar" ? "الطريقة: " : "Method: "}</span>
-                  <span className="text-brand-text">
-                    {getPaymentMethodLabel(
-                      paymentInfo.paymentMethod ?? paymentInfo.PaymentMethod,
-                      locale
-                    )}
-                  </span>
-                </p>
-                <p>
-                  <span className="text-brand-muted">{locale === "ar" ? "الحالة: " : "Status: "}</span>
-                  <span className="text-brand-text">
-                    {getPaymentStatusLabel(
-                      paymentInfo.paymentStatus ?? paymentInfo.PaymentStatus,
-                      locale
-                    )}
-                  </span>
-                </p>
-                <p>
-                  <span className="text-brand-muted">{locale === "ar" ? "المبلغ: " : "Amount: "}</span>
-                  <span className="text-brand-text">
-                    {formatPrice(paymentInfo.amount ?? paymentInfo.Amount, locale)}
-                  </span>
-                </p>
-                {paymentInfo.transactionReference ?? paymentInfo.TransactionReference ? (
-                  <p>
-                    <span className="text-brand-muted">
-                      {locale === "ar" ? "رقم العملية: " : "Reference: "}
-                    </span>
-                    <span className="text-brand-text">
-                      {paymentInfo.transactionReference ?? paymentInfo.TransactionReference}
-                    </span>
-                  </p>
-                ) : null}
-              </CardBody>
-            </Card>
+            <OrderPaymentSection
+              order={order}
+              payment={paymentInfo}
+              highlighted={paymentHighlighted}
+            />
           ) : null}
 
           {coupon ? (
@@ -343,7 +346,7 @@ export function OrderDetailsPage() {
           <Card variant="default" padding="md">
             <CardHeader title={locale === "ar" ? "سجل الحالة" : "Order Timeline"} />
             <CardBody>
-              <OrderTimeline history={history} />
+              <OrderTimeline history={history} payment={paymentInfo} />
             </CardBody>
           </Card>
         </div>
@@ -354,14 +357,14 @@ export function OrderDetailsPage() {
         onClose={() => setCancelOpen(false)}
         onConfirm={handleCancel}
         loading={cancelling}
-        title={locale === "ar" ? "إلغاء الطلب" : "Cancel Order"}
+        title={locale === "ar" ? "إلغاء الطلب؟" : "Cancel Order?"}
         message={
           locale === "ar"
-            ? "هل أنت متأكد من إلغاء هذا الطلب؟"
-            : "Are you sure you want to cancel this order?"
+            ? "هل أنت متأكد من إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء."
+            : "Are you sure you want to cancel this order? This action cannot be undone."
         }
         confirmLabel={locale === "ar" ? "إلغاء الطلب" : "Cancel Order"}
-        cancelLabel={locale === "ar" ? "رجوع" : "Go back"}
+        cancelLabel={locale === "ar" ? "الاحتفاظ بالطلب" : "Keep Order"}
       />
       {reviewModal}
     </AccountLayout>

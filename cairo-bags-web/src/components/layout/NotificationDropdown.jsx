@@ -6,6 +6,7 @@ import { Spinner } from "../ui/Spinner.jsx";
 import { useNotifications } from "../../context/NotificationContext.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
+import { useToast } from "../ui/Toast.jsx";
 import {
   getNotificationId,
   getNotificationLink,
@@ -14,6 +15,7 @@ import {
   parseReviewHighlightFromNotification,
   requestReviewHighlight,
 } from "../../utils/reviewScrollUtils.js";
+import { handlePaymentNotificationNavigation } from "../../utils/paymentScrollUtils.js";
 import { cn } from "../../utils/cn.js";
 
 function BellIcon() {
@@ -34,8 +36,10 @@ function BellIcon() {
 export function NotificationDropdown({ className, adminContext = false }) {
   const { isAuthenticated } = useAuth();
   const { locale } = useLocale();
-  const { notifications, unreadCount, loading, markAsRead } = useNotifications();
+  const { success } = useToast();
+  const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
+  const [markingAll, setMarkingAll] = useState(false);
   const rootRef = useRef(null);
 
   useEffect(() => {
@@ -51,8 +55,27 @@ export function NotificationDropdown({ className, adminContext = false }) {
   const title = locale === "ar" ? "الإشعارات" : "Notifications";
   const empty = locale === "ar" ? "لا توجد إشعارات" : "No notifications yet";
 
+  async function handleMarkAllAsRead(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (unreadCount === 0 || markingAll) return;
+
+    setMarkingAll(true);
+    try {
+      await markAllAsRead();
+      success(
+        locale === "ar" ? "تم تعليم جميع الإشعارات كمقروءة." : "All notifications marked as read."
+      );
+    } catch {
+      /* badge sync is best-effort */
+    } finally {
+      setMarkingAll(false);
+    }
+  }
+
   async function handleNotificationClick(notification) {
     setOpen(false);
+    handlePaymentNotificationNavigation(notification);
     const reviewId = parseReviewHighlightFromNotification(notification);
     if (reviewId) requestReviewHighlight(reviewId);
     const id = getNotificationId(notification);
@@ -97,8 +120,22 @@ export function NotificationDropdown({ className, adminContext = false }) {
           )}
           role="menu"
         >
-          <div className="border-b border-brand-border px-4 py-3">
+          <div className="flex items-center justify-between gap-2 border-b border-brand-border px-4 py-3">
             <p className="font-display text-sm font-medium text-brand-text">{title}</p>
+            {unreadCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                loading={markingAll}
+                className="h-8 gap-1.5 px-2 text-xs transition-transform duration-300 hover:scale-[1.02] hover:text-brand-accent"
+                aria-label={locale === "ar" ? "تعليم الكل كمقروء" : "Mark all as read"}
+                onClick={handleMarkAllAsRead}
+              >
+                <span aria-hidden="true">✓</span>
+                {locale === "ar" ? "تعليم الكل كمقروء" : "Mark all as read"}
+              </Button>
+            ) : null}
           </div>
           <div className="max-h-80 overflow-y-auto cb-scrollbar-thin">
             {loading ? (

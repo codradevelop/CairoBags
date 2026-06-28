@@ -547,6 +547,38 @@
     box-shadow: var(--cb-shadow-glow);
     border-color: rgba(197, 155, 39, 0.5);
   }
+
+  .payment-section-glow {
+    box-shadow: var(--cb-shadow-glow);
+    border-color: rgba(197, 155, 39, 0.5);
+    animation: payment-section-glow-fade 1s ease-out forwards;
+  }
+
+  .timeline-rejection-enter {
+    animation: timeline-rejection-enter 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes timeline-rejection-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes payment-section-glow-fade {
+  0% {
+    box-shadow: var(--cb-shadow-glow);
+    border-color: rgba(197, 155, 39, 0.55);
+  }
+  100% {
+    box-shadow: 0 4px 12px -4px rgba(28, 26, 23, 0.04);
+    border-color: var(--cb-border, rgba(28, 26, 23, 0.08));
+  }
 }
 
 @keyframes review-card-enter {
@@ -575,6 +607,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cb-animate-grid > *,
+  .review-card-enter,
+  .timeline-rejection-enter,
+  .payment-section-glow {
+    animation: none !important;
+  }
   .cb-shop-product-grid > *,
   .cb-shop-product-list > * {
     animation: none;

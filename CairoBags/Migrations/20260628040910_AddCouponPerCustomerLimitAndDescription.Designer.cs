@@ -4,6 +4,7 @@ using CairoBags.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CairoBags.Migrations
 {
     [DbContext(typeof(CairoBagsContext))]
-    partial class CairoBagsContextModelSnapshot : ModelSnapshot
+    [Migration("20260628040910_AddCouponPerCustomerLimitAndDescription")]
+    partial class AddCouponPerCustomerLimitAndDescription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -691,10 +694,6 @@ namespace CairoBags.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -706,11 +705,6 @@ namespace CairoBags.Migrations
 
                     b.Property<decimal?>("MinimumOrderAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("PerCustomerUsageLimit")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
 
                     b.Property<int?>("ProductId")
                         .HasColumnType("int");

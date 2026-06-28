@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { Modal } from "../ui/Modal.jsx";
-import { Button, Input, InputGroup, Label, Textarea } from "../ui/index.js";
+import { Button, Label, Textarea } from "../ui/index.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { StatusBadge } from "./StatusBadge.jsx";
+import { PaymentProofLightbox } from "./PaymentProofLightbox.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
 import { getPaymentProofImageUrl } from "../../utils/orderHelpers.js";
 import * as adminPaymentService from "../../services/adminPaymentService.js";
@@ -29,20 +29,6 @@ export function PaymentReviewModal({ open, paymentId, onClose, onReviewed }) {
   useEffect(() => {
     if (!open) setPreviewUrl(null);
   }, [open]);
-
-  useEffect(() => {
-    if (!previewUrl) return undefined;
-
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") {
-        event.stopImmediatePropagation();
-        setPreviewUrl(null);
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [previewUrl]);
 
   const proofImages = payment?.proofImages ?? payment?.ProofImages ?? [];
 
@@ -141,6 +127,7 @@ export function PaymentReviewModal({ open, paymentId, onClose, onReviewed }) {
                         <img
                           src={imageUrl}
                           alt=""
+                          loading="lazy"
                           className="h-28 w-28 object-cover transition group-hover:scale-105"
                         />
                         <span className="absolute inset-0 flex items-center justify-center bg-brand-primary/0 text-xs font-medium text-white opacity-0 transition group-hover:bg-brand-primary/45 group-hover:opacity-100">
@@ -152,63 +139,26 @@ export function PaymentReviewModal({ open, paymentId, onClose, onReviewed }) {
                 </div>
               </div>
             ) : null}
-            <InputGroup>
+            <div className="space-y-2">
               <Label>{locale === "ar" ? "سبب الرفض" : "Rejection reason"}</Label>
               <Textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={3}
               />
-            </InputGroup>
+            </div>
           </div>
         ) : null}
       </Modal>
 
-      {previewUrl
-        ? createPortal(
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="presentation">
-              <button
-                type="button"
-                className="absolute inset-0 bg-brand-primary/70 backdrop-blur-sm"
-                aria-label={locale === "ar" ? "إغلاق" : "Close"}
-                onClick={() => setPreviewUrl(null)}
-              />
-              <div className="relative z-[71] flex max-h-[90vh] w-full max-w-4xl flex-col gap-3">
-                <div className="flex items-center justify-end gap-2">
-                  <a
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-md border border-white/20 bg-brand-surface/95 px-3 py-1.5 text-sm text-brand-text shadow-soft transition hover:bg-brand-surface"
-                  >
-                    {locale === "ar" ? "فتح في تبويب جديد" : "Open in new tab"}
-                  </a>
-                  <button
-                    type="button"
-                    className="rounded-md border border-white/20 bg-brand-surface/95 p-2 text-brand-text shadow-soft transition hover:bg-brand-surface"
-                    aria-label={locale === "ar" ? "إغلاق" : "Close"}
-                    onClick={() => setPreviewUrl(null)}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                      <path
-                        d="M5 5l10 10M15 5L5 15"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <img
-                  src={previewUrl}
-                  alt={locale === "ar" ? "صورة إثبات الدفع" : "Payment proof"}
-                  className="max-h-[calc(90vh-3rem)] w-full rounded-lg border border-brand-border bg-brand-surface object-contain shadow-modal"
-                />
-              </div>
-            </div>,
-            document.body
-          )
-        : null}
+      {previewUrl ? (
+        <PaymentProofLightbox
+          imageUrl={previewUrl}
+          alt={locale === "ar" ? "صورة إثبات الدفع" : "Payment proof"}
+          locale={locale}
+          onClose={() => setPreviewUrl(null)}
+        />
+      ) : null}
     </>
   );
 }

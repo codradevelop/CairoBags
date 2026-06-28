@@ -99,3 +99,77 @@ export function pinUserReviewFirst(reviews, userId) {
   if (!own) return reviews;
   return [own, ...reviews.filter((r) => r.userId !== userId)];
 }
+
+const UNFRIENDLY_ERROR_PATTERNS = [
+  /^Request failed with status code \d+$/i,
+  /^Network Error$/i,
+  /^AxiosError/i,
+  /^timeout of \d+ms exceeded$/i,
+];
+
+function isUnfriendlyErrorMessage(message) {
+  if (!message || typeof message !== "string") return true;
+  const trimmed = message.trim();
+  if (!trimmed) return true;
+  return UNFRIENDLY_ERROR_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function extractBackendReviewMessage(error) {
+  const candidates = [
+    error?.raw?.response?.data?.message,
+    error?.raw?.response?.data?.Message,
+    error?.response?.data?.message,
+    error?.response?.data?.Message,
+    error?.details?.message,
+    typeof error?.message === "string" ? error.message : null,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && !isUnfriendlyErrorMessage(candidate)) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+export function getReviewSubmitError(error, locale = "en") {
+  const status = error?.status ?? error?.response?.status ?? error?.raw?.response?.status ?? null;
+  const labels =
+    locale === "ar"
+      ? {
+          title: "تعذر إرسال تقييمك",
+          notPurchased: "يمكنك تقييم المنتجات التي اشتريتها واستلمتها فقط.",
+          generic: "تعذر إرسال تقييمك حالياً. يرجى المحاولة مرة أخرى.",
+        }
+      : {
+          title: "Unable to submit your review",
+          notPurchased: "You can only review products that you have purchased and received.",
+          generic: "We couldn't submit your review right now. Please try again.",
+        };
+
+  if (status === 403) {
+    return {
+      title: labels.title,
+      message: labels.notPurchased,
+    };
+  }
+
+  const backendMessage = extractBackendReviewMessage(error);
+  if (backendMessage) {
+    return {
+      title: labels.title,
+      message: backendMessage,
+    };
+  }
+
+  return {
+    title: labels.title,
+    message: labels.generic,
+  };
+}
+
+export function getReviewSubmitErrorMessage(error, locale = "en") {
+  const { message } = getReviewSubmitError(error, locale);
+  return message;
+}

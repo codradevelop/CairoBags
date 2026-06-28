@@ -11,6 +11,7 @@ export function OrderSummary({
   shippingFee,
   discountAmount,
   totalAmount,
+  couponCode,
   showItems = true,
   showEstimateNote = false,
 }) {
@@ -38,6 +39,7 @@ export function OrderSummary({
         totalAmount={totalAmount}
         itemCount={itemsCount}
         showEstimateNote={showEstimateNote}
+        couponCode={couponCode}
       />
     </div>
   );

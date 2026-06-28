@@ -5,6 +5,8 @@ export function getNotificationId(notification) {
 export function getNotificationLink(notification, { adminContext = false } = {}) {
   const deepLink = notification?.deepLink ?? notification?.DeepLink;
   const targetType = notification?.targetType ?? notification?.TargetType;
+  const referenceId = notification?.referenceId ?? notification?.ReferenceId;
+  const type = notification?.type ?? notification?.Type;
 
   if (adminContext) {
     if (
@@ -14,7 +16,7 @@ export function getNotificationLink(notification, { adminContext = false } = {})
     ) {
       return "/admin/payments";
     }
-    if (targetType === "ProductReview" || notification?.type === "new_product_review") {
+    if (targetType === "ProductReview" || type === "new_product_review") {
       const productId = deepLink?.match(/\/products\/(\d+)/)?.[1];
       if (productId) return `/products/${productId}#reviews`;
     }
@@ -27,14 +29,23 @@ export function getNotificationLink(notification, { adminContext = false } = {})
   }
 
   if (deepLink) {
-    if (deepLink.startsWith("/orders/")) {
-      return deepLink.replace("/orders/", "/account/orders/");
+    const orderPaymentMatch = deepLink.match(/^\/(?:account\/)?orders\/(\d+)\/payment\/?$/);
+    if (orderPaymentMatch) {
+      return `/account/orders/${orderPaymentMatch[1]}`;
     }
+
+    if (deepLink.startsWith("/orders/")) {
+      return deepLink.replace("/orders/", "/account/orders/").replace(/\/payment\/?$/, "");
+    }
+
+    if (deepLink.startsWith("/account/orders/")) {
+      return deepLink.replace(/\/payment\/?$/, "");
+    }
+
     return deepLink;
   }
 
-  const referenceId = notification?.referenceId ?? notification?.ReferenceId;
-  if (targetType === "Order" && referenceId) {
+  if ((targetType === "Order" || targetType === "OrderPayment") && referenceId) {
     return `/account/orders/${referenceId}`;
   }
   return null;

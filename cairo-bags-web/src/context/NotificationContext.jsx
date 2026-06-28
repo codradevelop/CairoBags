@@ -133,7 +133,13 @@ export function NotificationProvider({ children }) {
     async (id) => {
       await notificationService.markNotificationAsRead(id);
       setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+        prev.map((n) => {
+          const notificationId = n.id ?? n.Id;
+          if (notificationId === id) {
+            return { ...n, isRead: true, IsRead: true };
+          }
+          return n;
+        })
       );
       await refreshUnreadCount();
     },
@@ -142,7 +148,7 @@ export function NotificationProvider({ children }) {
 
   const markAllAsRead = useCallback(async () => {
     await notificationService.markAllNotificationsAsRead();
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, IsRead: true })));
     setUnreadCount(0);
   }, []);
 

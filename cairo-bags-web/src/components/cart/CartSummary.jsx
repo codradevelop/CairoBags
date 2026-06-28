@@ -2,6 +2,7 @@ import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
 import { Card, CardBody, CardHeader } from "../ui/Card.jsx";
 import { cn } from "../../utils/cn.js";
+import { motion } from "framer-motion";
 
 export function CartSummary({
   subTotal,
@@ -11,6 +12,7 @@ export function CartSummary({
   itemCount,
   className,
   showEstimateNote = false,
+  couponCode,
 }) {
   const { locale } = useLocale();
   const title = locale === "ar" ? "ملخص الطلب" : "Order Summary";
@@ -57,13 +59,25 @@ export function CartSummary({
           </div>
         ))}
 
+        {couponCode ? (
+          <div className="inline-flex rounded-full bg-brand-accent/10 px-3 py-1 text-xs font-medium text-brand-accent">
+            {couponCode} {locale === "ar" ? "مُطبّق" : "Applied"}
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between border-t border-brand-border pt-3">
           <span className="font-medium text-brand-text">
             {locale === "ar" ? "الإجمالي" : "Total"}
           </span>
-          <span className="font-display text-xl font-medium text-brand-primary">
+          <motion.span
+            key={displayTotal}
+            initial={{ opacity: 0.6, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="font-display text-xl font-medium text-brand-primary"
+          >
             {formatPrice(displayTotal, locale)}
-          </span>
+          </motion.span>
         </div>
 
         {showEstimateNote ? (

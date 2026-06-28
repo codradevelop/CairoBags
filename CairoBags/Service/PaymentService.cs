@@ -547,7 +547,9 @@ public class PaymentService : IPaymentService
                 .OrderByDescending(i => i.IsPrimary)
                 .ThenByDescending(i => i.CreatedAt)
                 .Select(MapProofImage)
-                .ToList()
+                .ToList(),
+            RejectionReason = payment.Status == PaymentStatus.Rejected ? payment.ReviewNotes : null,
+            RejectedAt = payment.Status == PaymentStatus.Rejected ? payment.ReviewedAt : null
         };
 
     private static AdminPaymentDetailDto MapAdminPaymentDetail(OrderPayment payment) =>

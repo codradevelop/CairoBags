@@ -14,7 +14,7 @@ import { ReviewFormModal } from "./ReviewFormModal.jsx";
 import { ReviewEmptyState } from "./ReviewEmptyState.jsx";
 import { ReviewListSkeleton, ReviewSummarySkeleton } from "./ReviewSkeleton.jsx";
 import * as reviewService from "../../services/reviewService.js";
-import { normalizeReviewSummary, pinUserReviewFirst } from "../../utils/reviewHelpers.js";
+import { getReviewSubmitError, normalizeReviewSummary, pinUserReviewFirst } from "../../utils/reviewHelpers.js";
 import { consumeReviewsHighlight, consumeReviewHighlight } from "../../utils/reviewScrollUtils.js";
 import { subscribeReviewChange, publishReviewChange } from "../../utils/reviewEvents.js";
 import { useProductRatings } from "../../context/ProductRatingContext.jsx";
@@ -255,7 +255,7 @@ export function ReviewSection({ productId, onStatsChange, className }) {
           action: editingReview ? "updated" : "created",
         });
       } catch (err) {
-        setFormError(extractErrorMessage(err));
+        setFormError(getReviewSubmitError(err, locale));
       } finally {
         setFormLoading(false);
       }

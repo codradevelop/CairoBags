@@ -35,6 +35,13 @@ const navIcons = {
       <path d="M9 12h6M9 16h4"/>
     </svg>
   ),
+  coupons: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6" />
+      <path d="M4 9h16" />
+      <path d="M9 3h6l1 6H8l1-6z" />
+    </svg>
+  ),
   payments: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="4" width="22" height="16" rx="2"/>

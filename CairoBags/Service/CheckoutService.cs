@@ -1,5 +1,6 @@
 using CairoBags.Data;
 using CairoBags.Dto.Checkout;
+using CairoBags.Dto.Coupons;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using CairoBags.Models.Coupons;
@@ -14,10 +15,12 @@ namespace CairoBags.Service;
 public class CheckoutService : ICheckoutService
 {
     private readonly CairoBagsContext _context;
+    private readonly ICouponService _couponService;
 
-    public CheckoutService(CairoBagsContext context)
+    public CheckoutService(CairoBagsContext context, ICouponService couponService)
     {
         _context = context;
+        _couponService = couponService;
     }
 
     public async Task<ServiceResult<CheckoutResponseDto>> CheckoutAsync(
@@ -73,7 +76,6 @@ public class CheckoutService : ICheckoutService
             var couponResult = await ValidateCouponAsync(
                 request.CouponCode,
                 userId,
-                subTotal,
                 lineItems.Lines!,
                 cancellationToken);
 
@@ -309,77 +311,34 @@ public class CheckoutService : ICheckoutService
     private async Task<(Coupon? Coupon, decimal DiscountAmount, ServiceError? Error)> ValidateCouponAsync(
         string? couponCode,
         string userId,
-        decimal subTotal,
         IReadOnlyList<CheckoutLine> lines,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(couponCode))
-            return (null, 0m, null);
+        var subTotal = lines.Sum(l => l.UnitPrice * l.Quantity);
+        var validationLines = lines.Select(l => new CouponValidationLineDto
+        {
+            ProductId = l.ProductId,
+            CategoryId = l.CategoryId,
+            UnitPrice = l.UnitPrice,
+            Quantity = l.Quantity
+        }).ToList();
 
-        var normalizedCode = couponCode.Trim().ToUpperInvariant();
-        var coupon = await _context.Coupons
-            .FirstOrDefaultAsync(c => c.Code.ToUpper() == normalizedCode, cancellationToken);
+        var result = await _couponService.ValidateCouponForOrderAsync(
+            couponCode,
+            userId,
+            subTotal,
+            validationLines,
+            cancellationToken);
 
-        if (coupon == null)
-            return (null, 0m, new ServiceError("coupon_invalid", "Coupon code is not valid."));
-
-        var now = DateTime.UtcNow;
-        if (!coupon.IsActive)
-            return (null, 0m, new ServiceError("coupon_inactive", "Coupon is not active."));
-
-        if (now < coupon.StartDate || now > coupon.EndDate)
-            return (null, 0m, new ServiceError("coupon_expired", "Coupon is not valid for the current date."));
-
-        if (coupon.UsageLimit.HasValue && coupon.UsageCount >= coupon.UsageLimit.Value)
-            return (null, 0m, new ServiceError("coupon_usage_limit", "Coupon usage limit has been reached."));
-
-        var applicableSubtotal = GetCouponApplicableSubtotal(coupon, lines);
-        if (applicableSubtotal <= 0m)
-            return (null, 0m, new ServiceError("coupon_scope_invalid", "Coupon does not apply to any items in the cart."));
-
-        if (coupon.MinimumOrderAmount.HasValue && applicableSubtotal < coupon.MinimumOrderAmount.Value)
+        if (!result.IsValid)
         {
             return (null, 0m, new ServiceError(
-                "coupon_minimum_not_met",
-                $"Minimum order amount of {coupon.MinimumOrderAmount.Value:0.##} EGP is required for this coupon."));
+                result.ErrorCode!,
+                result.ErrorMessage!));
         }
 
-        var discount = CalculateCouponDiscount(coupon, applicableSubtotal);
-        return (coupon, discount, null);
+        return (result.Coupon, result.DiscountAmount, null);
     }
-
-    private static decimal GetCouponApplicableSubtotal(Coupon coupon, IReadOnlyList<CheckoutLine> lines)
-    {
-        if (coupon.ProductId.HasValue)
-        {
-            return lines
-                .Where(l => l.ProductId == coupon.ProductId.Value)
-                .Sum(l => l.UnitPrice * l.Quantity);
-        }
-
-        if (coupon.CategoryId.HasValue)
-        {
-            return lines
-                .Where(l => l.CategoryId == coupon.CategoryId.Value)
-                .Sum(l => l.UnitPrice * l.Quantity);
-        }
-
-        return lines.Sum(l => l.UnitPrice * l.Quantity);
-    }
-
-    private static decimal CalculateCouponDiscount(Coupon coupon, decimal applicableSubtotal)
-    {
-        return coupon.Type switch
-        {
-            CouponType.Percentage => ApplyMaxCap(applicableSubtotal * coupon.Value / 100m, coupon.MaximumDiscountAmount),
-            CouponType.FixedAmount => Math.Min(coupon.Value, applicableSubtotal),
-            CouponType.FreeShipping => 0m,
-            _ => 0m
-        };
-    }
-
-    private static decimal ApplyMaxCap(decimal value, decimal? maxCap) =>
-        maxCap.HasValue ? Math.Min(value, maxCap.Value) : value;
 
     private async Task<decimal> CalculateShippingFeeAsync(
         string governorateName,

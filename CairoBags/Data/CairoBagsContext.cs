@@ -703,6 +703,8 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
             entity.Property(e => e.Value).HasColumnType("decimal(18,2)");
             entity.Property(e => e.MinimumOrderAmount).HasColumnType("decimal(18,2)");
             entity.Property(e => e.MaximumDiscountAmount).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.PerCustomerUsageLimit).HasDefaultValue(1);
+            entity.Property(e => e.Description).HasMaxLength(500);
 
             entity.HasIndex(e => e.Code).IsUnique();
             entity.HasIndex(e => e.IsActive);

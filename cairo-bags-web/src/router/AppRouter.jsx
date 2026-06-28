@@ -25,6 +25,8 @@ import { OrdersPage as AdminOrdersPage } from "../pages/admin/OrdersPage.jsx";
 import { OrderDetailsPage as AdminOrderDetailsPage } from "../pages/admin/OrderDetailsPage.jsx";
 import { InventoryPage } from "../pages/admin/InventoryPage.jsx";
 import { PaymentsPage } from "../pages/admin/PaymentsPage.jsx";
+import { CouponsPage } from "../pages/admin/CouponsPage.jsx";
+import { CouponDetailsPage } from "../pages/admin/CouponDetailsPage.jsx";
 import { SettingsPage } from "../pages/admin/SettingsPage.jsx";
 import { CartPage } from "../pages/cart/CartPage.jsx";
 import { CheckoutPage } from "../pages/checkout/CheckoutPage.jsx";
@@ -79,6 +81,8 @@ export function AppRouter() {
         <Route path="/admin/orders/:id" element={<AdminOrderDetailsPage />} />
         <Route path="/admin/inventory" element={<InventoryPage />} />
         <Route path="/admin/payments" element={<PaymentsPage />} />
+        <Route path="/admin/coupons" element={<CouponsPage />} />
+        <Route path="/admin/coupons/:id" element={<CouponDetailsPage />} />
         <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
 
