@@ -7,6 +7,8 @@ import {
 } from "react";
 import { getProductRatingStats } from "../utils/reviewHelpers.js";
 import { publishReviewChange } from "../utils/reviewEvents.js";
+import { STORE_EVENTS } from "../constants/storeEvents.js";
+import { useStoreSync } from "../hooks/useStoreSync.js";
 
 const ProductRatingContext = createContext(null);
 
@@ -23,6 +25,21 @@ export function ProductRatingProvider({ children }) {
     });
     publishReviewChange({ productId: id, stats });
   }, []);
+
+  useStoreSync(
+    [STORE_EVENTS.ReviewCreated, STORE_EVENTS.ReviewUpdated, STORE_EVENTS.ReviewDeleted],
+    (payload) => {
+      const productId = payload?.productId ?? payload?.ProductId;
+      if (!productId) return;
+      const averageRating = payload?.averageRating ?? payload?.AverageRating;
+      const reviewCount = payload?.reviewCount ?? payload?.ReviewCount;
+      if (averageRating == null && reviewCount == null) return;
+      setProductRating(productId, {
+        averageRating: averageRating ?? 0,
+        reviewCount: reviewCount ?? 0,
+      });
+    }
+  );
 
   const getRatingForProduct = useCallback(
     (product) => {

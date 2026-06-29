@@ -1,9 +1,23 @@
 import { useMemo } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { getOrderStatusLabel } from "../../constants/orderStatusLabels.js";
+import { getCodStatusLabel, getCodStatusTimelineDot } from "../../constants/codOrderStatus.js";
+import { isCashOnDeliveryOrder } from "../../utils/codOrderHelpers.js";
 import { formatOrderDate } from "../../utils/orderHelpers.js";
 import { buildOrderTimelineEntries, TIMELINE_EVENT } from "../../utils/paymentHelpers.js";
 import { cn } from "../../utils/cn.js";
+
+function TimelineDot({ className }) {
+  return (
+    <span
+      className={cn(
+        "relative z-[1] mt-1.5 h-3 w-3 shrink-0 rounded-full border-2 transition-all duration-300",
+        className
+      )}
+      aria-hidden="true"
+    />
+  );
+}
 
 function RejectionTimelineItem({ entry, locale }) {
   const labels =
@@ -22,7 +36,7 @@ function RejectionTimelineItem({ entry, locale }) {
         };
 
   return (
-    <div className="min-w-0 flex-1 rounded-lg border border-red-200/70 bg-red-50/60 px-3 py-2.5 timeline-rejection-enter">
+    <div className="min-w-0 flex-1 rounded-xl border border-red-200/70 bg-red-50/50 px-4 py-3">
       <p className="font-medium text-red-900">{labels.title}</p>
       <p className="mt-1 text-sm text-red-800/80">{labels.description}</p>
       {entry.reason ? (
@@ -44,7 +58,7 @@ function ProofSubmittedTimelineItem({ entry, locale }) {
   const dateLabel = locale === "ar" ? "التاريخ" : "Date";
 
   return (
-    <div className="min-w-0 flex-1 rounded-lg border border-brand-accent/25 bg-brand-accent/5 px-3 py-2.5">
+    <div className="min-w-0 flex-1 rounded-xl border border-brand-accent/25 bg-brand-accent/5 px-4 py-3">
       <p className="font-medium text-brand-text">{title}</p>
       <p className="mt-2 text-xs text-brand-muted">
         <span className="font-medium">{dateLabel}:</span> {formatOrderDate(entry.createdAt, locale)}
@@ -58,7 +72,7 @@ function PaymentApprovedTimelineItem({ entry, locale }) {
   const dateLabel = locale === "ar" ? "التاريخ" : "Date";
 
   return (
-    <div className="min-w-0 flex-1 rounded-lg border border-emerald-200/70 bg-emerald-50/70 px-3 py-2.5">
+    <div className="min-w-0 flex-1 rounded-xl border border-emerald-200/70 bg-emerald-50/50 px-4 py-3">
       <p className="font-medium text-emerald-900">{title}</p>
       <p className="mt-2 text-xs text-emerald-800/80">
         <span className="font-medium">{dateLabel}:</span> {formatOrderDate(entry.createdAt, locale)}
@@ -67,9 +81,53 @@ function PaymentApprovedTimelineItem({ entry, locale }) {
   );
 }
 
+function OrderConfirmedTimelineItem({ entry, locale }) {
+  const title = locale === "ar" ? "تم تأكيد الطلب" : "Order Confirmed";
+  const dateLabel = locale === "ar" ? "التاريخ" : "Date";
+
+  return (
+    <div className="min-w-0 flex-1 rounded-xl border border-sky-200/70 bg-sky-50/50 px-4 py-3">
+      <p className="font-medium text-sky-900">{title}</p>
+      <p className="mt-2 text-xs text-sky-800/80">
+        <span className="font-medium">{dateLabel}:</span> {formatOrderDate(entry.createdAt, locale)}
+      </p>
+    </div>
+  );
+}
+
+function getEventDotClass(entry, isLast) {
+  if (entry.kind === TIMELINE_EVENT.PAYMENT_REJECTED) {
+    return isLast
+      ? "border-red-500 bg-red-500 ring-2 ring-red-200 ring-offset-2 ring-offset-brand-surface"
+      : "border-red-300 bg-brand-surface";
+  }
+  if (entry.kind === TIMELINE_EVENT.ORDER_CONFIRMED) {
+    return getCodStatusTimelineDot(entry.status, isLast);
+  }
+  if (entry.kind === TIMELINE_EVENT.PAYMENT_APPROVED) {
+    return isLast
+      ? "border-emerald-500 bg-emerald-500 ring-2 ring-emerald-200 ring-offset-2 ring-offset-brand-surface"
+      : "border-emerald-300 bg-brand-surface";
+  }
+  if (entry.kind === TIMELINE_EVENT.PROOF_SUBMITTED) {
+    return isLast
+      ? "border-brand-accent bg-brand-accent ring-2 ring-brand-accent/25 ring-offset-2 ring-offset-brand-surface"
+      : "border-brand-border bg-brand-surface";
+  }
+  return isLast
+    ? "border-brand-accent bg-brand-accent ring-2 ring-brand-accent/25 ring-offset-2 ring-offset-brand-surface"
+    : "border-brand-border bg-brand-surface";
+}
+
 export function OrderTimeline({ history = [], payment = null, className }) {
   const { locale } = useLocale();
   const items = useMemo(() => buildOrderTimelineEntries(history, payment), [history, payment]);
+  const isCod = isCashOnDeliveryOrder({ payment });
+
+  function getTimelineStatusLabel(status) {
+    if (isCod) return getCodStatusLabel(status, locale);
+    return getOrderStatusLabel(status, locale);
+  }
 
   if (!items.length) {
     return (
@@ -86,41 +144,33 @@ export function OrderTimeline({ history = [], payment = null, className }) {
         const isRejection = entry.kind === TIMELINE_EVENT.PAYMENT_REJECTED;
         const isProof = entry.kind === TIMELINE_EVENT.PROOF_SUBMITTED;
         const isApproved = entry.kind === TIMELINE_EVENT.PAYMENT_APPROVED;
+        const isConfirmed = entry.kind === TIMELINE_EVENT.ORDER_CONFIRMED;
+
+        const dotClass =
+          entry.kind === TIMELINE_EVENT.ORDER_STATUS && isCod
+            ? getCodStatusTimelineDot(entry.status, isLast)
+            : getEventDotClass(entry, isLast);
 
         return (
           <li key={entry.key} className="relative flex gap-4 pb-6 last:pb-0">
             {!isLast ? (
               <span
-                className="absolute start-[0.4375rem] top-3 h-[calc(100%-0.5rem)] w-px bg-brand-border"
+                className="absolute start-[0.3125rem] top-4 h-[calc(100%-0.75rem)] w-px bg-gradient-to-b from-brand-border to-brand-border/40"
                 aria-hidden="true"
               />
             ) : null}
-            <span
-              className={cn(
-                "relative z-[1] mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2",
-                isRejection
-                  ? "border-red-500 bg-red-500"
-                  : isApproved
-                    ? "border-emerald-500 bg-emerald-500"
-                    : isProof
-                      ? "border-brand-accent bg-brand-accent"
-                      : index === 0
-                        ? "border-brand-accent bg-brand-accent"
-                        : "border-brand-border bg-brand-surface"
-              )}
-              aria-hidden="true"
-            />
+            <TimelineDot className={dotClass} />
             {isRejection ? (
               <RejectionTimelineItem entry={entry} locale={locale} />
             ) : isProof ? (
               <ProofSubmittedTimelineItem entry={entry} locale={locale} />
+            ) : isConfirmed ? (
+              <OrderConfirmedTimelineItem entry={entry} locale={locale} />
             ) : isApproved ? (
               <PaymentApprovedTimelineItem entry={entry} locale={locale} />
             ) : (
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-brand-text">
-                  {getOrderStatusLabel(entry.status, locale)}
-                </p>
+              <div className="min-w-0 flex-1 transition-all duration-300">
+                <p className="font-medium text-brand-text">{getTimelineStatusLabel(entry.status)}</p>
                 {entry.notes ? <p className="mt-1 text-sm text-brand-muted">{entry.notes}</p> : null}
                 <p className="mt-1 text-xs text-brand-muted">
                   {formatOrderDate(entry.createdAt, locale)}

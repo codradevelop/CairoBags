@@ -7,7 +7,7 @@ internal static class ShippingSeedData
 {
     private static readonly DateTime SeedCreatedAt = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-    public const int GovernorateCount = 27;
+    public const int GovernorateCount = 35;
 
     public static void Apply(ModelBuilder modelBuilder)
     {
@@ -16,16 +16,16 @@ internal static class ShippingSeedData
             {
                 Id = 1,
                 Code = ShippingZoneCode.Cairo,
-                BaseShippingFee = 50m,
-                FreeShippingThreshold = 1500m,
+                BaseShippingFee = 80m,
+                FreeShippingThreshold = null,
                 CreatedAt = SeedCreatedAt
             },
             new ShippingZone
             {
                 Id = 2,
                 Code = ShippingZoneCode.Giza,
-                BaseShippingFee = 60m,
-                FreeShippingThreshold = 1500m,
+                BaseShippingFee = 80m,
+                FreeShippingThreshold = null,
                 CreatedAt = SeedCreatedAt
             },
             new ShippingZone
@@ -33,7 +33,7 @@ internal static class ShippingSeedData
                 Id = 3,
                 Code = ShippingZoneCode.OtherGovernorates,
                 BaseShippingFee = 90m,
-                FreeShippingThreshold = 2000m,
+                FreeShippingThreshold = null,
                 CreatedAt = SeedCreatedAt
             }
         );
@@ -48,33 +48,61 @@ internal static class ShippingSeedData
         );
 
         modelBuilder.Entity<Governorate>().HasData(
-            new Governorate { Id = 1, ShippingZoneId = 1, NameAr = "القاهرة", NameEn = "Cairo", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 2, ShippingZoneId = 2, NameAr = "الجيزة", NameEn = "Giza", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 3, ShippingZoneId = 3, NameAr = "الإسكندرية", NameEn = "Alexandria", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 4, ShippingZoneId = 3, NameAr = "الدقهلية", NameEn = "Dakahlia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 5, ShippingZoneId = 3, NameAr = "البحر الأحمر", NameEn = "Red Sea", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 6, ShippingZoneId = 3, NameAr = "البحيرة", NameEn = "Beheira", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 7, ShippingZoneId = 3, NameAr = "الفيوم", NameEn = "Fayoum", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 8, ShippingZoneId = 3, NameAr = "الغربية", NameEn = "Gharbia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 9, ShippingZoneId = 3, NameAr = "الإسماعيلية", NameEn = "Ismailia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 10, ShippingZoneId = 3, NameAr = "المنوفية", NameEn = "Monufia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 11, ShippingZoneId = 3, NameAr = "المنيا", NameEn = "Minya", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 12, ShippingZoneId = 3, NameAr = "القليوبية", NameEn = "Qalyubia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 13, ShippingZoneId = 3, NameAr = "الوادي الجديد", NameEn = "New Valley", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 14, ShippingZoneId = 3, NameAr = "السويس", NameEn = "Suez", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 15, ShippingZoneId = 3, NameAr = "أسوان", NameEn = "Aswan", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 16, ShippingZoneId = 3, NameAr = "أسيوط", NameEn = "Assiut", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 17, ShippingZoneId = 3, NameAr = "بني سويف", NameEn = "Beni Suef", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 18, ShippingZoneId = 3, NameAr = "بورسعيد", NameEn = "Port Said", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 19, ShippingZoneId = 3, NameAr = "دمياط", NameEn = "Damietta", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 20, ShippingZoneId = 3, NameAr = "الشرقية", NameEn = "Sharqia", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 21, ShippingZoneId = 3, NameAr = "جنوب سيناء", NameEn = "South Sinai", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 22, ShippingZoneId = 3, NameAr = "كفر الشيخ", NameEn = "Kafr El Sheikh", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 23, ShippingZoneId = 3, NameAr = "مطروح", NameEn = "Matrouh", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 24, ShippingZoneId = 3, NameAr = "الأقصر", NameEn = "Luxor", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 25, ShippingZoneId = 3, NameAr = "قنا", NameEn = "Qena", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 26, ShippingZoneId = 3, NameAr = "شمال سيناء", NameEn = "North Sinai", CreatedAt = SeedCreatedAt },
-            new Governorate { Id = 27, ShippingZoneId = 3, NameAr = "سوهاج", NameEn = "Sohag", CreatedAt = SeedCreatedAt }
+            Gov(1, 1, "القاهرة", "Cairo", 80m, 1),
+            Gov(2, 2, "الجيزة", "Giza", 80m, 2),
+            Gov(3, 3, "الإسكندرية", "Alexandria", 85m, 6),
+            Gov(4, 3, "الدقهلية", "Dakahlia", 90m, 7),
+            Gov(5, 3, "البحر الأحمر", "Red Sea", 125m, 0, selectable: false),
+            Gov(6, 3, "البحيرة", "Beheira", 90m, 14),
+            Gov(7, 3, "الفيوم", "Fayoum", 95m, 17),
+            Gov(8, 3, "الغربية", "Gharbia", 90m, 8),
+            Gov(9, 3, "الإسماعيلية", "Ismailia", 90m, 11),
+            Gov(10, 3, "المنوفية", "Monufia", 90m, 16),
+            Gov(11, 3, "المنيا", "Minya", 95m, 19),
+            Gov(12, 3, "القليوبية", "Qalyubia", 80m, 0, selectable: false),
+            Gov(13, 3, "الوادي الجديد", "New Valley", 135m, 0, selectable: false),
+            Gov(14, 3, "السويس", "Suez", 90m, 12),
+            Gov(15, 3, "أسوان", "Aswan", 105m, 24),
+            Gov(16, 3, "أسيوط", "Assiut", 95m, 20),
+            Gov(17, 3, "بني سويف", "Beni Suef", 95m, 18),
+            Gov(18, 3, "بورسعيد", "Port Said", 90m, 10),
+            Gov(19, 3, "دمياط", "Damietta", 90m, 15),
+            Gov(20, 3, "الشرقية", "Sharqia", 90m, 9),
+            Gov(21, 3, "جنوب سيناء", "South Sinai", 155m, 32),
+            Gov(22, 3, "كفر الشيخ", "Kafr El Sheikh", 90m, 13),
+            Gov(23, 3, "مرسى مطروح", "Marsa Matruh", 125m, 27),
+            Gov(24, 3, "الأقصر", "Luxor", 105m, 23),
+            Gov(25, 3, "قنا", "Qena", 105m, 22),
+            Gov(26, 3, "شمال سيناء", "North Sinai", 155m, 31),
+            Gov(27, 3, "سوهاج", "Sohag", 95m, 21),
+            Gov(28, 1, "الخانكة", "Khanka", 80m, 3),
+            Gov(29, 1, "أبو زعبل", "Abu Zaabal", 80m, 4),
+            Gov(30, 1, "الجبل الأصفر", "El Gebel El Asfar", 80m, 5),
+            Gov(31, 3, "الغردقة", "Hurghada", 125m, 25),
+            Gov(32, 3, "رأس غارب", "Ras Ghareb", 125m, 26),
+            Gov(33, 3, "الساحل الشمالي", "North Coast", 125m, 28),
+            Gov(34, 3, "القصير", "El Quseir", 135m, 29),
+            Gov(35, 3, "مرسى علم", "Marsa Alam", 135m, 30)
         );
     }
+
+    private static Governorate Gov(
+        int id,
+        int zoneId,
+        string nameAr,
+        string nameEn,
+        decimal shippingFee,
+        int displayOrder,
+        bool selectable = true) =>
+        new()
+        {
+            Id = id,
+            ShippingZoneId = zoneId,
+            NameAr = nameAr,
+            NameEn = nameEn,
+            ShippingFee = shippingFee,
+            DisplayOrder = displayOrder,
+            IsSelectable = selectable,
+            CreatedAt = SeedCreatedAt
+        };
 }

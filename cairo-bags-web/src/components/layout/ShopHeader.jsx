@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
 import { UserDropdown } from "./UserDropdown.jsx";
 import { NotificationDropdown } from "./NotificationDropdown.jsx";
 import { CartButton } from "./CartButton.jsx";
 import { WishlistHeaderButton } from "./WishlistButton.jsx";
 import { MobileMenu } from "./MobileMenu.jsx";
+import { Navbar } from "./Navbar.jsx";
 import { Button } from "../ui/Button.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
-import { storeNavLinks, getNavLabel } from "./navConfig.js";
-import { getStoreNavHref, handleStoreNavClick } from "../../utils/homeNav.js";
 import { filtersToSearchParams, parseShopFilters } from "../../utils/shopFilters.js";
 import { cn } from "../../utils/cn.js";
 
@@ -69,16 +69,10 @@ function ShopHeaderSearch() {
 
 export function ShopHeader() {
   const { locale } = useLocale();
-  const location = useLocation();
-  const navigate = useNavigate();
   const readOnly = useStoreReadOnly();
+  const reduceMotion = useReducedMotion();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [compact, setCompact] = useState(false);
-
-  const announcement =
-    locale === "ar"
-      ? "✧ شحن مجاني للطلبات فوق ٢٠٠٠ جنيه ✧"
-      : "✧ COMPLIMENTARY SHIPPING ON ORDERS OVER EGP 2,000 ✧";
 
   useEffect(() => {
     let ticking = false;
@@ -96,61 +90,44 @@ export function ShopHeader() {
   }, []);
 
   return (
-    <header className={cn("cb-shop-header", compact && "cb-shop-header-compact")}>
-      <div className="cb-shop-announcement">{announcement}</div>
-
+    <motion.header
+      className={cn("cb-shop-header cb-header-premium", compact && "cb-shop-header-compact")}
+      initial={reduceMotion ? false : { y: -8, opacity: 0 }}
+      animate={reduceMotion ? undefined : { y: 0, opacity: 1 }}
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+    >
       <div className="cb-shop-header-main">
         <div className="cb-shop-header-row">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="cb-header-icon-btn lg:hidden"
             aria-label={locale === "ar" ? "فتح القائمة" : "Open menu"}
             onClick={() => setMobileOpen(true)}
           >
             <MenuIcon />
           </Button>
 
-          <Link to="/" className="cb-shop-logo">
+          <Link to="/" className="cb-shop-logo cb-header-logo">
             Cairo Bags
           </Link>
 
-          <nav className="cb-shop-nav" aria-label={locale === "ar" ? "التنقل الرئيسي" : "Main navigation"}>
-            {storeNavLinks.map((link) => {
-              const isShop = link.key === "shop";
-              const active = isShop && location.pathname === "/shop";
-              return (
-                <a
-                  key={link.key}
-                  href={getStoreNavHref(link, location.pathname)}
-                  className={cn("cb-shop-nav-link", active && "cb-shop-nav-link-active")}
-                  onClick={(event) => {
-                    if (link.key === "shop" || link.homeSection) {
-                      event.preventDefault();
-                      handleStoreNavClick(link, { pathname: location.pathname, navigate });
-                    }
-                  }}
-                >
-                  {getNavLabel(link, locale)}
-                </a>
-              );
-            })}
-          </nav>
+          <Navbar className="cb-shop-nav-integrated" />
 
           <ShopHeaderSearch />
 
-          <div className="cb-shop-header-actions">
-            <LanguageSwitcher className="hidden sm:inline-flex" />
+          <div className="cb-header-actions cb-shop-header-actions">
+            <LanguageSwitcher className="cb-header-lang hidden sm:inline-flex" />
             <NotificationDropdown />
-            {!readOnly ? <WishlistHeaderButton /> : null}
-            {!readOnly ? <CartButton /> : null}
-            <UserDropdown />
+            {!readOnly ? <WishlistHeaderButton className="cb-header-icon-btn" /> : null}
+            {!readOnly ? <CartButton className="cb-header-icon-btn" /> : null}
+            <UserDropdown className="cb-header-user" />
           </div>
         </div>
       </div>
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
-    </header>
+    </motion.header>
   );
 }

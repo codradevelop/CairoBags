@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { useToast } from "../ui/Toast.jsx";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { Button } from "../ui/Button.jsx";
 import { Input } from "../ui/Input.jsx";
 import { cn } from "../../utils/cn.js";
@@ -22,6 +24,25 @@ export function CouponInput({
   const [expanded, setExpanded] = useState(Boolean(appliedCoupon));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const appliedRef = useRef(appliedCoupon);
+  appliedRef.current = appliedCoupon;
+
+  useStoreSync(
+    [STORE_EVENTS.CouponUpdated, STORE_EVENTS.CouponDeleted],
+    (payload) => {
+      const applied = appliedRef.current;
+      if (!applied) return;
+      const appliedCode = (applied.code ?? applied.Code ?? "").trim().toUpperCase();
+      const eventCode = (payload?.code ?? payload?.Code ?? "").trim().toUpperCase();
+      if (!appliedCode || appliedCode !== eventCode) return;
+      if (payload?.isActive === false || payload?.IsActive === false) {
+        onRemoved?.();
+        setError(
+          locale === "ar" ? "لم يعد هذا الكود متاحاً." : "This coupon is no longer available."
+        );
+      }
+    }
+  );
 
   async function applyCoupon() {
     const code = draft.trim().toUpperCase();

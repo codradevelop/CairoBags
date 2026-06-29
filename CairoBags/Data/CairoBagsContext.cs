@@ -515,6 +515,7 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(e => e.NameAr).HasMaxLength(100);
             entity.Property(e => e.NameEn).HasMaxLength(100);
+            entity.Property(e => e.ShippingFee).HasPrecision(18, 2);
 
             entity.HasIndex(e => e.ShippingZoneId);
             entity.HasIndex(e => e.NameAr).IsUnique();

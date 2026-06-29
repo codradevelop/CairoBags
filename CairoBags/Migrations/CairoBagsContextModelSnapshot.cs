@@ -1175,6 +1175,9 @@ namespace CairoBags.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -2064,6 +2067,12 @@ namespace CairoBags.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsSelectable")
+                        .HasColumnType("bit");
+
                     b.Property<string>("NameAr")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -2073,6 +2082,9 @@ namespace CairoBags.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ShippingZoneId")
                         .HasColumnType("int");
@@ -2100,216 +2112,385 @@ namespace CairoBags.Migrations
                         {
                             Id = 1,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 1,
+                            IsSelectable = true,
                             NameAr = "القاهرة",
                             NameEn = "Cairo",
+                            ShippingFee = 80m,
                             ShippingZoneId = 1
                         },
                         new
                         {
                             Id = 2,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 2,
+                            IsSelectable = true,
                             NameAr = "الجيزة",
                             NameEn = "Giza",
+                            ShippingFee = 80m,
                             ShippingZoneId = 2
                         },
                         new
                         {
                             Id = 3,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 6,
+                            IsSelectable = true,
                             NameAr = "الإسكندرية",
                             NameEn = "Alexandria",
+                            ShippingFee = 85m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 4,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 7,
+                            IsSelectable = true,
                             NameAr = "الدقهلية",
                             NameEn = "Dakahlia",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 5,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 0,
+                            IsSelectable = false,
                             NameAr = "البحر الأحمر",
                             NameEn = "Red Sea",
+                            ShippingFee = 125m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 6,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 14,
+                            IsSelectable = true,
                             NameAr = "البحيرة",
                             NameEn = "Beheira",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 7,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 17,
+                            IsSelectable = true,
                             NameAr = "الفيوم",
                             NameEn = "Fayoum",
+                            ShippingFee = 95m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 8,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 8,
+                            IsSelectable = true,
                             NameAr = "الغربية",
                             NameEn = "Gharbia",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 9,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 11,
+                            IsSelectable = true,
                             NameAr = "الإسماعيلية",
                             NameEn = "Ismailia",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 10,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 16,
+                            IsSelectable = true,
                             NameAr = "المنوفية",
                             NameEn = "Monufia",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 11,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 19,
+                            IsSelectable = true,
                             NameAr = "المنيا",
                             NameEn = "Minya",
+                            ShippingFee = 95m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 12,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 0,
+                            IsSelectable = false,
                             NameAr = "القليوبية",
                             NameEn = "Qalyubia",
+                            ShippingFee = 80m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 13,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 0,
+                            IsSelectable = false,
                             NameAr = "الوادي الجديد",
                             NameEn = "New Valley",
+                            ShippingFee = 135m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 14,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 12,
+                            IsSelectable = true,
                             NameAr = "السويس",
                             NameEn = "Suez",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 15,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 24,
+                            IsSelectable = true,
                             NameAr = "أسوان",
                             NameEn = "Aswan",
+                            ShippingFee = 105m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 16,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 20,
+                            IsSelectable = true,
                             NameAr = "أسيوط",
                             NameEn = "Assiut",
+                            ShippingFee = 95m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 17,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 18,
+                            IsSelectable = true,
                             NameAr = "بني سويف",
                             NameEn = "Beni Suef",
+                            ShippingFee = 95m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 18,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 10,
+                            IsSelectable = true,
                             NameAr = "بورسعيد",
                             NameEn = "Port Said",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 19,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 15,
+                            IsSelectable = true,
                             NameAr = "دمياط",
                             NameEn = "Damietta",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 20,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 9,
+                            IsSelectable = true,
                             NameAr = "الشرقية",
                             NameEn = "Sharqia",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 21,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 32,
+                            IsSelectable = true,
                             NameAr = "جنوب سيناء",
                             NameEn = "South Sinai",
+                            ShippingFee = 155m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 22,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 13,
+                            IsSelectable = true,
                             NameAr = "كفر الشيخ",
                             NameEn = "Kafr El Sheikh",
+                            ShippingFee = 90m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 23,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            NameAr = "مطروح",
-                            NameEn = "Matrouh",
+                            DisplayOrder = 27,
+                            IsSelectable = true,
+                            NameAr = "مرسى مطروح",
+                            NameEn = "Marsa Matruh",
+                            ShippingFee = 125m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 24,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 23,
+                            IsSelectable = true,
                             NameAr = "الأقصر",
                             NameEn = "Luxor",
+                            ShippingFee = 105m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 25,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 22,
+                            IsSelectable = true,
                             NameAr = "قنا",
                             NameEn = "Qena",
+                            ShippingFee = 105m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 26,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 31,
+                            IsSelectable = true,
                             NameAr = "شمال سيناء",
                             NameEn = "North Sinai",
+                            ShippingFee = 155m,
                             ShippingZoneId = 3
                         },
                         new
                         {
                             Id = 27,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 21,
+                            IsSelectable = true,
                             NameAr = "سوهاج",
                             NameEn = "Sohag",
+                            ShippingFee = 95m,
+                            ShippingZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 3,
+                            IsSelectable = true,
+                            NameAr = "الخانكة",
+                            NameEn = "Khanka",
+                            ShippingFee = 80m,
+                            ShippingZoneId = 1
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 4,
+                            IsSelectable = true,
+                            NameAr = "أبو زعبل",
+                            NameEn = "Abu Zaabal",
+                            ShippingFee = 80m,
+                            ShippingZoneId = 1
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 5,
+                            IsSelectable = true,
+                            NameAr = "الجبل الأصفر",
+                            NameEn = "El Gebel El Asfar",
+                            ShippingFee = 80m,
+                            ShippingZoneId = 1
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 25,
+                            IsSelectable = true,
+                            NameAr = "الغردقة",
+                            NameEn = "Hurghada",
+                            ShippingFee = 125m,
+                            ShippingZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 26,
+                            IsSelectable = true,
+                            NameAr = "رأس غارب",
+                            NameEn = "Ras Ghareb",
+                            ShippingFee = 125m,
+                            ShippingZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 33,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 28,
+                            IsSelectable = true,
+                            NameAr = "الساحل الشمالي",
+                            NameEn = "North Coast",
+                            ShippingFee = 125m,
+                            ShippingZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 34,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 29,
+                            IsSelectable = true,
+                            NameAr = "القصير",
+                            NameEn = "El Quseir",
+                            ShippingFee = 135m,
+                            ShippingZoneId = 3
+                        },
+                        new
+                        {
+                            Id = 35,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayOrder = 30,
+                            IsSelectable = true,
+                            NameAr = "مرسى علم",
+                            NameEn = "Marsa Alam",
+                            ShippingFee = 135m,
                             ShippingZoneId = 3
                         });
                 });
@@ -2354,26 +2535,23 @@ namespace CairoBags.Migrations
                         new
                         {
                             Id = 1,
-                            BaseShippingFee = 50m,
+                            BaseShippingFee = 80m,
                             Code = (byte)1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FreeShippingThreshold = 1500m
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 2,
-                            BaseShippingFee = 60m,
+                            BaseShippingFee = 80m,
                             Code = (byte)2,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FreeShippingThreshold = 1500m
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
                             Id = 3,
                             BaseShippingFee = 90m,
                             Code = (byte)3,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            FreeShippingThreshold = 2000m
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 

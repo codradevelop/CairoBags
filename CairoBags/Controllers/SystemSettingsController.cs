@@ -1,5 +1,8 @@
 using CairoBags.Data;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models;
+using CairoBags.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,10 +14,14 @@ namespace CairoBags.Controllers
     public class SystemSettingsController : ControllerBase
     {
         private readonly CairoBagsContext _context;
+        private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-        public SystemSettingsController(CairoBagsContext context)
+        public SystemSettingsController(
+            CairoBagsContext context,
+            IStoreUpdateBroadcastService storeBroadcast)
         {
             _context = context;
+            _storeBroadcast = storeBroadcast;
         }
 
         [Authorize]
@@ -54,6 +61,11 @@ namespace CairoBags.Controllers
 
             await _context.SaveChangesAsync();
 
+            await _storeBroadcast.BroadcastStorefrontAsync(
+                StoreUpdateEvents.StoreSettingsUpdated,
+                new StoreUpdatePayloadDto { EntityId = settings.Id },
+                HttpContext.RequestAborted);
+
             return Ok(new
             {
                 maintenanceMode = settings.MaintenanceMode,
@@ -62,4 +74,3 @@ namespace CairoBags.Controllers
         }
     }
 }
-

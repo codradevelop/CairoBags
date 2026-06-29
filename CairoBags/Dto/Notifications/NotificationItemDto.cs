@@ -59,4 +59,8 @@ public class NotificationItemDto
     [JsonProperty("isRead")]
     [JsonPropertyName("isRead")]
     public bool IsRead { get; set; }
+
+    [JsonProperty("priority")]
+    [JsonPropertyName("priority")]
+    public string Priority { get; set; } = "info";
 }

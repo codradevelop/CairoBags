@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "../ui/Badge.jsx";
 import { Button } from "../ui/Button.jsx";
 import { Spinner } from "../ui/Spinner.jsx";
@@ -8,14 +8,10 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
 import { useToast } from "../ui/Toast.jsx";
 import {
-  getNotificationId,
-  getNotificationLink,
-} from "../../utils/notificationHelpers.js";
-import {
-  parseReviewHighlightFromNotification,
-  requestReviewHighlight,
-} from "../../utils/reviewScrollUtils.js";
-import { handlePaymentNotificationNavigation } from "../../utils/paymentScrollUtils.js";
+  navigateFromNotification,
+  resolveNotificationUserRole,
+} from "../../utils/notificationNavigation.js";
+import { getNotificationPriorityStyles } from "../../utils/notificationPriority.js";
 import { cn } from "../../utils/cn.js";
 
 function BellIcon() {
@@ -34,13 +30,16 @@ function BellIcon() {
 }
 
 export function NotificationDropdown({ className, adminContext = false }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const { locale } = useLocale();
   const { success } = useToast();
   const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
   const rootRef = useRef(null);
+
+  const userRole = resolveNotificationUserRole({ isAdmin, adminContext });
 
   useEffect(() => {
     const onDocClick = (event) => {
@@ -75,18 +74,12 @@ export function NotificationDropdown({ className, adminContext = false }) {
 
   async function handleNotificationClick(notification) {
     setOpen(false);
-    handlePaymentNotificationNavigation(notification);
-    const reviewId = parseReviewHighlightFromNotification(notification);
-    if (reviewId) requestReviewHighlight(reviewId);
-    const id = getNotificationId(notification);
-    const isRead = notification?.isRead ?? notification?.IsRead;
-    if (!isRead && id) {
-      try {
-        await markAsRead(id);
-      } catch {
-        /* badge sync is best-effort */
-      }
-    }
+    await navigateFromNotification({
+      notification,
+      currentUserRole: userRole,
+      markAsRead,
+      navigate,
+    });
   }
 
   return (
@@ -147,44 +140,38 @@ export function NotificationDropdown({ className, adminContext = false }) {
             ) : (
               <ul className="divide-y divide-brand-border">
                 {notifications.slice(0, 8).map((item) => {
-                  const link = getNotificationLink(item, { adminContext });
+                  const isRead = item.isRead ?? item.IsRead;
+                  const styles = getNotificationPriorityStyles(item, isRead);
                   const itemClassName = cn(
-                    "block px-4 py-3 transition-colors hover:bg-brand-secondary",
-                    !(item.isRead ?? item.IsRead) && "bg-brand-secondary/50"
-                  );
-
-                  const content = (
-                    <>
-                      <p className="text-sm font-medium text-brand-text">
-                        {item.title ?? item.Title}
-                      </p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-brand-muted">
-                        {item.message ?? item.Message}
-                      </p>
-                    </>
+                    "block w-full px-4 py-3 text-start transition-colors hover:bg-brand-secondary",
+                    !isRead && styles.unreadBg
                   );
 
                   return (
                     <li key={item.id ?? item.Id}>
-                      {link ? (
-                        <Link
-                          to={link}
-                          className={itemClassName}
-                          role="menuitem"
-                          onClick={() => handleNotificationClick(item)}
-                        >
-                          {content}
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          className={cn(itemClassName, "w-full text-start")}
-                          role="menuitem"
-                          onClick={() => handleNotificationClick(item)}
-                        >
-                          {content}
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        className={itemClassName}
+                        role="menuitem"
+                        onClick={() => handleNotificationClick(item)}
+                      >
+                        <div className="flex items-start gap-2">
+                          {!isRead ? (
+                            <span
+                              className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", styles.dot)}
+                              aria-hidden="true"
+                            />
+                          ) : null}
+                          <div className="min-w-0 flex-1">
+                            <p className={cn("text-sm font-medium", styles.accent)}>
+                              {item.title ?? item.Title}
+                            </p>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-brand-muted">
+                              {item.message ?? item.Message}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
                     </li>
                   );
                 })}

@@ -1,5 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Catalog;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Inventories;
 using CairoBags.Models.Orders;
@@ -18,10 +20,12 @@ public class ProductService : IProductService
     };
 
     private readonly CairoBagsContext _context;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-    public ProductService(CairoBagsContext context)
+    public ProductService(CairoBagsContext context, IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
+        _storeBroadcast = storeBroadcast;
     }
 
     public Task<IReadOnlyList<ProductSummaryDto>> GetProductsAsync(
@@ -135,6 +139,8 @@ public class ProductService : IProductService
         var created = await BuildDetailsQuery(storefront: false)
             .FirstAsync(p => p.Id == product.Id, cancellationToken);
 
+        await BroadcastProductAsync(StoreUpdateEvents.ProductCreated, created.Id, created.CategoryId, created.Status == ProductStatus.Active, cancellationToken);
+
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(created, activeVariantsOnly: false));
     }
 
@@ -196,6 +202,8 @@ public class ProductService : IProductService
         var updated = await BuildDetailsQuery(storefront: false)
             .FirstAsync(p => p.Id == id, cancellationToken);
 
+        await BroadcastProductAsync(StoreUpdateEvents.ProductUpdated, updated.Id, updated.CategoryId, updated.Status == ProductStatus.Active, cancellationToken);
+
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(updated, activeVariantsOnly: false));
     }
 
@@ -225,6 +233,9 @@ public class ProductService : IProductService
         product.UpdatedBy = userId;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await BroadcastProductAsync(StoreUpdateEvents.ProductDeleted, id, product.CategoryId, false, cancellationToken);
+
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -821,4 +832,21 @@ public class ProductService : IProductService
 
         return false;
     }
+
+    private Task BroadcastProductAsync(
+        string eventName,
+        int productId,
+        int categoryId,
+        bool isActive,
+        CancellationToken cancellationToken) =>
+        _storeBroadcast.BroadcastStorefrontAsync(
+            eventName,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = productId,
+                ProductId = productId,
+                CategoryId = categoryId,
+                IsActive = isActive,
+            },
+            cancellationToken);
 }

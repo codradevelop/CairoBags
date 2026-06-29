@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../ui/Button.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
+import { resolveMediaUrl } from "../../utils/mediaUrl.js";
 import { cn } from "../../utils/cn.js";
 
 function UserIcon() {
@@ -17,6 +18,27 @@ function UserIcon() {
       />
     </svg>
   );
+}
+
+function UserAvatar({ user, displayName }) {
+  const imageUrl = user?.profileImageUrl ?? user?.ProfileImageUrl;
+  const resolved = imageUrl ? resolveMediaUrl(imageUrl) : "";
+
+  if (resolved) {
+    return (
+      <img
+        src={resolved}
+        alt=""
+        className="cb-header-user-avatar"
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+
+  const initial = (displayName?.trim()?.[0] || "U").toUpperCase();
+
+  return <span className="cb-header-user-avatar cb-header-user-avatar--initial">{initial}</span>;
 }
 
 export function UserDropdown({ className, adminContext = false }) {
@@ -53,12 +75,19 @@ export function UserDropdown({ className, adminContext = false }) {
         type="button"
         variant="ghost"
         size={isAuthenticated ? "md" : "sm"}
-        className="gap-2"
+        className={cn(
+          "cb-header-user-trigger",
+          isAuthenticated && "cb-header-user-trigger--auth"
+        )}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <UserIcon />
-        <span className="hidden max-w-[8rem] truncate sm:inline">
+        {isAuthenticated ? (
+          <UserAvatar user={user} displayName={displayName} />
+        ) : (
+          <UserIcon />
+        )}
+        <span className="cb-header-user-label hidden max-w-[9rem] truncate sm:inline">
           {isAuthenticated ? displayName : labels.login}
         </span>
       </Button>

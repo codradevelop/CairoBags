@@ -4,10 +4,10 @@ import { AppRouter } from "./router/AppRouter.jsx";
 
 export default function App() {
   return (
-    <AppProviders>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AppProviders>
         <AppRouter />
-      </BrowserRouter>
-    </AppProviders>
+      </AppProviders>
+    </BrowserRouter>
   );
 }

@@ -15,16 +15,22 @@ public class AdminOrderService : IAdminOrderService
         OrderStatus.Pending,
         OrderStatus.AwaitingPayment,
         OrderStatus.PaymentProofSubmitted,
+        OrderStatus.PaymentConfirmed,
         OrderStatus.Processing
     };
 
     private readonly CairoBagsContext _context;
     private readonly NotificationService _notificationService;
+    private readonly AuditLogService _auditLogService;
 
-    public AdminOrderService(CairoBagsContext context, NotificationService notificationService)
+    public AdminOrderService(
+        CairoBagsContext context,
+        NotificationService notificationService,
+        AuditLogService auditLogService)
     {
         _context = context;
         _notificationService = notificationService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IReadOnlyList<AdminOrderListItemDto>> GetOrdersAsync(
@@ -76,7 +82,10 @@ public class AdminOrderService : IAdminOrderService
                 CustomerEmail = o.User != null ? o.User.Email : null,
                 OrderStatus = o.Status.ToString(),
                 PaymentStatus = o.Payment != null ? o.Payment.Status.ToString() : null,
+                PaymentMethod = o.Payment != null ? o.Payment.PaymentMethod.Type.ToString() : null,
                 TotalAmount = o.TotalAmount,
+                ShippingFee = o.ShippingFee,
+                ShippingGovernorate = o.ShippingGovernorate,
                 ItemsCount = o.Items.Count,
                 CreatedAt = o.CreatedAt
             })
@@ -98,7 +107,8 @@ public class AdminOrderService : IAdminOrderService
                 StatusCodes.Status404NotFound);
         }
 
-        return ServiceResult<AdminOrderDetailDto>.Ok(MapOrderDetail(order));
+        return ServiceResult<AdminOrderDetailDto>.Ok(
+            await MapOrderDetailAsync(order, cancellationToken));
     }
 
     public Task<ServiceResult<AdminOrderActionResponseDto>> MoveToProcessingAsync(
@@ -130,8 +140,9 @@ public class AdminOrderService : IAdminOrderService
             OrderStatus.Processing,
             "Order moved to processing.",
             NotificationType.OrderProcessing,
-            "Order is being processed",
-            cancellationToken);
+            "Preparing Your Order",
+            cancellationToken,
+            "Your order is now being prepared.");
 
     public async Task<ServiceResult<AdminOrderActionResponseDto>> MoveToShippedAsync(
         int orderId,
@@ -144,7 +155,8 @@ public class AdminOrderService : IAdminOrderService
         {
             var order = await _context.Orders
                 .Include(o => o.Items)
-                .Include(o => o.Payment)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
 
@@ -195,13 +207,24 @@ public class AdminOrderService : IAdminOrderService
 
             await _notificationService.TryCreateAndNotifyAsync(
                 order.UserId,
-                "Order shipped",
-                $"Your order {order.OrderNumber} has been shipped.",
+                "Your Order Has Been Shipped",
+                "Track your delivery soon.",
                 NotificationType.OrderShipped,
                 NotificationTargetTypes.Order,
                 order.Id,
                 order.OrderNumber,
                 cancellationToken);
+
+            if (IsCashOnDelivery(order))
+            {
+                await _auditLogService.TryLogOrderStatusChangeAsync(
+                    adminUserId,
+                    order.Id,
+                    order.OrderNumber,
+                    oldStatus.ToString(),
+                    OrderStatus.Shipped.ToString(),
+                    cancellationToken);
+            }
 
             return ServiceResult<AdminOrderActionResponseDto>.Ok(MapActionResponse(order));
         }
@@ -236,8 +259,9 @@ public class AdminOrderService : IAdminOrderService
             OrderStatus.Delivered,
             "Order delivered.",
             NotificationType.OrderDelivered,
-            "Order delivered",
-            cancellationToken);
+            "Order Delivered",
+            cancellationToken,
+            "Your order has been delivered successfully.");
 
     public async Task<ServiceResult<AdminCancelOrderResponseDto>> CancelOrderAsync(
         int orderId,
@@ -250,7 +274,8 @@ public class AdminOrderService : IAdminOrderService
         {
             var order = await _context.Orders
                 .Include(o => o.Items)
-                .Include(o => o.Payment)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
 
@@ -263,7 +288,17 @@ public class AdminOrderService : IAdminOrderService
                     StatusCodes.Status404NotFound);
             }
 
-            if (!AdminCancellableOrderStatuses.Contains(order.Status))
+            if (IsCashOnDelivery(order))
+            {
+                if (!CodOrderStatusMappings.CanCancel(order.Status))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return ServiceResult<AdminCancelOrderResponseDto>.Fail(
+                        "cancellation_not_allowed",
+                        "This order cannot be cancelled in its current status.");
+                }
+            }
+            else if (!AdminCancellableOrderStatuses.Contains(order.Status))
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return ServiceResult<AdminCancelOrderResponseDto>.Fail(
@@ -306,13 +341,24 @@ public class AdminOrderService : IAdminOrderService
 
             await _notificationService.TryCreateAndNotifyAsync(
                 order.UserId,
-                "Order cancelled",
-                $"Your order {order.OrderNumber} has been cancelled.",
+                "Order Cancelled",
+                "Unfortunately your order has been cancelled.",
                 NotificationType.OrderCancelled,
                 NotificationTargetTypes.Order,
                 order.Id,
                 order.OrderNumber,
                 cancellationToken);
+
+            if (IsCashOnDelivery(order))
+            {
+                await _auditLogService.TryLogOrderStatusChangeAsync(
+                    adminUserId,
+                    order.Id,
+                    order.OrderNumber,
+                    oldStatus.ToString(),
+                    OrderStatus.Cancelled.ToString(),
+                    cancellationToken);
+            }
 
             var summary = MapActionResponse(order);
             return ServiceResult<AdminCancelOrderResponseDto>.Ok(new AdminCancelOrderResponseDto
@@ -355,7 +401,8 @@ public class AdminOrderService : IAdminOrderService
         {
             var order = await _context.Orders
                 .Include(o => o.Items)
-                .Include(o => o.Payment)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
 
@@ -479,6 +526,217 @@ public class AdminOrderService : IAdminOrderService
         }
     }
 
+    public async Task<ServiceResult<AdminOrderActionResponseDto>> UpdateCodOrderStatusAsync(
+        int orderId,
+        string targetStatusRaw,
+        string adminUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!CodOrderStatusMappings.TryParseTargetStatus(targetStatusRaw, out var targetStatus))
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "invalid_status",
+                "Invalid order status.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        var order = await _context.Orders
+            .Include(o => o.Payment!)
+                .ThenInclude(p => p.PaymentMethod)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
+        if (order == null)
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "order_not_found",
+                "Order not found.",
+                StatusCodes.Status404NotFound);
+        }
+
+        if (!IsCashOnDelivery(order))
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "not_cod_order",
+                "Status updates through this action are only available for Cash on Delivery orders.");
+        }
+
+        if (order.Status == targetStatus)
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "status_unchanged",
+                "The order is already in the selected status.");
+        }
+
+        if (!CodOrderStatusMappings.CanTransition(order.Status, targetStatus))
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "invalid_status_transition",
+                $"Cannot move order from {order.Status} to {targetStatus}.");
+        }
+
+        if (targetStatus == OrderStatus.Cancelled)
+        {
+            return MapCancelToActionResponse(await CancelOrderAsync(orderId, adminUserId, cancellationToken));
+        }
+
+        if (targetStatus == OrderStatus.HandedToShipping)
+        {
+            return await TransitionCodToHandedToShippingAsync(orderId, adminUserId, cancellationToken);
+        }
+
+        var copy = CodOrderStatusMappings.GetTransitionCopy(targetStatus, order.OrderNumber);
+        return await TransitionOrderAsync(
+            orderId,
+            adminUserId,
+            validate: current =>
+                CodOrderStatusMappings.CanTransition(current.Status, targetStatus)
+                    ? null
+                    : new ServiceError(
+                        "invalid_status_transition",
+                        $"Cannot move order from {current.Status} to {targetStatus}."),
+            targetStatus,
+            copy.HistoryNote,
+            CodOrderStatusMappings.GetNotificationType(targetStatus),
+            copy.NotificationTitle,
+            cancellationToken,
+            copy.NotificationMessage);
+    }
+
+    private async Task<ServiceResult<AdminOrderActionResponseDto>> TransitionCodToHandedToShippingAsync(
+        int orderId,
+        string adminUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var order = await _context.Orders
+                .Include(o => o.Items)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
+            if (order == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "order_not_found",
+                    "Order not found.",
+                    StatusCodes.Status404NotFound);
+            }
+
+            if (!IsCashOnDelivery(order))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "not_cod_order",
+                    "Status updates through this action are only available for Cash on Delivery orders.");
+            }
+
+            if (!CodOrderStatusMappings.CanTransition(order.Status, OrderStatus.HandedToShipping))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "invalid_status_transition",
+                    $"Cannot move order from {order.Status} to HandedToShipping.");
+            }
+
+            var saleResult = await ConvertReservationsToSaleAsync(order, adminUserId, cancellationToken);
+            if (saleResult != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    saleResult.ErrorCode,
+                    saleResult.Message,
+                    saleResult.StatusCode);
+            }
+
+            var now = DateTime.UtcNow;
+            var oldStatus = order.Status;
+            var copy = CodOrderStatusMappings.GetTransitionCopy(OrderStatus.HandedToShipping, order.OrderNumber);
+
+            order.Status = OrderStatus.HandedToShipping;
+            order.UpdatedAt = now;
+            order.UpdatedBy = adminUserId;
+            order.StatusHistory.Add(new OrderStatusHistory
+            {
+                OldStatus = oldStatus,
+                NewStatus = OrderStatus.HandedToShipping,
+                Notes = copy.HistoryNote,
+                CreatedAt = now,
+                CreatedBy = adminUserId
+            });
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            await _notificationService.TryCreateAndNotifyAsync(
+                order.UserId,
+                copy.NotificationTitle,
+                copy.NotificationMessage,
+                CodOrderStatusMappings.GetNotificationType(OrderStatus.HandedToShipping),
+                NotificationTargetTypes.Order,
+                order.Id,
+                order.OrderNumber,
+                cancellationToken);
+
+            await _auditLogService.TryLogOrderStatusChangeAsync(
+                adminUserId,
+                order.Id,
+                order.OrderNumber,
+                oldStatus.ToString(),
+                OrderStatus.HandedToShipping.ToString(),
+                cancellationToken);
+
+            return ServiceResult<AdminOrderActionResponseDto>.Ok(MapActionResponse(order));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "concurrency_conflict",
+                "Inventory was updated during shipment. Please try again.",
+                StatusCodes.Status409Conflict);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private static ServiceResult<AdminOrderActionResponseDto> MapCancelToActionResponse(
+        ServiceResult<AdminCancelOrderResponseDto> result)
+    {
+        if (!result.Succeeded || result.Data == null)
+        {
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                result.ErrorCode ?? "cancellation_failed",
+                result.Message ?? "Failed to cancel order.",
+                result.StatusCode ?? StatusCodes.Status400BadRequest);
+        }
+
+        var data = result.Data;
+        return ServiceResult<AdminOrderActionResponseDto>.Ok(new AdminOrderActionResponseDto
+        {
+            OrderId = data.OrderId,
+            OrderNumber = data.OrderNumber,
+            CustomerName = data.CustomerName,
+            CustomerEmail = data.CustomerEmail,
+            OrderStatus = data.OrderStatus,
+            PaymentStatus = data.PaymentStatus,
+            TotalAmount = data.TotalAmount,
+            ItemsCount = data.ItemsCount,
+            CreatedAt = data.CreatedAt
+        });
+    }
+
+    private static bool IsCashOnDelivery(Order order) =>
+        order.Payment?.PaymentMethod?.Type == PaymentMethodType.CashOnDelivery;
+
     private async Task<ServiceResult<AdminOrderActionResponseDto>> TransitionOrderAsync(
         int orderId,
         string adminUserId,
@@ -487,7 +745,8 @@ public class AdminOrderService : IAdminOrderService
         string historyNote,
         NotificationType notificationType,
         string notificationTitle,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? notificationMessage = null)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
@@ -495,7 +754,8 @@ public class AdminOrderService : IAdminOrderService
         {
             var order = await _context.Orders
                 .Include(o => o.Items)
-                .Include(o => o.Payment)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
 
@@ -536,11 +796,12 @@ public class AdminOrderService : IAdminOrderService
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            var message = newStatus switch
+            var message = notificationMessage ?? newStatus switch
             {
-                OrderStatus.Processing => $"Your order {order.OrderNumber} is now being processed.",
-                OrderStatus.Shipped => $"Your order {order.OrderNumber} has been shipped.",
-                OrderStatus.Delivered => $"Your order {order.OrderNumber} has been delivered.",
+                OrderStatus.PaymentConfirmed => $"Your order {order.OrderNumber} has been confirmed.",
+                OrderStatus.Processing => $"Your order {order.OrderNumber} is now being prepared.",
+                OrderStatus.Shipped => "Track your delivery soon.",
+                OrderStatus.Delivered => "Your order has been delivered successfully.",
                 _ => $"Your order {order.OrderNumber} status has been updated."
             };
 
@@ -553,6 +814,17 @@ public class AdminOrderService : IAdminOrderService
                 order.Id,
                 order.OrderNumber,
                 cancellationToken);
+
+            if (IsCashOnDelivery(order))
+            {
+                await _auditLogService.TryLogOrderStatusChangeAsync(
+                    adminUserId,
+                    order.Id,
+                    order.OrderNumber,
+                    oldStatus.ToString(),
+                    newStatus.ToString(),
+                    cancellationToken);
+            }
 
             return ServiceResult<AdminOrderActionResponseDto>.Ok(MapActionResponse(order));
         }
@@ -685,6 +957,8 @@ public class AdminOrderService : IAdminOrderService
             OrderStatus = order.Status.ToString(),
             PaymentStatus = order.Payment?.Status.ToString(),
             TotalAmount = order.TotalAmount,
+            ShippingFee = order.ShippingFee,
+            ShippingGovernorate = order.ShippingGovernorate,
             ItemsCount = order.Items.Count,
             CreatedAt = order.CreatedAt
         };
@@ -703,7 +977,9 @@ public class AdminOrderService : IAdminOrderService
             CreatedAt = order.CreatedAt
         };
 
-    private static AdminOrderDetailDto MapOrderDetail(Order order) =>
+    private static AdminOrderDetailDto MapOrderDetail(
+        Order order,
+        IReadOnlyDictionary<string, string> changedByNames) =>
         new()
         {
             OrderId = order.Id,
@@ -785,10 +1061,48 @@ public class AdminOrderService : IAdminOrderService
                     OldStatus = h.OldStatus?.ToString(),
                     NewStatus = h.NewStatus.ToString(),
                     Notes = h.Notes,
-                    CreatedAt = h.CreatedAt
+                    CreatedAt = h.CreatedAt,
+                    ChangedByName = h.CreatedBy != null && changedByNames.TryGetValue(h.CreatedBy, out var name)
+                        ? name
+                        : null,
                 })
                 .ToList()
         };
+
+    private async Task<AdminOrderDetailDto> MapOrderDetailAsync(
+        Order order,
+        CancellationToken cancellationToken)
+    {
+        var userIds = order.StatusHistory
+            .Select(h => h.CreatedBy)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+
+        var changedByNames = userIds.Count == 0
+            ? new Dictionary<string, string>()
+            : await _context.Users
+                .AsNoTracking()
+                .Include(u => u.CustomerProfile)
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(
+                    u => u.Id,
+                    u =>
+                    {
+                        var displayName = u.CustomerProfile?.DisplayName;
+                        if (!string.IsNullOrWhiteSpace(displayName))
+                            return displayName;
+
+                        var combined = $"{u.CustomerProfile?.FirstName} {u.CustomerProfile?.LastName}".Trim();
+                        if (!string.IsNullOrWhiteSpace(combined))
+                            return combined;
+
+                        return u.UserName ?? u.Email ?? "Admin";
+                    },
+                    cancellationToken);
+
+        return MapOrderDetail(order, changedByNames);
+    }
 
     private sealed record ServiceError(string ErrorCode, string Message, int StatusCode = StatusCodes.Status400BadRequest);
 }

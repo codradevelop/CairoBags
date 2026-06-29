@@ -81,13 +81,14 @@ export function NotificationProvider({ children }) {
         publishReviewChange({ action: "created", notification });
       }
       setNotifications((prev) => {
-        const exists = prev.some((n) => n.id === notification.id);
+        const incomingId = notification?.id ?? notification?.Id;
+        const exists = prev.some((n) => (n.id ?? n.Id) === incomingId);
         if (exists) {
-          return prev.map((n) => (n.id === notification.id ? notification : n));
+          return prev.map((n) => ((n.id ?? n.Id) === incomingId ? notification : n));
         }
         return [notification, ...prev];
       });
-      if (!notification.isRead) {
+      if (!(notification.isRead ?? notification.IsRead)) {
         setUnreadCount((count) => count + 1);
       }
     });

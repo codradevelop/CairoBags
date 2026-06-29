@@ -6,6 +6,8 @@ import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import * as orderService from "../../services/orderService.js";
 import * as paymentService from "../../services/paymentService.js";
+import { OrderShippingDetailsCard } from "../../components/orders/OrderShippingDetailsCard.jsx";
+import { OrderFinancialSummary } from "../../components/orders/OrderFinancialSummary.jsx";
 import {
   OrderStatusBadge,
   OrderTimeline,
@@ -33,10 +35,16 @@ import {
 import { OrderReviewButton } from "../../components/account/OrderReviewButton.jsx";
 import { useOrderReviewModal } from "../../components/account/OrderReviewActions.jsx";
 import { formatPrice } from "../../utils/productHelpers.js";
+import { cn } from "../../utils/cn.js";
 import {
   consumePaymentHighlight,
   scrollToPaymentSection,
 } from "../../utils/paymentScrollUtils.js";
+import {
+  scrollToTimelineSection,
+  shouldHighlightPayment,
+  shouldHighlightTimeline,
+} from "../../utils/orderFocusUtils.js";
 import {
   Button,
   Card,
@@ -58,6 +66,7 @@ export function OrderDetailsPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [paymentHighlighted, setPaymentHighlighted] = useState(false);
+  const [timelineHighlighted, setTimelineHighlighted] = useState(false);
   const location = useLocation();
   const highlightHandledRef = useRef(false);
 
@@ -94,29 +103,30 @@ export function OrderDetailsPage() {
   }, [loadOrder]);
 
   useEffect(() => {
-    if (!location.state?.highlightPayment) return;
-    highlightHandledRef.current = false;
-    loadOrder({ silent: true });
-  }, [location.state?.highlightPayment, loadOrder]);
-
-  useEffect(() => {
     if (loading || highlightHandledRef.current) return;
 
-    const shouldHighlight =
-      location.state?.highlightPayment || consumePaymentHighlight() || location.hash === "#payment";
+    const highlightPayment = shouldHighlightPayment(location) || consumePaymentHighlight();
+    const highlightTimeline = shouldHighlightTimeline(location);
 
-    if (!shouldHighlight) return;
+    if (!highlightPayment && !highlightTimeline) return;
 
     highlightHandledRef.current = true;
     const timer = window.setTimeout(() => {
-      scrollToPaymentSection();
-      setPaymentHighlighted(true);
-      document.getElementById("order-payment-section")?.focus({ preventScroll: true });
-      window.setTimeout(() => setPaymentHighlighted(false), 1000);
+      if (highlightPayment) {
+        scrollToPaymentSection();
+        setPaymentHighlighted(true);
+        document.getElementById("order-payment-section")?.focus({ preventScroll: true });
+        window.setTimeout(() => setPaymentHighlighted(false), 1400);
+      }
+      if (highlightTimeline) {
+        scrollToTimelineSection();
+        setTimelineHighlighted(true);
+        window.setTimeout(() => setTimelineHighlighted(false), 1400);
+      }
     }, 150);
 
     return () => window.clearTimeout(timer);
-  }, [loading, location.state?.highlightPayment, location.hash]);
+  }, [loading, location]);
 
   const items = detail ? getOrderDetailItems(detail) : [];
   const shipping = detail ? getOrderDetailShipping(detail) : null;
@@ -277,22 +287,10 @@ export function OrderDetailsPage() {
             </CardBody>
           </Card>
 
-          <Card variant="default" padding="md">
-            <CardHeader title={locale === "ar" ? "الشحن" : "Shipping"} />
-            <CardBody className="space-y-1 text-sm text-brand-muted">
-              <p className="font-medium text-brand-text">{shipping?.fullName ?? shipping?.FullName}</p>
-              <p>{shipping?.phoneNumber ?? shipping?.PhoneNumber}</p>
-              <p>{shipping?.addressLine1 ?? shipping?.AddressLine1}</p>
-              {shipping?.addressLine2 ?? shipping?.AddressLine2 ? (
-                <p>{shipping?.addressLine2 ?? shipping?.AddressLine2}</p>
-              ) : null}
-              <p>
-                {[shipping?.city ?? shipping?.City, shipping?.governorate ?? shipping?.Governorate]
-                  .filter(Boolean)
-                  .join(locale === "ar" ? "، " : ", ")}
-              </p>
-            </CardBody>
-          </Card>
+          <OrderShippingDetailsCard
+            shipping={shipping}
+            shippingFee={order.shippingFee ?? order.ShippingFee}
+          />
 
           {paymentInfo ? (
             <OrderPaymentSection
@@ -317,33 +315,17 @@ export function OrderDetailsPage() {
         </div>
 
         <div className="space-y-6">
-          <Card variant="elevated" padding="md">
-            <CardHeader title={locale === "ar" ? "ملخص الطلب" : "Order Summary"} />
-            <CardBody className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-brand-muted">{locale === "ar" ? "المجموع الفرعي" : "Subtotal"}</span>
-                <span>{formatPrice(order.subTotal ?? order.SubTotal, locale)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-brand-muted">{locale === "ar" ? "الشحن" : "Shipping"}</span>
-                <span>{formatPrice(order.shippingFee ?? order.ShippingFee, locale)}</span>
-              </div>
-              {(order.discountAmount ?? order.DiscountAmount) > 0 ? (
-                <div className="flex justify-between text-brand-accent">
-                  <span>{locale === "ar" ? "الخصم" : "Discount"}</span>
-                  <span>−{formatPrice(order.discountAmount ?? order.DiscountAmount, locale)}</span>
-                </div>
-              ) : null}
-              <div className="flex justify-between border-t border-brand-border pt-2 font-medium">
-                <span>{locale === "ar" ? "الإجمالي" : "Total"}</span>
-                <span className="font-display text-lg">
-                  {formatPrice(order.totalAmount ?? order.TotalAmount, locale)}
-                </span>
-              </div>
-            </CardBody>
-          </Card>
+          <OrderFinancialSummary order={order} coupon={coupon} />
 
-          <Card variant="default" padding="md">
+          <Card
+            variant="default"
+            padding="md"
+            id="order-timeline-section"
+            className={cn(
+              "transition-all duration-500",
+              timelineHighlighted && "ring-2 ring-brand-accent/40 ring-offset-2 ring-offset-brand-surface"
+            )}
+          >
             <CardHeader title={locale === "ar" ? "سجل الحالة" : "Order Timeline"} />
             <CardBody>
               <OrderTimeline history={history} payment={paymentInfo} />

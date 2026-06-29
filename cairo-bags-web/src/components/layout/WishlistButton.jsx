@@ -27,8 +27,8 @@ export function WishlistHeaderButton({ className }) {
     <Link
       to="/wishlist"
       className={cn(
-        "relative inline-flex h-10 w-10 items-center justify-center rounded-md",
-        "text-brand-text transition-colors hover:bg-brand-secondary",
+        "relative inline-flex h-10 w-10 items-center justify-center rounded-full",
+        "text-brand-text transition-all duration-normal",
         className
       )}
       aria-label={`Wishlist${displayCount > 0 ? `, ${displayCount} items` : ""}`}

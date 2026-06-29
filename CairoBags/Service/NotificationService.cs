@@ -65,9 +65,23 @@ public class NotificationService
             Title = n.Title,
             Message = n.Message,
             CreatedAt = createdUtc,
-            IsRead = n.IsRead
+            IsRead = n.IsRead,
+            Priority = ToApiPriority(n.Type)
         };
     }
+
+    public static string ToApiPriority(NotificationType type) =>
+        type switch
+        {
+            NotificationType.PaymentRejected => "critical",
+            NotificationType.OrderCancelled => "critical",
+            NotificationType.LowStockAlert => "warning",
+            NotificationType.CouponAssigned => "warning",
+            NotificationType.OrderDelivered => "success",
+            NotificationType.PaymentConfirmed => "success",
+            NotificationType.ReviewApproved => "success",
+            _ => "info"
+        };
 
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
@@ -93,7 +107,7 @@ public class NotificationService
 
         var unread = await _context.Notifications
             .AsNoTracking()
-            .CountAsync(n => n.UserId == userId && !n.IsRead, cancellationToken);
+            .CountAsync(n => n.UserId == userId && !n.IsRead && !n.IsArchived, cancellationToken);
 
         try
         {
@@ -127,7 +141,7 @@ public class NotificationService
             ? NotificationDeepLinks.DefaultTargetTypeFor(type)
             : targetType;
 
-        if (await DuplicateExistsAsync(userId, type, targetId, title, resolvedTargetType, cancellationToken))
+        if (await DuplicateExistsAsync(userId, type, targetId, resolvedTargetType, cancellationToken))
             return null;
 
         var entity = new Notification
@@ -214,11 +228,12 @@ public class NotificationService
             .Where(n =>
                 distinctIds.Contains(n.UserId) &&
                 n.Type == type &&
-                n.Title == title &&
+                !n.IsArchived &&
                 (targetId == null ? n.TargetId == null : n.TargetId == targetId) &&
                 (resolvedTargetType == null
                     ? n.TargetType == null
-                    : n.TargetType == resolvedTargetType))
+                    : n.TargetType == resolvedTargetType) &&
+                (!n.IsRead || n.CreatedAtUtc >= DateTime.UtcNow.AddMinutes(-10)))
             .Select(n => n.UserId)
             .ToListAsync(cancellationToken);
         var duplicateSet = duplicateUserIds.ToHashSet(StringComparer.Ordinal);
@@ -243,19 +258,49 @@ public class NotificationService
         string userId,
         NotificationType type,
         int? targetId,
-        string title,
         string? targetType,
         CancellationToken cancellationToken)
     {
+        var recentCutoff = DateTime.UtcNow.AddMinutes(-10);
+
         return await _context.Notifications.AnyAsync(
             n =>
                 n.UserId == userId &&
                 n.Type == type &&
-                n.Title == title &&
+                !n.IsArchived &&
                 (targetId == null ? n.TargetId == null : n.TargetId == targetId) &&
                 (targetType == null
                     ? n.TargetType == null
-                    : n.TargetType == targetType),
+                    : n.TargetType == targetType) &&
+                (!n.IsRead || n.CreatedAtUtc >= recentCutoff),
             cancellationToken);
+    }
+
+    /// <summary>Hides low-stock alerts once inventory is replenished.</summary>
+    public async Task ArchiveLowStockNotificationsForVariantAsync(
+        int variantId,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await _context.Notifications
+            .Where(n =>
+                n.Type == NotificationType.LowStockAlert &&
+                n.TargetId == variantId &&
+                !n.IsArchived)
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0) return;
+
+        foreach (var row in rows)
+        {
+            row.IsArchived = true;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var userIds = rows.Select(r => r.UserId).Distinct().ToList();
+        foreach (var userId in userIds)
+        {
+            await BroadcastUnreadCountAsync(userId, cancellationToken);
+        }
     }
 }

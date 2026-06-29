@@ -47,9 +47,25 @@ export function normalizeError(error) {
   }
 
   const { status, data } = error.response;
+
+  let apiMessage = null;
+  if (typeof data === "string" && data.trim()) {
+    apiMessage = data.trim();
+  } else if (data && typeof data === "object") {
+    apiMessage =
+      data.message ||
+      data.title ||
+      data.error ||
+      (Array.isArray(data) ? data.join(", ") : null);
+  }
+
   const message =
-    data?.message ||
-    (Array.isArray(data) ? data.join(", ") : null) ||
+    apiMessage ||
+    (status === 401
+      ? "Invalid credentials"
+      : status === 403
+        ? "Access denied"
+        : null) ||
     error.message ||
     "Request failed";
 

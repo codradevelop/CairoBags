@@ -19,10 +19,12 @@ export function ProductSearch({
   onSubmit,
   compact = false,
   autoFocus = false,
+  variant = "default",
 }) {
   const { locale } = useLocale();
   const navigate = useNavigate();
   const placeholder = locale === "ar" ? "ابحث عن حقائب..." : "Search bags...";
+  const isHeader = variant === "header";
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -34,9 +36,18 @@ export function ProductSearch({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cn("relative flex gap-2", className)} role="search">
+    <form
+      onSubmit={handleSubmit}
+      className={cn("relative flex gap-2", isHeader && "cb-header-search-form", className)}
+      role="search"
+    >
       <div className="relative min-w-0 flex-1">
-        <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-brand-muted">
+        <span
+          className={cn(
+            "pointer-events-none absolute start-3 top-1/2 -translate-y-1/2",
+            isHeader ? "text-brand-accent" : "text-brand-muted"
+          )}
+        >
           <SearchIcon />
         </span>
         <Input
@@ -44,7 +55,7 @@ export function ProductSearch({
           name="q"
           defaultValue={defaultValue}
           placeholder={placeholder}
-          className="ps-10"
+          className={cn("ps-10", isHeader && "cb-header-search-input")}
           aria-label={placeholder}
           autoFocus={autoFocus}
         />

@@ -24,6 +24,7 @@ namespace CairoBags.Controllers
 
         private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+        /// <summary>Lists notifications for the authenticated user only (UserId from JWT).</summary>
         [HttpGet]
         public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
@@ -36,7 +37,7 @@ namespace CairoBags.Controllers
 
             var query = _context.Notifications
                 .AsNoTracking()
-                .Where(n => n.UserId == userId)
+                .Where(n => n.UserId == userId && !n.IsArchived)
                 .OrderByDescending(n => n.CreatedAtUtc);
 
             var total = await query.CountAsync();
@@ -58,6 +59,7 @@ namespace CairoBags.Controllers
             return Ok(result);
         }
 
+        /// <summary>Marks a notification read only when it belongs to the authenticated user.</summary>
         [HttpPost("read/{id:int}")]
         public async Task<IActionResult> MarkAsRead(int id)
         {
@@ -91,7 +93,7 @@ namespace CairoBags.Controllers
                 return Unauthorized();
 
             var notifications = await _context.Notifications
-                .Where(n => n.UserId == userId && !n.IsRead)
+                .Where(n => n.UserId == userId && !n.IsRead && !n.IsArchived)
                 .ToListAsync();
 
             if (notifications.Count == 0)
@@ -120,7 +122,7 @@ namespace CairoBags.Controllers
 
             var count = await _context.Notifications
                 .AsNoTracking()
-                .Where(n => n.UserId == userId && !n.IsRead)
+                .Where(n => n.UserId == userId && !n.IsRead && !n.IsArchived)
                 .CountAsync();
 
             return Ok(new { count });

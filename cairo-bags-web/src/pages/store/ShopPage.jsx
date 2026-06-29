@@ -5,6 +5,8 @@ import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import * as productService from "../../services/productService.js";
 import * as categoryService from "../../services/categoryService.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { ProductGridSkeleton, EmptyState } from "../../components/store/index.js";
 import { ShopHero } from "../../components/store/shop/ShopHero.jsx";
 import { ShopFiltersSidebar } from "../../components/store/shop/ShopFiltersSidebar.jsx";
@@ -56,12 +58,21 @@ export function ShopPage() {
     setDraftFilters(parseShopFilters(searchParams));
   }, [searchParams]);
 
-  useEffect(() => {
-    categoryService
+  const loadCategories = useCallback(() => {
+    return categoryService
       .getCategories()
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  useStoreSync(
+    [STORE_EVENTS.CategoryCreated, STORE_EVENTS.CategoryUpdated, STORE_EVENTS.CategoryDeleted],
+    () => loadCategories()
+  );
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
@@ -80,6 +91,16 @@ export function ShopPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useStoreSync(
+    [
+      STORE_EVENTS.ProductCreated,
+      STORE_EVENTS.ProductUpdated,
+      STORE_EVENTS.ProductDeleted,
+      STORE_EVENTS.InventoryUpdated,
+    ],
+    () => loadProducts()
+  );
 
   const sortedProducts = useMemo(
     () => sortProducts(products, sortValue, locale),

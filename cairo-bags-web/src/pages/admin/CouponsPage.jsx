@@ -15,6 +15,8 @@ import {
   computeCouponStatus,
   matchesCouponStatusFilter,
 } from "../../constants/couponHelpers.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 
 export function CouponsPage() {
   const { locale } = useLocale();
@@ -57,6 +59,11 @@ export function CouponsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useStoreSync(
+    [STORE_EVENTS.CouponCreated, STORE_EVENTS.CouponUpdated, STORE_EVENTS.CouponDeleted],
+    () => loadData()
+  );
 
   useEffect(() => {
     setPage(1);

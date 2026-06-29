@@ -21,6 +21,8 @@ import {
 } from "../../utils/productHelpers.js";
 import { normalizeSlug } from "../../utils/slugHelper.js";
 import { Button } from "../../components/ui/index.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 
 export function CategoryPage() {
   const { slug: slugParam } = useParams();
@@ -58,6 +60,24 @@ export function CategoryPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const categoryId = category ? getCategoryId(category) : null;
+
+  useStoreSync(
+    [STORE_EVENTS.CategoryUpdated, STORE_EVENTS.CategoryDeleted],
+    () => loadData(),
+    categoryId ? { categoryId: Number(categoryId) } : undefined
+  );
+
+  useStoreSync(
+    [
+      STORE_EVENTS.ProductCreated,
+      STORE_EVENTS.ProductUpdated,
+      STORE_EVENTS.ProductDeleted,
+      STORE_EVENTS.InventoryUpdated,
+    ],
+    () => loadData()
+  );
 
   useEffect(() => {
     if (!category) return;

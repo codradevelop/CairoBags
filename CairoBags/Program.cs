@@ -72,6 +72,7 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<IStoreUpdateBroadcastService, StoreUpdateBroadcastService>();
 builder.Services.AddScoped<GoogleSignInService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddScoped<PasswordResetService>();
@@ -82,11 +83,13 @@ builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
 builder.Services.AddHttpClient<ITranslationService, TranslationService>();
+builder.Services.AddScoped<IShippingFeeService, ShippingFeeService>();
 builder.Services.AddScoped<ICouponService, CouponService>();
 builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IAdminOrderService, AdminOrderService>();
+builder.Services.AddScoped<AuditLogService>();
 builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddHttpClient("googleJwks", c =>
@@ -203,7 +206,8 @@ builder.Services.AddAuthentication(options =>
             var path = context.HttpContext.Request.Path;
             if (!string.IsNullOrEmpty(accessToken) &&
                 (path.StartsWithSegments("/hubs/notifications") ||
-                 path.StartsWithSegments("/notificationsHub")))
+                 path.StartsWithSegments("/notificationsHub") ||
+                 path.StartsWithSegments("/hubs/store")))
             {
                 context.Token = accessToken;
             }
@@ -328,5 +332,6 @@ app.MapControllers();
 
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<NotificationHub>("/notificationsHub");
+app.MapHub<StoreUpdateHub>("/hubs/store");
 
 app.Run();

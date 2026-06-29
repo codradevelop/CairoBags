@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as productService from "../../services/productService.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { ProductCard } from "./ProductCard.jsx";
 import { ProductGridSkeleton } from "./ProductSkeleton.jsx";
@@ -9,30 +11,37 @@ import { Button } from "../ui/Button.jsx";
 import { ScrollReveal, StaggerReveal, StaggerItem } from "../ui/motion.jsx";
 import { cn } from "../../utils/cn.js";
 
+const PRODUCT_SYNC_EVENTS = [
+  STORE_EVENTS.ProductCreated,
+  STORE_EVENTS.ProductUpdated,
+  STORE_EVENTS.ProductDeleted,
+  STORE_EVENTS.InventoryUpdated,
+];
+
 export function FeaturedProducts({ className, title, subtitle }) {
   const { locale } = useLocale();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [syncHighlight, setSyncHighlight] = useState(false);
+
+  const loadProducts = useCallback(() => {
+    setLoading(true);
+    return productService
+      .getFeaturedProducts()
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    productService
-      .getFeaturedProducts()
-      .then((data) => {
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    loadProducts();
+  }, [loadProducts]);
+
+  useStoreSync(PRODUCT_SYNC_EVENTS, () => {
+    setSyncHighlight(true);
+    loadProducts().finally(() => window.setTimeout(() => setSyncHighlight(false), 900));
+  });
 
   const heading = title ?? (locale === "ar" ? "منتجات مميزة" : "Featured Products");
   const sub =
@@ -41,7 +50,7 @@ export function FeaturedProducts({ className, title, subtitle }) {
 
   return (
     <ProductSection
-      className={className}
+      className={cn(className, syncHighlight && "store-sync-highlight")}
       label={locale === "ar" ? "مختارات" : "Curated"}
       heading={heading}
       subtitle={sub}
@@ -59,25 +68,25 @@ export function NewArrivals({ className, title, subtitle }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [syncHighlight, setSyncHighlight] = useState(false);
+
+  const loadProducts = useCallback(() => {
+    setLoading(true);
+    return productService
+      .getNewArrivals()
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    productService
-      .getNewArrivals()
-      .then((data) => {
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    loadProducts();
+  }, [loadProducts]);
+
+  useStoreSync(PRODUCT_SYNC_EVENTS, () => {
+    setSyncHighlight(true);
+    loadProducts().finally(() => window.setTimeout(() => setSyncHighlight(false), 900));
+  });
 
   const heading = title ?? (locale === "ar" ? "وصل حديثاً" : "New Arrivals");
   const sub =
@@ -85,7 +94,7 @@ export function NewArrivals({ className, title, subtitle }) {
 
   return (
     <ProductSection
-      className={className}
+      className={cn(className, syncHighlight && "store-sync-highlight")}
       label={locale === "ar" ? "جديد" : "Just In"}
       heading={heading}
       subtitle={sub}

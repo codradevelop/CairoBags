@@ -73,7 +73,13 @@ function WishlistItemCard({ item, locale, onRemove, onAddToCart, removing }) {
           </p>
 
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button type="button" variant="outline" size="sm" onClick={() => onAddToCart(item)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!item.inStock}
+              onClick={() => onAddToCart(item)}
+            >
               {locale === "ar" ? "أضف للسلة" : "Add to Cart"}
             </Button>
             <Link to={href}>

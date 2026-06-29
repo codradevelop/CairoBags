@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import * as categoryService from "../../services/categoryService.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import {
   buildCategoryPath,
@@ -19,25 +21,30 @@ export function CategoryGrid({ className, title, subtitle }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [syncHighlight, setSyncHighlight] = useState(false);
+
+  const loadCategories = useCallback(() => {
+    setLoading(true);
+    return categoryService
+      .getCategories()
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch((err) => setError(err))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    categoryService
-      .getCategories()
-      .then((data) => {
-        if (!cancelled) setCategories(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+    loadCategories();
+  }, [loadCategories]);
+
+  useStoreSync(
+    [STORE_EVENTS.CategoryCreated, STORE_EVENTS.CategoryUpdated, STORE_EVENTS.CategoryDeleted],
+    () => {
+      setSyncHighlight(true);
+      loadCategories().finally(() => {
+        window.setTimeout(() => setSyncHighlight(false), 900);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    }
+  );
 
   const heading = title ?? (locale === "ar" ? "تسوق حسب التصنيف" : "Shop by Category");
   const sub =
@@ -45,7 +52,7 @@ export function CategoryGrid({ className, title, subtitle }) {
     (locale === "ar" ? "استكشف مجموعاتنا المنسقة" : "Explore our curated collections");
 
   return (
-    <section className={cn(className)}>
+    <section className={cn(className, syncHighlight && "store-sync-highlight")}>
       <ScrollReveal className="mb-8 text-center md:mb-10">
         <p className="cb-section-label">{locale === "ar" ? "المجموعات" : "Collections"}</p>
         <h2 className="cb-section-heading mt-2">{heading}</h2>

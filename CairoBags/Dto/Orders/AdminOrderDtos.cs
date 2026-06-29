@@ -29,9 +29,15 @@ public class AdminOrderListItemDto
 
     public decimal TotalAmount { get; set; }
 
+    public decimal ShippingFee { get; set; }
+
+    public string ShippingGovernorate { get; set; } = string.Empty;
+
     public int ItemsCount { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public string? PaymentMethod { get; set; }
 }
 
 public class AdminOrderDetailDto
@@ -100,6 +106,11 @@ public class AdminRefundOrderResponseDto : AdminOrderActionResponseDto
 public class AdminCancelOrderResponseDto : AdminOrderActionResponseDto
 {
     public IReadOnlyList<ReleasedInventoryItemDto> ReleasedInventory { get; set; } = Array.Empty<ReleasedInventoryItemDto>();
+}
+
+public class UpdateCodOrderStatusRequestDto
+{
+    public string Status { get; set; } = string.Empty;
 }
 
 public class ReturnedInventoryItemDto

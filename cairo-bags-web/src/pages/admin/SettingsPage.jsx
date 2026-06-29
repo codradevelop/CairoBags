@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import {
   Button,
   Card,
@@ -26,9 +28,9 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     setLoading(true);
-    systemSettingsService
+    return systemSettingsService
       .getSystemSettings()
       .then((data) =>
         setSettings({
@@ -39,6 +41,12 @@ export function SettingsPage() {
       .catch((err) => toastError(err.message))
       .finally(() => setLoading(false));
   }, [toastError]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  useStoreSync([STORE_EVENTS.StoreSettingsUpdated], () => loadSettings());
 
   async function handleSave(event) {
     event.preventDefault();

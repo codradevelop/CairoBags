@@ -91,7 +91,7 @@ export const ProductDetailPanel = memo(function ProductDetailPanel({
     yourSelection: locale === "ar" ? "اختيارك" : "Your selection",
     selectOptions: locale === "ar" ? "اختر اللون والمقاس" : "Select color & size",
     inStock: locale === "ar" ? "متوفر — جاهز للشحن" : "In stock — ready to ship",
-    outOfStock: locale === "ar" ? "غير متوفر حالياً" : "Currently unavailable",
+    outOfStock: locale === "ar" ? "غير متوفر" : "Out of Stock",
     maxQty: locale === "ar" ? "الحد الأقصى" : "Max",
   };
 

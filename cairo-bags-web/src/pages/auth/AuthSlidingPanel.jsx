@@ -4,6 +4,7 @@ import { AuthPageLayout } from "./AuthPageLayout.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
+import { getAuthErrorMessage } from "../../utils/authErrors.js";
 import "./Auth.css";
 
 function getRedirectPath(user, from) {
@@ -170,7 +171,7 @@ export function AuthSlidingPanel({ initialPanelActive = false }) {
       success(locale === "ar" ? "تم تسجيل الدخول" : "Signed in successfully");
       navigate(getRedirectPath(response.user, from), { replace: true });
     } catch (err) {
-      toastError(err.message || (locale === "ar" ? "فشل تسجيل الدخول" : "Sign in failed"));
+      toastError(getAuthErrorMessage(err, locale));
     } finally {
       setLoginSubmitting(false);
     }
@@ -193,7 +194,7 @@ export function AuthSlidingPanel({ initialPanelActive = false }) {
       success(locale === "ar" ? "تم إنشاء الحساب" : "Account created successfully");
       navigate("/account", { replace: true });
     } catch (err) {
-      toastError(err.message || (locale === "ar" ? "فشل التسجيل" : "Registration failed"));
+      toastError(getAuthErrorMessage(err, locale));
     } finally {
       setRegisterSubmitting(false);
     }

@@ -1,5 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Catalog;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models.Catalog;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,12 @@ namespace CairoBags.Service;
 public class CategoryService : ICategoryService
 {
     private readonly CairoBagsContext _context;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-    public CategoryService(CairoBagsContext context)
+    public CategoryService(CairoBagsContext context, IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
+        _storeBroadcast = storeBroadcast;
     }
 
     public async Task<IReadOnlyList<CategoryDto>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
@@ -126,6 +130,16 @@ public class CategoryService : ICategoryService
         var created = await QueryCategories(includeInactive: true)
             .FirstAsync(c => c.Id == category.Id, cancellationToken);
 
+        await _storeBroadcast.BroadcastStorefrontAsync(
+            StoreUpdateEvents.CategoryCreated,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = created.Id,
+                CategoryId = created.Id,
+                IsActive = created.IsActive,
+            },
+            cancellationToken);
+
         return ServiceResult<CategoryDto>.Ok(MapToDto(created));
     }
 
@@ -184,6 +198,16 @@ public class CategoryService : ICategoryService
         var updated = await QueryCategories(includeInactive: true)
             .FirstAsync(c => c.Id == id, cancellationToken);
 
+        await _storeBroadcast.BroadcastStorefrontAsync(
+            StoreUpdateEvents.CategoryUpdated,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = updated.Id,
+                CategoryId = updated.Id,
+                IsActive = updated.IsActive,
+            },
+            cancellationToken);
+
         return ServiceResult<CategoryDto>.Ok(MapToDto(updated));
     }
 
@@ -213,6 +237,16 @@ public class CategoryService : ICategoryService
         category.UpdatedBy = userId;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _storeBroadcast.BroadcastStorefrontAsync(
+            StoreUpdateEvents.CategoryDeleted,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = id,
+                CategoryId = id,
+            },
+            cancellationToken);
+
         return ServiceResult<bool>.Ok(true);
     }
 

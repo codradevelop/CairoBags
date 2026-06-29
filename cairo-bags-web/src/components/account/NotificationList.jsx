@@ -6,6 +6,7 @@ export function NotificationList({
   notifications = [],
   loading = false,
   onMarkRead,
+  userRole,
   className,
   skeletonCount = 4,
 }) {
@@ -26,6 +27,7 @@ export function NotificationList({
           key={notification.id ?? notification.Id}
           notification={notification}
           onMarkRead={onMarkRead}
+          userRole={userRole}
         />
       ))}
     </div>

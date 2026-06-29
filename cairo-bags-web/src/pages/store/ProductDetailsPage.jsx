@@ -37,6 +37,8 @@ import {
 } from "../../utils/reviewScrollUtils.js";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { normalizeSlug } from "../../utils/slugHelper.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 
 // ── Size helper (mirrors QuickAddModal) ───────────────────────────────────────
 function getVariantSizeName(variant, locale) {
@@ -64,28 +66,39 @@ export function ProductDetailsPage() {
   const [buying, setBuying] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [ratingStats, setRatingStats] = useState(null);
+  const [syncHighlight, setSyncHighlight] = useState(false);
+
+  const productId = product?.id ?? product?.Id ?? null;
 
   const productName = product ? getProductName(product, locale) : "";
   usePageTitle(productName || (locale === "ar" ? "المنتج" : "Product"));
 
-  const loadProduct = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadProduct = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await productService.getProductByIdentifier(identifier);
       setProduct(data);
-      const variants = getProductVariants(data);
-      const defaultVariant =
-        variants.find((v) => v.isDefault ?? v.IsDefault) ?? variants[0] ?? null;
-      if (defaultVariant) {
-        setSelectedColor(getVariantColorName(defaultVariant, locale) || null);
-        setSelectedSize(getVariantSizeName(defaultVariant, locale) || null);
+      if (!silent) {
+        const variants = getProductVariants(data);
+        const defaultVariant =
+          variants.find((v) => v.isDefault ?? v.IsDefault) ?? variants[0] ?? null;
+        if (defaultVariant) {
+          setSelectedColor(getVariantColorName(defaultVariant, locale) || null);
+          setSelectedSize(getVariantSizeName(defaultVariant, locale) || null);
+        }
       }
     } catch (err) {
-      setError(err);
-      setProduct(null);
+      if (!silent) {
+        setError(err);
+        setProduct(null);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [identifier, locale]);
 
@@ -93,6 +106,26 @@ export function ProductDetailsPage() {
     loadProduct();
     setRatingStats(null);
   }, [loadProduct]);
+
+  useStoreSync(
+    [STORE_EVENTS.ProductUpdated, STORE_EVENTS.InventoryUpdated],
+    () => {
+      setSyncHighlight(true);
+      loadProduct({ silent: true }).finally(() =>
+        window.setTimeout(() => setSyncHighlight(false), 900)
+      );
+    },
+    productId ? { productId: Number(productId) } : undefined
+  );
+
+  useStoreSync(
+    [STORE_EVENTS.ProductDeleted],
+    () => {
+      setProduct(null);
+      setError(new Error(locale === "ar" ? "المنتج لم يعد متاحاً" : "This product is no longer available"));
+    },
+    productId ? { productId: Number(productId) } : undefined
+  );
 
   useEffect(() => {
     if (!product) return;
@@ -289,7 +322,7 @@ export function ProductDetailsPage() {
       ) : null}
 
       {!loading && !error && product ? (
-        <div className="cb-product-detail-grid">
+        <div className={syncHighlight ? "store-sync-highlight cb-product-detail-grid" : "cb-product-detail-grid"}>
           <ProductGallery images={images} productName={productName} className="cb-product-detail-gallery" />
 
           <ProductDetailPanel

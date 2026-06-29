@@ -1,5 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Inventory;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Inventories;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,17 @@ namespace CairoBags.Service;
 public class InventoryService : IInventoryService
 {
     private readonly CairoBagsContext _context;
+    private readonly NotificationService _notificationService;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-    public InventoryService(CairoBagsContext context)
+    public InventoryService(
+        CairoBagsContext context,
+        NotificationService notificationService,
+        IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
+        _notificationService = notificationService;
+        _storeBroadcast = storeBroadcast;
     }
 
     public async Task<IReadOnlyList<InventoryListItemDto>> GetInventoryListAsync(CancellationToken cancellationToken = default)
@@ -213,7 +222,27 @@ public class InventoryService : IInventoryService
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
 
-            return ServiceResult<InventoryDetailsDto>.Ok(MapDetails(inventory));
+            var details = MapDetails(inventory);
+            if (!details.IsLowStock)
+            {
+                await _notificationService.ArchiveLowStockNotificationsForVariantAsync(
+                    variantId,
+                    cancellationToken);
+            }
+
+            await _storeBroadcast.BroadcastStorefrontAsync(
+                StoreUpdateEvents.InventoryUpdated,
+                new StoreUpdatePayloadDto
+                {
+                    EntityId = variantId,
+                    VariantId = variantId,
+                    ProductId = inventory.ProductVariant.ProductId,
+                    AvailableStock = details.AvailableStock,
+                    IsInStock = details.AvailableStock > 0,
+                },
+                cancellationToken);
+
+            return ServiceResult<InventoryDetailsDto>.Ok(details);
         }
         catch (DbUpdateConcurrencyException)
         {

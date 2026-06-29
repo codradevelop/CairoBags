@@ -68,6 +68,20 @@ public class AdminOrdersController : ControllerBase
         return ToActionResult(result, data => Ok(data));
     }
 
+    [HttpPost("/api/admin/orders/{id:int}/cod-status")]
+    public async Task<IActionResult> UpdateCodOrderStatus(
+        int id,
+        [FromBody] UpdateCodOrderStatusRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _adminOrderService.UpdateCodOrderStatusAsync(
+            id,
+            request.Status,
+            GetUserId()!,
+            cancellationToken);
+        return ToActionResult(result, data => Ok(data));
+    }
+
     private string? GetUserId() =>
         User.FindFirstValue(ClaimTypes.NameIdentifier) ??
         User.FindFirstValue("sub");

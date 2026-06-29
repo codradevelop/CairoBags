@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
-import { StatusBadge } from "../../components/admin/index.js";
+import { StatusBadge, CodOrderStatusSelector, CodOrderStatusConfirmModal, CodAdminAuditLog, AdminOrderInvoice } from "../../components/admin/index.js";
+import { OrderShippingDetailsCard } from "../../components/orders/OrderShippingDetailsCard.jsx";
 import { OrderTimeline } from "../../components/account/index.js";
 import * as adminOrderService from "../../services/adminOrderService.js";
+import { isCashOnDeliveryOrder } from "../../utils/codOrderHelpers.js";
 import {
   formatOrderDate,
   getOrderDetailCoupon,
@@ -22,7 +24,15 @@ import {
   getPaymentStatus,
 } from "../../utils/orderHelpers.js";
 import { formatPrice } from "../../utils/productHelpers.js";
+import { cn } from "../../utils/cn.js";
+import {
+  scrollToPaymentSection,
+  scrollToTimelineSection,
+  shouldHighlightPayment,
+  shouldHighlightTimeline,
+} from "../../utils/orderFocusUtils.js";
 import { ORDER_STATUS } from "../../constants/orderStatus.js";
+import { COD_STATUS_SUCCESS_TOAST } from "../../constants/codOrderStatus.js";
 import {
   Button,
   Card,
@@ -42,6 +52,12 @@ export function OrderDetailsPage() {
   const [error, setError] = useState(null);
   const [action, setAction] = useState(null);
   const [acting, setActing] = useState(false);
+  const [pendingCodStatus, setPendingCodStatus] = useState(null);
+  const [codUpdating, setCodUpdating] = useState(false);
+  const [paymentHighlighted, setPaymentHighlighted] = useState(false);
+  const [timelineHighlighted, setTimelineHighlighted] = useState(false);
+  const location = useLocation();
+  const highlightHandledRef = useRef(false);
 
   const order = detail ? getOrderDetailInfo(detail) : null;
   const orderNumber = order ? getOrderNumber(order) : "";
@@ -70,6 +86,31 @@ export function OrderDetailsPage() {
     loadOrder();
   }, [loadOrder]);
 
+  useEffect(() => {
+    if (loading || highlightHandledRef.current) return;
+
+    const highlightPayment = shouldHighlightPayment(location);
+    const highlightTimeline = shouldHighlightTimeline(location);
+
+    if (!highlightPayment && !highlightTimeline) return;
+
+    highlightHandledRef.current = true;
+    const timer = window.setTimeout(() => {
+      if (highlightPayment) {
+        scrollToPaymentSection();
+        setPaymentHighlighted(true);
+        window.setTimeout(() => setPaymentHighlighted(false), 1400);
+      }
+      if (highlightTimeline) {
+        scrollToTimelineSection();
+        setTimelineHighlighted(true);
+        window.setTimeout(() => setTimelineHighlighted(false), 1400);
+      }
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, location]);
+
   const items = detail ? getOrderDetailItems(detail) : [];
   const shipping = detail ? getOrderDetailShipping(detail) : null;
   const payment = detail ? getOrderDetailPayment(detail) : null;
@@ -77,8 +118,11 @@ export function OrderDetailsPage() {
   const history = detail ? getOrderStatusHistory(detail) : [];
   const status = order ? getOrderStatus(order) : "";
   const paymentStatus = detail ? getPaymentStatus(detail) : null;
+  const isCod = isCashOnDeliveryOrder({ ...detail, payment });
 
-  const actions = [
+  const actions = isCod
+    ? []
+    : [
     {
       key: "processing",
       label: locale === "ar" ? "بدء التجهيز" : "Mark Processing",
@@ -128,6 +172,24 @@ export function OrderDetailsPage() {
       handler: () => adminOrderService.refundAdminOrder(id),
     },
   ].filter((a) => a.show);
+
+  async function applyCodStatusChange(nextStatus) {
+    setCodUpdating(true);
+    try {
+      await adminOrderService.updateCodOrderStatus(id, nextStatus);
+      success(COD_STATUS_SUCCESS_TOAST[locale] ?? COD_STATUS_SUCCESS_TOAST.en);
+      setPendingCodStatus(null);
+      await loadOrder();
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setCodUpdating(false);
+    }
+  }
+
+  function handleCodStatusChange(nextStatus) {
+    setPendingCodStatus(nextStatus);
+  }
 
   async function handleConfirmAction() {
     if (!action) return;
@@ -185,20 +247,35 @@ export function OrderDetailsPage() {
       ]}
     >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <StatusBadge status={status} paymentStatus={paymentStatus} />
-        <div className="flex flex-wrap gap-2">
-          {actions.map((item) => (
-            <Button
-              key={item.key}
-              type="button"
-              variant={item.variant}
-              size="sm"
-              onClick={() => setAction(item)}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </div>
+        {isCod ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm font-medium text-brand-muted">
+              {locale === "ar" ? "الدفع عند الاستلام" : "Cash on Delivery"}
+            </p>
+            <CodOrderStatusSelector
+              currentStatus={status}
+              onStatusChange={handleCodStatusChange}
+              loading={codUpdating}
+            />
+          </div>
+        ) : (
+          <StatusBadge status={status} paymentStatus={paymentStatus} />
+        )}
+        {!isCod ? (
+          <div className="flex flex-wrap gap-2">
+            {actions.map((item) => (
+              <Button
+                key={item.key}
+                type="button"
+                variant={item.variant}
+                size="sm"
+                onClick={() => setAction(item)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -227,12 +304,29 @@ export function OrderDetailsPage() {
             </CardBody>
           </Card>
 
-          <Card variant="default" padding="md">
+          <Card
+            variant="default"
+            padding="md"
+            id="order-timeline-section"
+            className={cn(
+              "transition-all duration-500",
+              timelineHighlighted && "ring-2 ring-brand-accent/40 ring-offset-2 ring-offset-brand-surface"
+            )}
+          >
             <CardHeader title={locale === "ar" ? "سجل الحالة" : "Status History"} />
             <CardBody>
-              <OrderTimeline history={history} />
+              <OrderTimeline history={history} payment={payment} />
             </CardBody>
           </Card>
+
+          {isCod ? (
+            <Card variant="default" padding="md">
+              <CardHeader title={locale === "ar" ? "سجل التدقيق" : "Audit Log"} />
+              <CardBody>
+                <CodAdminAuditLog history={history} orderNumber={orderNumber} />
+              </CardBody>
+            </Card>
+          ) : null}
         </div>
 
         <div className="space-y-6">
@@ -244,6 +338,20 @@ export function OrderDetailsPage() {
                 <span>{formatOrderDate(order.createdAt ?? order.CreatedAt, locale)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-brand-muted">{locale === "ar" ? "المجموع الفرعي" : "Subtotal"}</span>
+                <span>{formatPrice(order.subTotal ?? order.SubTotal, locale)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-brand-muted">{locale === "ar" ? "الشحن" : "Shipping"}</span>
+                <span>{formatPrice(order.shippingFee ?? order.ShippingFee, locale)}</span>
+              </div>
+              {(order.discountAmount ?? order.DiscountAmount) > 0 ? (
+                <div className="flex justify-between text-brand-accent">
+                  <span>{locale === "ar" ? "الخصم" : "Discount"}</span>
+                  <span>−{formatPrice(order.discountAmount ?? order.DiscountAmount, locale)}</span>
+                </div>
+              ) : null}
+              <div className="flex justify-between border-t border-brand-border pt-2">
                 <span className="text-brand-muted">{locale === "ar" ? "الإجمالي" : "Total"}</span>
                 <span className="font-medium">
                   {formatPrice(order.totalAmount ?? order.TotalAmount, locale)}
@@ -258,31 +366,40 @@ export function OrderDetailsPage() {
             </CardBody>
           </Card>
 
-          {shipping ? (
-            <Card variant="default" padding="md">
-              <CardHeader title={locale === "ar" ? "الشحن" : "Shipping"} />
-              <CardBody className="text-sm text-brand-muted">
-                <p>{shipping.fullName ?? shipping.FullName}</p>
-                <p>{shipping.phoneNumber ?? shipping.PhoneNumber}</p>
-                <p>
-                  {[shipping.addressLine1 ?? shipping.AddressLine1, shipping.city ?? shipping.City]
-                    .filter(Boolean)
-                    .join(", ")}
-                </p>
-              </CardBody>
-            </Card>
-          ) : null}
+          <OrderShippingDetailsCard
+            shipping={shipping}
+            shippingFee={order.shippingFee ?? order.ShippingFee}
+          />
 
           {payment ? (
-            <Card variant="default" padding="md">
+            <Card
+              variant="default"
+              padding="md"
+              id="order-payment-section"
+              tabIndex={-1}
+              className={cn(
+                "transition-all duration-500",
+                paymentHighlighted && "ring-2 ring-red-400/50 ring-offset-2 ring-offset-brand-surface"
+              )}
+            >
               <CardHeader title={locale === "ar" ? "الدفع" : "Payment"} />
               <CardBody className="text-sm text-brand-muted">
-                <p>{payment.paymentMethod ?? payment.PaymentMethod}</p>
+                <p>
+                  {isCod
+                    ? locale === "ar"
+                      ? "الدفع عند الاستلام"
+                      : "Cash on Delivery"
+                    : payment.paymentMethod ?? payment.PaymentMethod}
+                </p>
                 <p>{formatPrice(payment.amount ?? payment.Amount, locale)}</p>
               </CardBody>
             </Card>
           ) : null}
         </div>
+      </div>
+
+      <div className="mt-8">
+        <AdminOrderInvoice detail={detail} orderNumber={orderNumber} />
       </div>
 
       <ConfirmModal
@@ -298,6 +415,16 @@ export function OrderDetailsPage() {
         }
         confirmLabel={action?.label}
         variant={action?.variant === "danger" ? "danger" : "accent"}
+      />
+
+      <CodOrderStatusConfirmModal
+        open={Boolean(pendingCodStatus)}
+        onClose={() => setPendingCodStatus(null)}
+        onConfirm={() => applyCodStatusChange(pendingCodStatus)}
+        loading={codUpdating}
+        currentStatus={status}
+        nextStatus={pendingCodStatus}
+        orderNumber={orderNumber}
       />
     </AdminLayout>
   );

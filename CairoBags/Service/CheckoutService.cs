@@ -1,6 +1,8 @@
 using CairoBags.Data;
 using CairoBags.Dto.Checkout;
 using CairoBags.Dto.Coupons;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using CairoBags.Models.Coupons;
@@ -16,11 +18,19 @@ public class CheckoutService : ICheckoutService
 {
     private readonly CairoBagsContext _context;
     private readonly ICouponService _couponService;
+    private readonly IShippingFeeService _shippingFeeService;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-    public CheckoutService(CairoBagsContext context, ICouponService couponService)
+    public CheckoutService(
+        CairoBagsContext context,
+        ICouponService couponService,
+        IShippingFeeService shippingFeeService,
+        IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
         _couponService = couponService;
+        _shippingFeeService = shippingFeeService;
+        _storeBroadcast = storeBroadcast;
     }
 
     public async Task<ServiceResult<CheckoutResponseDto>> CheckoutAsync(
@@ -91,14 +101,24 @@ public class CheckoutService : ICheckoutService
             var coupon = couponResult.Coupon;
             var subtotalAfterDiscount = Math.Max(0m, subTotal - discountAmount);
 
-            var shippingFee = await CalculateShippingFeeAsync(
-                addressResult.Address!.Governorate,
-                subtotalAfterDiscount,
+            if (!await _shippingFeeService.IsKnownGovernorateAsync(
+                    addressResult.Address!.Governorate,
+                    cancellationToken))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<CheckoutResponseDto>.Fail(
+                    "shipping_unavailable",
+                    "Shipping is currently unavailable for the selected governorate. Please choose another governorate or contact support.");
+            }
+
+            var shippingFee = await _shippingFeeService.CalculateShippingFeeAsync(
+                addressResult.Address.Governorate,
                 coupon,
                 cancellationToken);
 
             var totalAmount = subtotalAfterDiscount + shippingFee;
             var now = DateTime.UtcNow;
+            // Shipping address and fee are snapshotted on the order and never recalculated later.
             var orderNumber = await GenerateOrderNumberAsync(cancellationToken);
             var orderStatus = request.PaymentMethod == PaymentMethodType.CashOnDelivery
                 ? OrderStatus.Pending
@@ -201,6 +221,8 @@ public class CheckoutService : ICheckoutService
 
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+
+            await BroadcastCheckoutInventoryAsync(lineItems.Lines!, cancellationToken);
 
             return ServiceResult<CheckoutResponseDto>.Ok(new CheckoutResponseDto
             {
@@ -340,35 +362,6 @@ public class CheckoutService : ICheckoutService
         return (result.Coupon, result.DiscountAmount, null);
     }
 
-    private async Task<decimal> CalculateShippingFeeAsync(
-        string governorateName,
-        decimal subtotalAfterDiscount,
-        Coupon? coupon,
-        CancellationToken cancellationToken)
-    {
-        if (coupon?.Type == CouponType.FreeShipping)
-            return 0m;
-
-        var governorate = await _context.Governorates
-            .Include(g => g.ShippingZone)
-            .FirstOrDefaultAsync(g =>
-                g.NameEn == governorateName || g.NameAr == governorateName,
-                cancellationToken);
-
-        if (governorate?.ShippingZone == null)
-            return 0m;
-
-        var zone = governorate.ShippingZone;
-        if (zone.FreeShippingThreshold.HasValue && subtotalAfterDiscount >= zone.FreeShippingThreshold.Value)
-            return 0m;
-
-        var settings = await _context.SystemSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
-        if (settings?.FreeShippingThreshold.HasValue == true && subtotalAfterDiscount >= settings.FreeShippingThreshold.Value)
-            return 0m;
-
-        return zone.BaseShippingFee;
-    }
-
     private async Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken)
     {
         var year = DateTime.UtcNow.Year;
@@ -444,6 +437,44 @@ public class CheckoutService : ICheckoutService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task BroadcastCheckoutInventoryAsync(
+        IReadOnlyList<CheckoutLine> lines,
+        CancellationToken cancellationToken)
+    {
+        var broadcastedProducts = new HashSet<int>();
+
+        foreach (var line in lines)
+        {
+            var available = GetAvailableStock(line.Inventory);
+
+            await _storeBroadcast.BroadcastStorefrontAsync(
+                StoreUpdateEvents.InventoryUpdated,
+                new StoreUpdatePayloadDto
+                {
+                    EntityId = line.VariantId,
+                    VariantId = line.VariantId,
+                    ProductId = line.ProductId,
+                    AvailableStock = available,
+                    IsInStock = available > 0,
+                },
+                cancellationToken);
+
+            if (!broadcastedProducts.Add(line.ProductId))
+                continue;
+
+            await _storeBroadcast.BroadcastStorefrontAsync(
+                StoreUpdateEvents.ProductUpdated,
+                new StoreUpdatePayloadDto
+                {
+                    EntityId = line.ProductId,
+                    ProductId = line.ProductId,
+                    CategoryId = line.CategoryId,
+                    IsActive = true,
+                },
+                cancellationToken);
+        }
+    }
 
     private sealed class CheckoutLine
     {

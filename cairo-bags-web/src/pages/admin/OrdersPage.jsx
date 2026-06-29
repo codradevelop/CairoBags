@@ -4,9 +4,10 @@ import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
-import { DataTable, StatusBadge } from "../../components/admin/index.js";
+import { DataTable, StatusBadge, CodOrderStatusSelector, CodOrderStatusConfirmModal } from "../../components/admin/index.js";
 import { Button, Input } from "../../components/ui/index.js";
 import * as adminOrderService from "../../services/adminOrderService.js";
+import { isCashOnDeliveryOrder } from "../../utils/codOrderHelpers.js";
 import {
   formatOrderDate,
   getOrderId,
@@ -20,10 +21,11 @@ import {
   ORDER_STATUS_FILTER_OPTIONS,
   PAYMENT_STATUS_META,
 } from "../../constants/orderStatusLabels.js";
+import { COD_STATUS_SUCCESS_TOAST } from "../../constants/codOrderStatus.js";
 
 export function OrdersPage() {
   const { locale } = useLocale();
-  const { error: toastError } = useToast();
+  const { success, error: toastError } = useToast();
   const title = locale === "ar" ? "الطلبات" : "Orders";
   usePageTitle(title);
 
@@ -36,8 +38,29 @@ export function OrdersPage() {
   const [endDate, setEndDate] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [pendingCodChange, setPendingCodChange] = useState(null);
 
   const pageSize = 10;
+
+  const reloadOrders = () => {
+    const params = {};
+    if (appliedSearch) params.orderNumber = appliedSearch;
+    if (statusFilter) params.orderStatus = statusFilter;
+    if (paymentFilter) params.paymentStatus = paymentFilter;
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
+    setLoading(true);
+    return adminOrderService
+      .getAdminOrders(params)
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        toastError(err.message);
+        setOrders([]);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -65,7 +88,31 @@ export function OrdersPage() {
       });
 
     return () => controller.abort();
-  }, [statusFilter, paymentFilter, startDate, endDate, appliedSearch]);
+  }, [statusFilter, paymentFilter, startDate, endDate, appliedSearch, toastError]);
+
+  async function applyCodStatusChange(orderId, nextStatus) {
+    setUpdatingOrderId(orderId);
+    try {
+      await adminOrderService.updateCodOrderStatus(orderId, nextStatus);
+      success(COD_STATUS_SUCCESS_TOAST[locale] ?? COD_STATUS_SUCCESS_TOAST.en);
+      setPendingCodChange(null);
+      await reloadOrders();
+    } catch (err) {
+      toastError(err.message);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  }
+
+  function handleCodStatusChange(row, nextStatus) {
+    const orderId = getOrderId(row);
+    setPendingCodChange({
+      orderId,
+      orderNumber: getOrderNumber(row),
+      currentStatus: getOrderStatus(row),
+      nextStatus,
+    });
+  }
 
   const paged = useMemo(
     () => paginateItems(orders, page, pageSize),
@@ -102,9 +149,27 @@ export function OrdersPage() {
     {
       key: "status",
       header: locale === "ar" ? "الحالة" : "Status",
-      render: (row) => (
-        <StatusBadge status={getOrderStatus(row)} paymentStatus={getPaymentStatus(row)} />
-      ),
+      render: (row) =>
+        isCashOnDeliveryOrder(row) ? (
+          <CodOrderStatusSelector
+            currentStatus={getOrderStatus(row)}
+            onStatusChange={(nextStatus) => handleCodStatusChange(row, nextStatus)}
+            loading={updatingOrderId === getOrderId(row)}
+            compact
+          />
+        ) : (
+          <StatusBadge status={getOrderStatus(row)} paymentStatus={getPaymentStatus(row)} />
+        ),
+    },
+    {
+      key: "governorate",
+      header: locale === "ar" ? "المحافظة" : "Governorate",
+      render: (row) => row.shippingGovernorate ?? row.ShippingGovernorate ?? "—",
+    },
+    {
+      key: "shippingFee",
+      header: locale === "ar" ? "الشحن" : "Shipping",
+      render: (row) => formatPrice(row.shippingFee ?? row.ShippingFee, locale),
     },
     {
       key: "total",
@@ -205,6 +270,18 @@ export function OrdersPage() {
         onPageChange={setPage}
         getRowKey={(row) => getOrderId(row)}
         emptyMessage={locale === "ar" ? "لا توجد طلبات" : "No orders found"}
+      />
+
+      <CodOrderStatusConfirmModal
+        open={Boolean(pendingCodChange)}
+        onClose={() => setPendingCodChange(null)}
+        onConfirm={() =>
+          applyCodStatusChange(pendingCodChange.orderId, pendingCodChange.nextStatus)
+        }
+        loading={Boolean(updatingOrderId)}
+        currentStatus={pendingCodChange?.currentStatus}
+        nextStatus={pendingCodChange?.nextStatus}
+        orderNumber={pendingCodChange?.orderNumber}
       />
     </AdminLayout>
   );

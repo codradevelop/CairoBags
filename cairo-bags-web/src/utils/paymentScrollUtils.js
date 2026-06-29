@@ -1,11 +1,9 @@
+import { requestPaymentFocus } from "./orderFocusUtils.js";
+
 const HIGHLIGHT_KEY = "cb-highlight-payment";
 
 export function requestPaymentHighlight() {
-  try {
-    sessionStorage.setItem(HIGHLIGHT_KEY, "1");
-  } catch {
-    /* ignore */
-  }
+  requestPaymentFocus();
 }
 
 export function consumePaymentHighlight() {
@@ -48,7 +46,10 @@ export function parsePaymentOrderIdFromNotification(notification) {
 }
 
 export function handlePaymentNotificationNavigation(notification) {
-  if (!isPaymentRejectedNotification(notification)) return false;
-  requestPaymentHighlight();
-  return true;
+  const type = notification?.type ?? notification?.Type ?? "";
+  if (type === "payment_rejected") {
+    requestPaymentFocus();
+    return true;
+  }
+  return false;
 }

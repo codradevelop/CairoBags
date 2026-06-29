@@ -8,6 +8,7 @@ import {
   NotificationList,
   EmptyNotifications,
 } from "../../components/account/index.js";
+import { USER_ROLE } from "../../constants/notificationTypes.js";
 import { Button } from "../../components/ui/index.js";
 
 export function NotificationsPage() {
@@ -67,6 +68,7 @@ export function NotificationsPage() {
           notifications={notifications}
           loading={loading}
           onMarkRead={markAsRead}
+          userRole={USER_ROLE.CUSTOMER}
         />
       )}
     </AccountLayout>

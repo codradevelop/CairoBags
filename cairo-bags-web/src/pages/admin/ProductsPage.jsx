@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { DataTable } from "../../components/admin/index.js";
 import {
   ADMIN_COL,
@@ -46,7 +48,7 @@ export function ProductsPage() {
 
   const pageSize = 10;
 
-  function loadProducts() {
+  const loadProducts = useCallback(() => {
     setLoading(true);
     productService
       .getProducts({ includeDraft: true })
@@ -56,11 +58,21 @@ export function ProductsPage() {
         setProducts([]);
       })
       .finally(() => setLoading(false));
-  }
+  }, [toastError]);
+
+  useStoreSync(
+    [
+      STORE_EVENTS.ProductCreated,
+      STORE_EVENTS.ProductUpdated,
+      STORE_EVENTS.ProductDeleted,
+      STORE_EVENTS.InventoryUpdated,
+    ],
+    () => loadProducts()
+  );
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
 
   const filtered = useMemo(() => {
     return products.filter((product) => {

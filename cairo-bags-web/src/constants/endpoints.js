@@ -69,6 +69,9 @@ export const ENDPOINTS = {
   checkout: {
     create: "/api/checkout",
   },
+  governorates: {
+    list: "/api/governorates",
+  },
   coupons: {
     validate: "/api/coupons/validate",
   },
@@ -87,6 +90,8 @@ export const ENDPOINTS = {
   shippingAddresses: {
     list: "/api/shipping-addresses",
     create: "/api/shipping-addresses",
+    update: (id) => `/api/shipping-addresses/${id}`,
+    delete: (id) => `/api/shipping-addresses/${id}`,
   },
   orders: {
     list: "/api/orders",
@@ -101,6 +106,7 @@ export const ENDPOINTS = {
     delivered: (id) => `/api/admin/orders/${id}/delivered`,
     cancel: (id) => `/api/admin/orders/${id}/cancel`,
     refund: (id) => `/api/admin/orders/${id}/refund`,
+    codStatus: (id) => `/api/admin/orders/${id}/cod-status`,
   },
   payments: {
     proof: (orderId) => `/api/payments/${orderId}/proof`,
@@ -131,6 +137,7 @@ export const ENDPOINTS = {
   },
   signalR: {
     notifications: "/hubs/notifications",
+    store: "/hubs/store",
   },
   wishlist: {
     list: "/api/wishlist",

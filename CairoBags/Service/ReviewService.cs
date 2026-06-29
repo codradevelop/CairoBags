@@ -1,5 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Reviews;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Identity;
@@ -26,15 +28,18 @@ public class ReviewService : IReviewService
     private readonly CairoBagsContext _context;
     private readonly NotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
     public ReviewService(
         CairoBagsContext context,
         NotificationService notificationService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
         _notificationService = notificationService;
         _userManager = userManager;
+        _storeBroadcast = storeBroadcast;
     }
 
     public async Task<PagedReviewsDto> GetProductReviewsAsync(
@@ -207,6 +212,7 @@ public class ReviewService : IReviewService
 
         var dto = await GetReviewDtoByIdAsync(review.Id, userId, cancellationToken);
         await NotifyAdminsOfNewReviewAsync(review, userId, cancellationToken);
+        await BroadcastReviewStatsAsync(StoreUpdateEvents.ReviewCreated, productId, review.Id, cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 
@@ -335,6 +341,7 @@ public class ReviewService : IReviewService
         await _context.SaveChangesAsync(cancellationToken);
 
         var dto = await GetReviewDtoByIdAsync(review.Id, userId, cancellationToken);
+        await BroadcastReviewStatsAsync(StoreUpdateEvents.ReviewUpdated, review.ProductId, review.Id, cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 
@@ -358,6 +365,7 @@ public class ReviewService : IReviewService
         await RecalculateProductReviewStatsAsync(productId, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await BroadcastReviewStatsAsync(StoreUpdateEvents.ReviewDeleted, productId, reviewId, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -388,7 +396,10 @@ public class ReviewService : IReviewService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return ServiceResult<ReviewHelpfulDto>.Ok(await BuildHelpfulDtoAsync(reviewId, userId, cancellationToken));
+        var productId = review.ProductId;
+        var helpfulDto = await BuildHelpfulDtoAsync(reviewId, userId, cancellationToken);
+        await BroadcastReviewHelpfulAsync(productId, reviewId, helpfulDto.HelpfulCount, cancellationToken);
+        return ServiceResult<ReviewHelpfulDto>.Ok(helpfulDto);
     }
 
     public async Task<ServiceResult<ReviewHelpfulDto>> RemoveHelpfulAsync(
@@ -396,11 +407,11 @@ public class ReviewService : IReviewService
         string userId,
         CancellationToken cancellationToken = default)
     {
-        var reviewExists = await _context.ProductReviews
+        var review = await _context.ProductReviews
             .AsNoTracking()
-            .AnyAsync(r => r.Id == reviewId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken);
 
-        if (!reviewExists)
+        if (review == null)
             return ServiceResult<ReviewHelpfulDto>.Fail("not_found", "Review not found.", StatusCodes.Status404NotFound);
 
         var helpful = await _context.ReviewHelpfuls
@@ -412,7 +423,9 @@ public class ReviewService : IReviewService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return ServiceResult<ReviewHelpfulDto>.Ok(await BuildHelpfulDtoAsync(reviewId, userId, cancellationToken));
+        var helpfulDto = await BuildHelpfulDtoAsync(reviewId, userId, cancellationToken);
+        await BroadcastReviewHelpfulAsync(review.ProductId, reviewId, helpfulDto.HelpfulCount, cancellationToken);
+        return ServiceResult<ReviewHelpfulDto>.Ok(helpfulDto);
     }
 
     public async Task<ServiceResult<bool>> AdminDeleteReviewAsync(
@@ -431,6 +444,7 @@ public class ReviewService : IReviewService
         await RecalculateProductReviewStatsAsync(productId, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await BroadcastReviewStatsAsync(StoreUpdateEvents.ReviewDeleted, productId, reviewId, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -453,6 +467,7 @@ public class ReviewService : IReviewService
         await _context.SaveChangesAsync(cancellationToken);
 
         var dto = await GetReviewDtoByIdAsync(review.Id, null, cancellationToken);
+        await BroadcastReviewStatsAsync(StoreUpdateEvents.ReviewUpdated, review.ProductId, review.Id, cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 
@@ -705,6 +720,49 @@ public class ReviewService : IReviewService
         public DateTime? UpdatedAt { get; set; }
         public List<ReviewImageDto> Images { get; set; } = new();
     }
+
+    private async Task BroadcastReviewStatsAsync(
+        string eventName,
+        int productId,
+        int reviewId,
+        CancellationToken cancellationToken)
+    {
+        var product = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Id == productId)
+            .Select(p => new { p.AverageRating, p.ReviewCount })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (product == null) return;
+
+        await _storeBroadcast.BroadcastStorefrontAsync(
+            eventName,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = reviewId,
+                ReviewId = reviewId,
+                ProductId = productId,
+                AverageRating = product.AverageRating,
+                ReviewCount = product.ReviewCount,
+            },
+            cancellationToken);
+    }
+
+    private Task BroadcastReviewHelpfulAsync(
+        int productId,
+        int reviewId,
+        int helpfulCount,
+        CancellationToken cancellationToken) =>
+        _storeBroadcast.BroadcastStorefrontAsync(
+            StoreUpdateEvents.ReviewUpdated,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = reviewId,
+                ReviewId = reviewId,
+                ProductId = productId,
+                HelpfulCount = helpfulCount,
+            },
+            cancellationToken);
 
     private sealed class VerifiedPurchaseInfo
     {

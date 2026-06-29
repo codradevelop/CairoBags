@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { FaThumbsUp } from "react-icons/fa";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { formatReviewDate } from "../../utils/reviewHelpers.js";
 import { StarRating } from "./StarRating.jsx";
@@ -27,7 +28,6 @@ export const ReviewCard = memo(function ReviewCard({
   onDelete,
   onToggleHelpful,
   onAdminDelete,
-  onAdminToggleVisibility,
   helpfulLoading = false,
   isEntering = false,
   isPinned = false,
@@ -82,36 +82,46 @@ export const ReviewCard = memo(function ReviewCard({
 
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-brand-border/60 pt-4">
             {canVoteHelpful ? (
-              <div className="flex flex-col gap-1">
-                <button
-                  type="button"
-                  disabled={helpfulLoading}
-                  onClick={() => onToggleHelpful?.(review)}
-                  aria-pressed={review.isHelpfulByCurrentUser}
-                  aria-label={
-                    locale === "ar"
-                      ? `مفيد، ${review.helpfulCount} شخص وجد هذا مفيداً`
-                      : `Helpful, ${review.helpfulCount} people found this helpful`
-                  }
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200",
-                    "hover:-translate-y-0.5 hover:bg-brand-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent",
-                    review.isHelpfulByCurrentUser
-                      ? "bg-brand-accent/15 text-brand-accent"
-                      : "text-brand-text"
-                  )}
-                >
-                  <span aria-hidden="true">👍</span>
-                  {locale === "ar" ? "مفيد" : "Helpful"}
-                </button>
+              <button
+                type="button"
+                disabled={helpfulLoading}
+                onClick={() => onToggleHelpful?.(review)}
+                aria-pressed={review.isHelpfulByCurrentUser}
+                aria-label={
+                  locale === "ar"
+                    ? `مفيد، ${review.helpfulCount} شخص وجد هذا مفيداً`
+                    : `Helpful, ${review.helpfulCount} people found this helpful`
+                }
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all duration-300",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/50 focus-visible:ring-offset-2",
+                  "disabled:cursor-not-allowed disabled:opacity-60",
+                  review.isHelpfulByCurrentUser
+                    ? "border-brand-accent/45 bg-brand-accent/12 text-brand-accent shadow-[inset_0_0_0_1px_rgba(197,155,39,0.18)]"
+                    : "border-brand-border/80 bg-brand-surface-2 text-brand-muted hover:-translate-y-0.5 hover:border-brand-accent/35 hover:bg-brand-accent/8 hover:text-brand-accent hover:shadow-[0_4px_14px_-8px_rgba(197,155,39,0.55)]"
+                )}
+              >
+                <FaThumbsUp
+                  size={18}
+                  aria-hidden="true"
+                  style={{
+                    color: review.isHelpfulByCurrentUser ? "#c59b27" : "#6B7280",
+                  }}
+                />
+                <span>{locale === "ar" ? "مفيد" : "Helpful"}</span>
                 {review.helpfulCount > 0 ? (
-                  <p className="ps-1 text-xs text-brand-muted">
-                    {locale === "ar"
-                      ? `${review.helpfulCount} شخص وجد هذا مفيداً`
-                      : `${review.helpfulCount} ${review.helpfulCount === 1 ? "person" : "people"} found this helpful`}
-                  </p>
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none",
+                      review.isHelpfulByCurrentUser
+                        ? "bg-brand-accent/18 text-brand-accent"
+                        : "bg-brand-border/50 text-brand-muted"
+                    )}
+                  >
+                    {review.helpfulCount}
+                  </span>
                 ) : null}
-              </div>
+              </button>
             ) : (
               <div />
             )}
@@ -124,31 +134,15 @@ export const ReviewCard = memo(function ReviewCard({
             ) : null}
 
             {isAdmin ? (
-              <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onAdminToggleVisibility?.(review)}
-                >
-                  {review.isVisible
-                    ? locale === "ar"
-                      ? "إخفاء"
-                      : "Hide"
-                    : locale === "ar"
-                      ? "إظهار"
-                      : "Unhide"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700"
-                  onClick={() => onAdminDelete?.(review)}
-                >
-                  {locale === "ar" ? "حذف (مشرف)" : "Delete"}
-                </Button>
-              </>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700"
+                onClick={() => onAdminDelete?.(review)}
+              >
+                {locale === "ar" ? "حذف" : "Delete"}
+              </Button>
             ) : null}
             </div>
           </div>

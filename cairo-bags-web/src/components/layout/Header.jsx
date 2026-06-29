@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "../ui/Button.jsx";
 import { Navbar } from "./Navbar.jsx";
 import { MobileMenu } from "./MobileMenu.jsx";
@@ -33,11 +33,8 @@ function SearchIcon() {
 
 export function AnnouncementBar({ message, messageAr, href = "/shop", className }) {
   const { locale } = useLocale();
-  const text =
-    message ||
-    (locale === "ar"
-      ? messageAr || "شحن مجاني للطلبات فوق ٢٠٠٠ جنيه — تسوق الآن"
-      : "Complimentary shipping on orders over EGP 2,000 — Shop Now");
+  const text = message || (locale === "ar" ? messageAr : messageAr) || "";
+  if (!text) return null;
 
   return (
     <div className={cn("relative overflow-hidden", className)}>
@@ -66,9 +63,10 @@ export function AnnouncementBar({ message, messageAr, href = "/shop", className 
   );
 }
 
-export function Header({ className, showAnnouncement = true, announcement }) {
+export function Header({ className, showAnnouncement = false, announcement }) {
   const { locale } = useLocale();
   const readOnly = useStoreReadOnly();
+  const reduceMotion = useReducedMotion();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -83,64 +81,63 @@ export function Header({ className, showAnnouncement = true, announcement }) {
   }, []);
 
   return (
-    <header
+    <motion.header
       className={cn(
-        "cb-header-floating cb-glass transition-all duration-500",
+        "cb-header-floating cb-header-premium cb-glass transition-all duration-500",
         scrolled && "cb-header-scrolled cb-header-compact",
         className
       )}
+      initial={reduceMotion ? false : { y: -8, opacity: 0 }}
+      animate={reduceMotion ? undefined : { y: 0, opacity: 1 }}
+      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
     >
       {showAnnouncement ? <AnnouncementBar {...announcement} /> : null}
 
-      <div className="cb-container">
+      <div className="cb-container relative">
         <div className="cb-header-inner flex h-16 items-center justify-between gap-3 transition-all duration-500 md:h-[4.5rem] md:gap-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="shrink-0 lg:hidden"
+              className="cb-header-icon-btn shrink-0 lg:hidden"
               aria-label={locale === "ar" ? "فتح القائمة" : "Open menu"}
               onClick={() => setMobileOpen(true)}
             >
               <MenuIcon />
             </Button>
 
-            <Link
-              to="/"
-              className="group shrink-0 font-display text-lg font-medium tracking-tight text-brand-primary transition-colors duration-300 hover:text-brand-accent sm:text-xl md:text-[1.35rem]"
-              style={{ letterSpacing: "-0.03em" }}
-            >
-              <span className="relative">
+            <Link to="/" className="cb-header-logo group shrink-0 sm:text-xl md:text-[1.35rem]">
+              <span className="relative inline-block">
                 Cairo Bags
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-brand-accent transition-all duration-500 group-hover:w-full" />
+                <span className="cb-header-logo-shine" aria-hidden="true" />
               </span>
             </Link>
           </div>
 
-          <Navbar className="mx-2 hidden flex-1 justify-center lg:flex xl:mx-6" />
+          <Navbar className="mx-2 flex-1 justify-center xl:mx-6" />
 
-          <div className="hidden max-w-xs flex-1 lg:block xl:max-w-sm">
-            <ProductSearch compact />
+          <div className="cb-header-search-premium hidden max-w-xs flex-1 lg:block xl:max-w-sm">
+            <ProductSearch compact variant="header" />
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <div className="cb-header-actions shrink-0">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="cb-header-icon-btn lg:hidden"
               aria-label={searchPlaceholder}
               aria-expanded={searchOpen}
               onClick={() => setSearchOpen((v) => !v)}
             >
               <SearchIcon />
             </Button>
-            <LanguageSwitcher className="hidden sm:inline-flex" />
+            <LanguageSwitcher className="cb-header-lang hidden sm:inline-flex" />
             <NotificationDropdown />
-            {!readOnly ? <WishlistHeaderButton /> : null}
-            {!readOnly ? <CartButton /> : null}
-            <UserDropdown />
+            {!readOnly ? <WishlistHeaderButton className="cb-header-icon-btn" /> : null}
+            {!readOnly ? <CartButton className="cb-header-icon-btn" /> : null}
+            <UserDropdown className="cb-header-user" />
           </div>
         </div>
 
@@ -154,7 +151,7 @@ export function Header({ className, showAnnouncement = true, announcement }) {
               className="overflow-hidden border-t border-brand-border/40 lg:hidden"
             >
               <div className="py-3">
-                <ProductSearch autoFocus onSubmit={() => setSearchOpen(false)} />
+                <ProductSearch autoFocus variant="header" onSubmit={() => setSearchOpen(false)} />
               </div>
             </motion.div>
           ) : null}
@@ -162,6 +159,6 @@ export function Header({ className, showAnnouncement = true, announcement }) {
       </div>
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
-    </header>
+    </motion.header>
   );
 }
