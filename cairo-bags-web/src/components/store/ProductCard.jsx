@@ -8,6 +8,8 @@ import { useWishlist } from "../../context/WishlistContext.jsx";
 import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../ui/Toast.jsx";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
+import { useResolvedImageLoad } from "../../hooks/useResolvedImageLoad.js";
+import { subscribeCatalogChange } from "../../utils/catalogEvents.js";
 import * as productService from "../../services/productService.js";
 import { ProductPrice } from "./ProductPrice.jsx";
 import { ProductBadges } from "./ProductBadges.jsx";
@@ -36,6 +38,14 @@ import { ShopProductCard } from "./shop/ShopProductCard.jsx";
 import { getColorFromName } from "../../utils/colorSwatchUtils.js";
 
 const productDetailsCache = new Map();
+
+if (typeof window !== "undefined") {
+  subscribeCatalogChange((detail) => {
+    if (detail.entityType === "product" && detail.id != null) {
+      productDetailsCache.delete(detail.id);
+    }
+  });
+}
 
 function getSecondaryImageFromProduct(product) {
   const images = getProductImages(product);
@@ -225,20 +235,22 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
   const productId = getProductId(product);
   const primaryUrl = getProductImageUrl(product);
   const inlineSecondary = getSecondaryImageFromProduct(product);
+  const { loaded: imageLoaded, imgRef, handleLoad, handleError } = useResolvedImageLoad(
+    primaryUrl,
+    productId
+  );
 
   const [secondaryUrl, setSecondaryUrl] = useState(inlineSecondary);
   const [showSecondary, setShowSecondary] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const fetchStartedRef = useRef(false);
 
   useEffect(() => {
     setSecondaryUrl(inlineSecondary);
-    setImageLoaded(false);
     fetchStartedRef.current = false;
-  }, [productId, inlineSecondary]);
+  }, [productId, primaryUrl, inlineSecondary]);
 
   const handlePrimaryLoad = useCallback(() => {
-    setImageLoaded(true);
+    handleLoad();
     if (secondaryUrl) {
       preloadImage(secondaryUrl);
       return;
@@ -256,7 +268,7 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
         }
       })
       .catch(() => {});
-  }, [hoverCapable, productId, secondaryUrl]);
+  }, [handleLoad, hoverCapable, productId, secondaryUrl]);
 
   const canCrossfade = hoverCapable && Boolean(secondaryUrl);
 
@@ -273,15 +285,17 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
         {primaryUrl ? (
           <div className="relative h-full w-full">
             <img
+              ref={imgRef}
+              key={primaryUrl}
               src={primaryUrl}
               alt={name}
               loading="lazy"
               decoding="async"
               onLoad={handlePrimaryLoad}
+              onError={handleError}
               className={cn(
                 "cb-product-image absolute inset-0 transition-all duration-500 ease-out-expo",
                 canCrossfade && showSecondary ? "scale-[1.03] opacity-0" : "scale-100 opacity-100",
-                imageLoaded ? "opacity-100" : "opacity-0",
                 "group-hover:scale-[1.03]"
               )}
             />
@@ -486,41 +500,39 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
             ) : null}
           </div>
 
-          <div
-            className={cn(
-              "cb-product-card-body relative z-10 flex flex-1 flex-col border-t border-brand-border/50 bg-brand-surface dark:bg-brand-surface-dark",
-              compact && "px-2.5 py-2.5"
-            )}
-          >
-            <Link to={href} className="flex flex-1 flex-col">
-              <p className="cb-product-card-meta text-[9px] font-medium tracking-[0.18em] text-brand-accent uppercase">
-                {categoryName || "\u00A0"}
-              </p>
+          <div className="cb-product-card-body relative z-10 flex flex-col border-t border-brand-border/50 bg-brand-surface dark:bg-brand-surface-dark">
+            <Link to={href} className="flex flex-col gap-1">
+              {categoryName ? (
+                <p className="text-[9px] font-semibold tracking-[0.16em] text-brand-accent uppercase">
+                  {categoryName}
+                </p>
+              ) : null}
 
-              <h3 className="cb-product-card-title mt-1 transition-colors duration-300 group-hover:text-brand-accent">
+              <h3 className={cn(
+                "line-clamp-2 font-display font-semibold leading-snug text-brand-text transition-colors duration-300 group-hover:text-brand-accent",
+                compact ? "text-[13px]" : "text-[14px]"
+              )}>
                 {name}
               </h3>
 
-              <div className="cb-product-card-meta mt-1.5 transition-opacity duration-300 group-hover:opacity-100">
-                <ProductRatingLine product={product} size="xs" linkToReviews={`${href}#reviews`} />
-              </div>
-              <div className="cb-product-card-price mt-1">
+              <div className="flex items-center justify-between gap-2 pt-1">
                 <ProductPrice product={product} size="sm" />
+                <Badge variant={inStock ? "success" : "outline"} size="sm" className="shrink-0 text-[9px]">
+                  {inStock
+                    ? locale === "ar" ? "متوفر" : "In Stock"
+                    : locale === "ar" ? "نفد" : "Sold Out"}
+                </Badge>
               </div>
-              <ColorVariants product={product} className="mt-1.5 hidden sm:flex sm:opacity-70 sm:group-hover:opacity-100" />
-            </Link>
 
-            <div className="mt-auto flex items-center pt-2.5">
-              <Badge variant={inStock ? "success" : "outline"} size="sm" className="text-[10px]">
-                {inStock
-                  ? locale === "ar"
-                    ? "متوفر"
-                    : "In Stock"
-                  : locale === "ar"
-                    ? "نفد"
-                    : "Sold Out"}
-              </Badge>
-            </div>
+              {!compact ? (
+                <>
+                  <div className="transition-opacity duration-300 group-hover:opacity-100">
+                    <ProductRatingLine product={product} size="xs" linkToReviews={`${href}#reviews`} />
+                  </div>
+                  <ColorVariants product={product} className="mt-1 hidden sm:flex sm:opacity-70 sm:group-hover:opacity-100" />
+                </>
+              ) : null}
+            </Link>
           </div>
         </div>
       </article>
@@ -539,16 +551,117 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
   );
 });
 
+/* ─────────────────────────────────────────────────────────
+   Clean carousel card — image top, info bottom, no overlays
+   Same clean structure as CategoryCard
+───────────────────────────────────────────────────────── */
+const CarouselProductCard = memo(function CarouselProductCard({ product, className }) {
+  const { locale } = useLocale();
+  const productId    = getProductId(product);
+  const name         = getProductName(product, locale);
+  const href         = buildProductPath(product, locale);
+  const inStock      = isProductInStock(product);
+  const primaryUrl   = getProductImageUrl(product);
+  const categoryName = getProductCategoryName(product, locale);
+  const discount     = getDiscountPercent(product);
+
+  const { loaded: imageLoaded, imgRef, handleLoad, handleError } = useResolvedImageLoad(
+    primaryUrl,
+    productId
+  );
+
+  return (
+    <Link to={href} className={cn("group block h-full", className)}>
+      <div className="cb-product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-brand-border/70 bg-brand-surface transition-all duration-300 group-hover:-translate-y-0.5">
+
+        {/* ── image ── */}
+        <div className="cb-product-aspect relative overflow-hidden bg-brand-secondary/60 shrink-0">
+          {!imageLoaded && primaryUrl ? (
+            <div className="cb-shimmer absolute inset-0 z-[1] animate-shimmer" aria-hidden="true" />
+          ) : null}
+
+          {/* badges top-left */}
+          <div className="absolute start-2 top-2 z-10 flex flex-wrap gap-1">
+            <ProductBadges product={product} showStock={false} />
+            {discount ? <DiscountBadge product={product} /> : null}
+          </div>
+
+          {/* wishlist top-right */}
+          <div className="absolute end-2 top-2 z-10">
+            <WishlistButton productId={productId} />
+          </div>
+
+          {primaryUrl ? (
+            <img
+              ref={imgRef}
+              key={primaryUrl}
+              src={primaryUrl}
+              alt={name}
+              loading="lazy"
+              decoding="async"
+              onLoad={handleLoad}
+              onError={handleError}
+              className="cb-product-image transition-transform duration-500 group-hover:scale-[1.04]"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <span
+                className="font-display text-4xl opacity-40"
+                style={{
+                  background: "linear-gradient(135deg, #c9a962, #e8d5a3)",
+                  WebkitBackgroundClip: "text",
+                  backgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                CB
+              </span>
+            </div>
+          )}
+
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-primary/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        </div>
+
+        {/* ── info below image ── */}
+        <div className="cb-product-card-body flex flex-col gap-1">
+          {categoryName ? (
+            <p className="text-[9px] font-semibold tracking-[0.16em] text-brand-accent uppercase">
+              {categoryName}
+            </p>
+          ) : null}
+
+          <h3 className="line-clamp-2 font-display text-[13px] font-semibold leading-snug text-brand-text transition-colors duration-300 group-hover:text-brand-accent">
+            {name}
+          </h3>
+
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <ProductPrice product={product} size="sm" />
+            <Badge variant={inStock ? "success" : "outline"} size="sm" className="shrink-0 text-[9px]">
+              {inStock
+                ? locale === "ar" ? "متوفر" : "In Stock"
+                : locale === "ar" ? "نفد" : "Sold Out"}
+            </Badge>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+});
+
 export const ProductCard = memo(function ProductCard({ product, className, variant = "store" }) {
   if (variant === "shop") {
     return <ShopProductCard product={product} className={className} />;
+  }
+
+  if (variant === "landing") {
+    return <CarouselProductCard product={product} className={className} />;
   }
 
   return (
     <LuxuryProductCard
       product={product}
       className={className}
-      compact={variant === "landing"}
+      compact={false}
     />
   );
 });

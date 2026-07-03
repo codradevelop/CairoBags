@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import { DataTable } from "../../components/admin/index.js";
@@ -34,21 +35,26 @@ export function CategoriesPage() {
 
   const pageSize = 10;
 
-  function loadCategories() {
-    setLoading(true);
-    categoryService
+  const loadCategories = useCallback((options = {}) => {
+    const background = options?.background === true;
+    if (!background) setLoading(true);
+    return categoryService
       .getCategories({ includeInactive: true })
       .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch((err) => {
-        toastError(err.message);
-        setCategories([]);
+        if (!background) toastError(err.message);
+        if (!background) setCategories([]);
       })
-      .finally(() => setLoading(false));
-  }
+      .finally(() => {
+        if (!background) setLoading(false);
+      });
+  }, [toastError]);
 
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
+
+  useCatalogRefresh(loadCategories, { entity: "category" });
 
   const filtered = useMemo(() => {
     return categories.filter((cat) => {

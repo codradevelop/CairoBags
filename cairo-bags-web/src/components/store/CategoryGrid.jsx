@@ -1,17 +1,14 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
 import * as categoryService from "../../services/categoryService.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
-import {
-  buildCategoryPath,
-  getCategoryId,
-  getCategoryImageUrl,
-  getCategoryName,
-} from "../../utils/productHelpers.js";
+import { CategoryCard } from "./CategoryCard.jsx";
+import { getCategoryId } from "../../utils/productHelpers.js";
 import { CategoryGridSkeleton } from "./ProductSkeleton.jsx";
 import { EmptyState } from "./EmptyState.jsx";
-import { ScrollReveal, StaggerReveal, StaggerItem } from "../ui/motion.jsx";
+import { ScrollReveal } from "../ui/motion.jsx";
 import { AnimatedCounter } from "../ui/animation.jsx";
+import { ProductCarousel } from "./ProductCarousel.jsx";
 import { cn } from "../../utils/cn.js";
 
 export function CategoryGrid({ className, title, subtitle }) {
@@ -20,24 +17,28 @@ export function CategoryGrid({ className, title, subtitle }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    categoryService
+  const loadCategories = useCallback((options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
+    return categoryService
       .getCategories()
-      .then((data) => {
-        if (!cancelled) setCategories(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
       .catch((err) => {
-        if (!cancelled) setError(err);
+        if (!background) setError(err);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!background) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  useCatalogRefresh(loadCategories, { entity: "category" });
 
   const heading = title ?? (locale === "ar" ? "تسوق حسب التصنيف" : "Shop by Category");
   const sub =
@@ -78,43 +79,12 @@ export function CategoryGrid({ className, title, subtitle }) {
       ) : null}
 
       {!loading && !error && categories.length > 0 ? (
-        <StaggerReveal className="cb-category-grid">
+        <ProductCarousel autoplay={4000} showDots={categories.length > 3} gap={16}>
           {categories.map((category) => {
             const id = getCategoryId(category);
-            const name = getCategoryName(category, locale);
-            const imageUrl = getCategoryImageUrl(category);
-            return (
-              <StaggerItem key={id}>
-                <Link to={buildCategoryPath(category, locale)} className="group block">
-                  <div className="cb-category-card">
-                    {imageUrl ? (
-                      <img
-                        src={imageUrl}
-                        alt={name}
-                        className="cb-category-card-img"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center font-display text-2xl text-brand-muted/50">
-                        CB
-                      </div>
-                    )}
-                    <div className="cb-category-card-overlay" aria-hidden="true" />
-                    <div className="cb-category-card-label">
-                      <p className="font-display text-sm font-medium text-brand-secondary md:text-base">
-                        {name}
-                      </p>
-                      <span className="mt-1.5 inline-flex items-center gap-1 text-[10px] tracking-wide text-brand-accent uppercase opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100">
-                        {locale === "ar" ? "استكشف" : "Explore"}
-                        <span aria-hidden="true">→</span>
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </StaggerItem>
-            );
+            return <CategoryCard key={id} category={category} className="cb-carousel-category-item" />;
           })}
-        </StaggerReveal>
+        </ProductCarousel>
       ) : null}
     </section>
   );

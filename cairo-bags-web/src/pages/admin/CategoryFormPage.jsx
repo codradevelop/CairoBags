@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import { CategoryForm } from "../../components/admin/index.js";
@@ -72,6 +73,20 @@ export function CategoryFormPage() {
       })
       .finally(() => setLoading(false));
   }, [id, isEdit, toastError]);
+
+  const reloadCategory = useCallback(() => {
+    if (!isEdit) return;
+    return categoryService
+      .getCategoryById(id)
+      .then((data) => setInitialValues(mapCategoryToForm(data)))
+      .catch(() => {});
+  }, [id, isEdit]);
+
+  useCatalogRefresh(reloadCategory, {
+    entity: "category",
+    id: isEdit ? Number(id) : undefined,
+    enabled: isEdit,
+  });
 
   async function handleSubmit(payload) {
     setSubmitting(true);

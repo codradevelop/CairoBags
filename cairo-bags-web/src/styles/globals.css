@@ -289,11 +289,10 @@
 
   .cb-product-image {
     @apply h-full w-full object-contain object-center;
-    padding: 10%;
   }
 
   .cb-product-aspect {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 1 / 1.1;
   }
 
   .cb-category-aspect {
@@ -379,15 +378,15 @@
   }
 
   .cb-product-card-body {
-    @apply flex flex-1 flex-col px-3.5 py-3.5;
+    @apply flex flex-col gap-1 px-3 py-3;
   }
 
   .cb-product-card-title {
-    @apply line-clamp-2 min-h-[2.35rem] font-display text-[14px] font-semibold leading-snug text-brand-text;
+    @apply line-clamp-2 font-display text-[13px] font-semibold leading-snug text-brand-text;
   }
 
   .cb-product-card-meta {
-    @apply min-h-[1.25rem];
+    @apply min-h-[1rem];
   }
 
   .cb-product-card-shell {
@@ -625,4 +624,100 @@
   .group:hover .cb-product-image {
     transform: none;
   }
+
+  /* Carousel – disable scroll-snap animation */
+  .cb-carousel-track {
+    scroll-behavior: auto !important;
+  }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Owl-style Horizontal Carousel
+   ═══════════════════════════════════════════════════════ */
+@layer components {
+  /* ── root wrapper ─────────────────────────────────── */
+  .cb-carousel-root {
+    @apply relative w-full select-none;
+  }
+
+  /* ── scrollable track ─────────────────────────────── */
+  .cb-carousel-track {
+    display: flex;
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;        /* Firefox */
+    padding-bottom: 4px;          /* space for shadows */
+    cursor: grab;
+  }
+  .cb-carousel-track:active {
+    cursor: grabbing;
+  }
+  .cb-carousel-track::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari */
+  }
+
+  /* ── individual slide cell ────────────────────────── */
+  .cb-carousel-item {
+    flex: 0 0 auto;
+    width: 260px;
+  }
+
+  @media (min-width: 480px)  { .cb-carousel-item { width: 270px; } }
+  @media (min-width: 640px)  { .cb-carousel-item { width: 280px; } }
+  @media (min-width: 768px)  { .cb-carousel-item { width: 295px; } }
+  @media (min-width: 1024px) { .cb-carousel-item { width: 310px; } }
+  @media (min-width: 1280px) { .cb-carousel-item { width: 320px; } }
+
+  /* category items */
+  .cb-carousel-category-item {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  /* category cards same width as products */
+  .cb-carousel-root .cb-carousel-item:has(.cb-category-card) {
+    width: 260px;
+  }
+  @media (min-width: 640px) {
+    .cb-carousel-root .cb-carousel-item:has(.cb-category-card) { width: 280px; }
+  }
+  @media (min-width: 1024px) {
+    .cb-carousel-root .cb-carousel-item:has(.cb-category-card) { width: 310px; }
+  }
+
+
+  /* ── prev / next arrow buttons ───────────────────── */
+  .cb-carousel-arrow {
+    @apply absolute top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full;
+    @apply border border-brand-border/70 bg-brand-surface/95 text-brand-text shadow-lg backdrop-blur-sm;
+    @apply transition-all duration-300 hover:border-brand-accent hover:bg-brand-surface hover:text-brand-accent hover:scale-110;
+    /* nudge vertically to sit in the image area, not the card body */
+    top: 38%;
+  }
+  .cb-carousel-arrow--prev {
+    left: -14px;
+  }
+  .cb-carousel-arrow--next {
+    right: -14px;
+  }
+  @media (max-width: 639px) {
+    .cb-carousel-arrow { display: none; }   /* hide arrows on mobile; swipe only */
+  }
+
+  /* ── pagination dots ─────────────────────────────── */
+  .cb-carousel-dots {
+    @apply mt-5 flex items-center justify-center gap-2;
+  }
+  .cb-carousel-dot {
+    @apply block h-1.5 w-5 rounded-full border-0 bg-brand-border/60 p-0;
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    cursor: pointer;
+  }
+  .cb-carousel-dot--active {
+    @apply w-8 bg-brand-accent;
+  }
+  .cb-carousel-dot:hover:not(.cb-carousel-dot--active) {
+    @apply bg-brand-muted/60;
+  }
+}
+

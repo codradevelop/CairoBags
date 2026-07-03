@@ -13,6 +13,7 @@ export function createNotificationHubConnection() {
   return new HubConnectionBuilder()
     .withUrl(buildHubUrl(), {
       accessTokenFactory: () => getAccessToken() || "",
+      withCredentials: true,
     })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Information)

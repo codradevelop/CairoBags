@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import {
   StatsCard,
@@ -37,6 +38,19 @@ export function DashboardPage() {
   const [pendingPayments, setPendingPayments] = useState([]);
   const [lowStock, setLowStock] = useState([]);
 
+  const refreshCatalogCounts = useCallback(async () => {
+    try {
+      const [productData, categoryData] = await Promise.all([
+        productService.getProducts({ includeDraft: true }),
+        categoryService.getCategories({ includeInactive: true }),
+      ]);
+      setProducts(Array.isArray(productData) ? productData : []);
+      setCategories(Array.isArray(categoryData) ? categoryData : []);
+    } catch {
+      /* keep existing counts on refresh failure */
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
     const requestConfig = { signal: controller.signal };
@@ -72,6 +86,9 @@ export function DashboardPage() {
 
     return () => controller.abort();
   }, []);
+
+  useCatalogRefresh(refreshCatalogCounts, { entity: "product" });
+  useCatalogRefresh(refreshCatalogCounts, { entity: "category" });
 
   const pendingOrdersCount = useMemo(
     () =>

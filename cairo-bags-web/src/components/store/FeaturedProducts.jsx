@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as productService from "../../services/productService.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { ProductCard } from "./ProductCard.jsx";
 import { ProductGridSkeleton } from "./ProductSkeleton.jsx";
 import { EmptyState } from "./EmptyState.jsx";
 import { Button } from "../ui/Button.jsx";
-import { ScrollReveal, StaggerReveal, StaggerItem } from "../ui/motion.jsx";
+import { ScrollReveal } from "../ui/motion.jsx";
+import { ProductCarousel } from "./ProductCarousel.jsx";
 import { cn } from "../../utils/cn.js";
 
 export function FeaturedProducts({ className, title, subtitle }) {
@@ -15,24 +17,28 @@ export function FeaturedProducts({ className, title, subtitle }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    productService
+  const loadFeatured = useCallback((options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
+    return productService
       .getFeaturedProducts()
-      .then((data) => {
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch((err) => {
-        if (!cancelled) setError(err);
+        if (!background) setError(err);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!background) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadFeatured();
+  }, [loadFeatured]);
+
+  useCatalogRefresh(loadFeatured, { entity: "product" });
 
   const heading = title ?? (locale === "ar" ? "منتجات مميزة" : "Featured Products");
   const sub =
@@ -60,24 +66,28 @@ export function NewArrivals({ className, title, subtitle }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    productService
+  const loadNewArrivals = useCallback((options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
+    return productService
       .getNewArrivals()
-      .then((data) => {
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      })
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch((err) => {
-        if (!cancelled) setError(err);
+        if (!background) setError(err);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!background) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadNewArrivals();
+  }, [loadNewArrivals]);
+
+  useCatalogRefresh(loadNewArrivals, { entity: "product" });
 
   const heading = title ?? (locale === "ar" ? "وصل حديثاً" : "New Arrivals");
   const sub =
@@ -124,7 +134,7 @@ function ProductSection({
         </Link>
       </ScrollReveal>
 
-      {loading ? <ProductGridSkeleton count={10} compact /> : null}
+      {loading ? <ProductGridSkeleton count={6} compact /> : null}
       {!loading && error ? (
         <EmptyState variant="error" title={emptyTitle} description={error.message} />
       ) : null}
@@ -136,13 +146,11 @@ function ProductSection({
         />
       ) : null}
       {!loading && !error && products.length > 0 ? (
-        <StaggerReveal className="cb-product-grid">
+        <ProductCarousel autoplay={3500} showDots={products.length > 4}>
           {products.map((product) => (
-            <StaggerItem key={product.id ?? product.Id}>
-              <ProductCard product={product} variant="landing" />
-            </StaggerItem>
+            <ProductCard key={product.id ?? product.Id} product={product} variant="landing" />
           ))}
-        </StaggerReveal>
+        </ProductCarousel>
       ) : null}
     </section>
   );

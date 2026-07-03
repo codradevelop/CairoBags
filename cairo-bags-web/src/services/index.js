@@ -14,4 +14,5 @@ export * as adminPaymentService from "./adminPaymentService.js";
 export * as recommendationService from "./recommendationService.js";
 export * as notificationService from "./notificationService.js";
 export * as notificationHub from "./notificationHub.js";
+export * as catalogHub from "./catalogHub.js";
 export * as systemSettingsService from "./systemSettingsService.js";

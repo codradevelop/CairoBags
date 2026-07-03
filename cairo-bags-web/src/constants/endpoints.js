@@ -131,6 +131,7 @@ export const ENDPOINTS = {
   },
   signalR: {
     notifications: "/hubs/notifications",
+    catalog: "/hubs/catalog",
   },
   wishlist: {
     list: "/api/wishlist",

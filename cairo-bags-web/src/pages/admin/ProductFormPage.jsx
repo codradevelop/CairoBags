@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import { ProductForm } from "../../components/admin/index.js";
@@ -109,6 +110,20 @@ export function ProductFormPage() {
       })
       .finally(() => setLoading(false));
   }, [id, isEdit, toastError]);
+
+  const reloadProduct = useCallback(() => {
+    if (!isEdit) return;
+    return productService
+      .getProductById(id, { includeDraft: true })
+      .then((data) => setInitialValues(mapProductToForm(data)))
+      .catch(() => {});
+  }, [id, isEdit]);
+
+  useCatalogRefresh(reloadProduct, {
+    entity: "product",
+    id: isEdit ? Number(id) : undefined,
+    enabled: isEdit,
+  });
 
   async function handleSubmit(payload) {
     setSubmitting(true);

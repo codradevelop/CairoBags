@@ -94,11 +94,24 @@ export function StaggerReveal({ children, className, once = true, amount = 0.15 
   );
 }
 
-export function StaggerItem({ children, className }) {
+export function StaggerItem({ children, className, independent = false }) {
   const prefersReduced = useReducedMotion();
 
   if (prefersReduced) {
     return <div className={className}>{children}</div>;
+  }
+
+  if (independent) {
+    return (
+      <motion.div
+        className={className}
+        initial="hidden"
+        animate="visible"
+        variants={staggerItem}
+      >
+        {children}
+      </motion.div>
+    );
   }
 
   return (

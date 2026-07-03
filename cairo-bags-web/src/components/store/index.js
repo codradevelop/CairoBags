@@ -2,6 +2,7 @@ export { HeroSection } from "./HeroSection.jsx";
 export { CategoryGrid } from "./CategoryGrid.jsx";
 export { FeaturedProducts, NewArrivals } from "./FeaturedProducts.jsx";
 export { ProductCard } from "./ProductCard.jsx";
+export { ProductCarousel } from "./ProductCarousel.jsx";
 export { ProductDetailPanel } from "./ProductDetailPanel.jsx";
 export { ProductGallery } from "./ProductGallery.jsx";
 export { ProductFilters } from "./ProductFilters.jsx";
@@ -20,3 +21,4 @@ export { ShopFiltersSidebar } from "./shop/ShopFiltersSidebar.jsx";
 export { ShopToolbar } from "./shop/ShopToolbar.jsx";
 export { ShopFeatureBar } from "./shop/ShopFeatureBar.jsx";
 export { ShopProductCard } from "./shop/ShopProductCard.jsx";
+

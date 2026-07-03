@@ -18,10 +18,12 @@ public class ProductService : IProductService
     };
 
     private readonly CairoBagsContext _context;
+    private readonly ICatalogRealtimeService _catalogRealtime;
 
-    public ProductService(CairoBagsContext context)
+    public ProductService(CairoBagsContext context, ICatalogRealtimeService catalogRealtime)
     {
         _context = context;
+        _catalogRealtime = catalogRealtime;
     }
 
     public Task<IReadOnlyList<ProductSummaryDto>> GetProductsAsync(
@@ -135,6 +137,8 @@ public class ProductService : IProductService
         var created = await BuildDetailsQuery(storefront: false)
             .FirstAsync(p => p.Id == product.Id, cancellationToken);
 
+        await _catalogRealtime.NotifyProductChangedAsync("created", product.Id, product.CategoryId, cancellationToken);
+
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(created, activeVariantsOnly: false));
     }
 
@@ -196,6 +200,8 @@ public class ProductService : IProductService
         var updated = await BuildDetailsQuery(storefront: false)
             .FirstAsync(p => p.Id == id, cancellationToken);
 
+        await _catalogRealtime.NotifyProductChangedAsync("updated", id, product.CategoryId, cancellationToken);
+
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(updated, activeVariantsOnly: false));
     }
 
@@ -225,6 +231,7 @@ public class ProductService : IProductService
         product.UpdatedBy = userId;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _catalogRealtime.NotifyProductChangedAsync("deleted", id, product.CategoryId, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -684,7 +691,9 @@ public class ProductService : IProductService
             PublishedAt = product.PublishedAt,
             Arabic = MapTranslation(product.Translations.FirstOrDefault(t => t.LanguageCode == "ar")),
             English = MapTranslation(product.Translations.FirstOrDefault(t => t.LanguageCode == "en")),
-            PrimaryImageUrl = primaryImage?.ThumbnailUrl ?? primaryImage?.ImageUrl,
+            PrimaryImageUrl = !string.IsNullOrWhiteSpace(primaryImage?.ThumbnailUrl)
+                ? primaryImage!.ThumbnailUrl
+                : primaryImage?.ImageUrl,
             LowestPrice = prices.Count == 0 ? null : prices.Min(),
             HighestPrice = prices.Count == 0 ? null : prices.Max(),
             TotalStock = stock.TotalStock,

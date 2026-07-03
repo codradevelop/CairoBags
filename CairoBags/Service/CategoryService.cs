@@ -9,10 +9,12 @@ namespace CairoBags.Service;
 public class CategoryService : ICategoryService
 {
     private readonly CairoBagsContext _context;
+    private readonly ICatalogRealtimeService _catalogRealtime;
 
-    public CategoryService(CairoBagsContext context)
+    public CategoryService(CairoBagsContext context, ICatalogRealtimeService catalogRealtime)
     {
         _context = context;
+        _catalogRealtime = catalogRealtime;
     }
 
     public async Task<IReadOnlyList<CategoryDto>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
@@ -126,6 +128,8 @@ public class CategoryService : ICategoryService
         var created = await QueryCategories(includeInactive: true)
             .FirstAsync(c => c.Id == category.Id, cancellationToken);
 
+        await _catalogRealtime.NotifyCategoryChangedAsync("created", category.Id, cancellationToken);
+
         return ServiceResult<CategoryDto>.Ok(MapToDto(created));
     }
 
@@ -184,6 +188,8 @@ public class CategoryService : ICategoryService
         var updated = await QueryCategories(includeInactive: true)
             .FirstAsync(c => c.Id == id, cancellationToken);
 
+        await _catalogRealtime.NotifyCategoryChangedAsync("updated", id, cancellationToken);
+
         return ServiceResult<CategoryDto>.Ok(MapToDto(updated));
     }
 
@@ -213,6 +219,7 @@ public class CategoryService : ICategoryService
         category.UpdatedBy = userId;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _catalogRealtime.NotifyCategoryChangedAsync("deleted", id, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 

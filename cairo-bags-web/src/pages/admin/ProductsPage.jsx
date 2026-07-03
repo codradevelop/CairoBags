@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AdminLayout } from "../../layouts/AdminLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import { DataTable } from "../../components/admin/index.js";
@@ -46,21 +47,26 @@ export function ProductsPage() {
 
   const pageSize = 10;
 
-  function loadProducts() {
-    setLoading(true);
-    productService
+  const loadProducts = useCallback((options = {}) => {
+    const background = options?.background === true;
+    if (!background) setLoading(true);
+    return productService
       .getProducts({ includeDraft: true })
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch((err) => {
-        toastError(err.message);
-        setProducts([]);
+        if (!background) toastError(err.message);
+        if (!background) setProducts([]);
       })
-      .finally(() => setLoading(false));
-  }
+      .finally(() => {
+        if (!background) setLoading(false);
+      });
+  }, [toastError]);
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [loadProducts]);
+
+  useCatalogRefresh(loadProducts, { entity: "product" });
 
   const filtered = useMemo(() => {
     return products.filter((product) => {

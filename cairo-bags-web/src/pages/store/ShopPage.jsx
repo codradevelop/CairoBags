@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ShopLayout } from "../../layouts/ShopLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import * as productService from "../../services/productService.js";
 import * as categoryService from "../../services/categoryService.js";
@@ -16,7 +17,7 @@ import {
   filtersToSearchParams,
   parseShopFilters,
 } from "../../utils/shopFilters.js";
-import { getProductName, getProductPriceRange } from "../../utils/productHelpers.js";
+import { getProductName, getProductPriceRange, getProductVariants, getVariantColorName } from "../../utils/productHelpers.js";
 import { Button } from "../../components/ui/index.js";
 import { cn } from "../../utils/cn.js";
 
@@ -56,24 +57,35 @@ export function ShopPage() {
     setDraftFilters(parseShopFilters(searchParams));
   }, [searchParams]);
 
-  useEffect(() => {
-    categoryService
-      .getCategories()
-      .then((data) => setCategories(Array.isArray(data) ? data : []))
-      .catch(() => {});
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await categoryService.getCategories();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch {
+      /* keep existing categories on refresh failure */
+    }
   }, []);
 
-  const loadProducts = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
+
+  const loadProducts = useCallback(async (options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await productService.getProducts(buildProductQueryParams(urlFilters));
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err);
-      setProducts([]);
+      if (!background) {
+        setError(err);
+        setProducts([]);
+      }
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [urlFilters.categoryId, urlFilters.minPrice, urlFilters.maxPrice, urlFilters.inStock, urlFilters.searchTerm]);
 
@@ -81,10 +93,41 @@ export function ShopPage() {
     loadProducts();
   }, [loadProducts]);
 
-  const sortedProducts = useMemo(
-    () => sortProducts(products, sortValue, locale),
-    [products, sortValue, locale]
-  );
+  useCatalogRefresh(loadProducts, { entity: "product" });
+  useCatalogRefresh(loadCategories, { entity: "category" });
+
+  const sortedAndFiltered = useMemo(() => {
+    let items = sortProducts(products, sortValue, locale);
+    if (urlFilters.color) {
+      const needle = urlFilters.color.toLowerCase();
+      items = items.filter((product) =>
+        getProductVariants(product).some((v) =>
+          getVariantColorName(v, locale).toLowerCase() === needle ||
+          (v.colorNameEn ?? v.ColorNameEn ?? "").toLowerCase() === needle ||
+          (v.colorNameAr ?? v.ColorNameAr ?? "").toLowerCase() === needle
+        )
+      );
+    }
+    return items;
+  }, [products, sortValue, locale, urlFilters.color]);
+
+  /* derive available colors from current product list */
+  const availableColors = useMemo(() => {
+    const seen = new Set();
+    const colors = [];
+    for (const product of products) {
+      for (const variant of getProductVariants(product)) {
+        const en = (variant.colorNameEn ?? variant.ColorNameEn ?? "").trim();
+        const ar = (variant.colorNameAr ?? variant.ColorNameAr ?? "").trim();
+        const key = en.toLowerCase() || ar.toLowerCase();
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          colors.push({ en, ar, key });
+        }
+      }
+    }
+    return colors;
+  }, [products]);
 
   function applyFilters() {
     setSearchParams(filtersToSearchParams(draftFilters));
@@ -126,6 +169,7 @@ export function ShopPage() {
             <ShopFiltersSidebar
               categories={categories}
               filters={draftFilters}
+              availableColors={availableColors}
               onChange={setDraftFilters}
               onApply={applyFilters}
               onReset={resetFilters}
@@ -134,7 +178,7 @@ export function ShopPage() {
 
           <div className="cb-shop-content">
             <ShopToolbar
-              productCount={sortedProducts.length}
+              productCount={sortedAndFiltered.length}
               loading={loading}
               sortValue={sortValue}
               onSortChange={setSortValue}
@@ -172,13 +216,13 @@ export function ShopPage() {
               />
             ) : null}
 
-            {!loading && !error && sortedProducts.length > 0 ? (
+            {!loading && !error && sortedAndFiltered.length > 0 ? (
               <div
                 className={viewMode === "grid" ? "cb-shop-product-grid" : "cb-shop-product-list"}
-                data-count={viewMode === "grid" && sortedProducts.length <= 3 ? String(sortedProducts.length) : undefined}
-                key={`${viewMode}-${sortedProducts.length}`}
+                data-count={viewMode === "grid" && sortedAndFiltered.length <= 3 ? String(sortedAndFiltered.length) : undefined}
+                key={`${viewMode}-${sortedAndFiltered.length}`}
               >
-                {sortedProducts.map((product) => (
+                {sortedAndFiltered.map((product) => (
                   <ShopProductCard
                     key={product.id ?? product.Id}
                     product={product}

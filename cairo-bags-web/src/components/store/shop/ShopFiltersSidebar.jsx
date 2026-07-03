@@ -1,13 +1,18 @@
 import { useLocale } from "../../layout/LanguageSwitcher.jsx";
 import { getCategoryId, getCategoryName } from "../../../utils/productHelpers.js";
+import { getColorFromName } from "../../../utils/colorSwatchUtils.js";
 import { cn } from "../../../utils/cn.js";
 
-const COLOR_SWATCHES = [
-  { id: "black", color: "#1b1b1b", label: "Black" },
-  { id: "brown", color: "#5c4033", label: "Dark Brown" },
-  { id: "tan", color: "#c4a574", label: "Tan" },
-  { id: "cream", color: "#f0e6d6", label: "Cream" },
-  { id: "white", color: "#ffffff", label: "White" },
+/* Fallback palette shown when no dynamic colors are loaded yet */
+const FALLBACK_COLORS = [
+  { en: "Black",  ar: "أسود",  key: "black"  },
+  { en: "Brown",  ar: "بني",   key: "brown"  },
+  { en: "Tan",    ar: "بيج",   key: "tan"    },
+  { en: "Beige",  ar: "كريمي", key: "beige"  },
+  { en: "White",  ar: "أبيض",  key: "white"  },
+  { en: "Grey",   ar: "رمادي", key: "grey"   },
+  { en: "Navy",   ar: "كحلي",  key: "navy"   },
+  { en: "Green",  ar: "أخضر",  key: "green"  },
 ];
 
 function FilterIcon() {
@@ -20,6 +25,7 @@ function FilterIcon() {
 
 export function ShopFiltersSidebar({
   categories = [],
+  availableColors = [],
   filters,
   onChange,
   onApply,
@@ -36,6 +42,10 @@ export function ShopFiltersSidebar({
     update("categoryId", filters.categoryId === categoryId ? "" : categoryId);
   }
 
+  function toggleColor(colorKey) {
+    update("color", filters.color === colorKey ? "" : colorKey);
+  }
+
   return (
     <aside className={cn("cb-shop-filters", className)}>
       <div className="cb-shop-filters-header">
@@ -45,6 +55,7 @@ export function ShopFiltersSidebar({
         </span>
       </div>
 
+      {/* ── Category ── */}
       <div className="cb-shop-filters-section">
         <h3 className="cb-shop-filters-section-title">{locale === "ar" ? "التصنيف" : "Category"}</h3>
         <ul className="cb-shop-filters-list">
@@ -78,6 +89,7 @@ export function ShopFiltersSidebar({
         </ul>
       </div>
 
+      {/* ── Price range ── */}
       <div className="cb-shop-filters-section">
         <div className="cb-shop-price-row">
           <h3 className="cb-shop-filters-section-title !mb-0">
@@ -115,31 +127,58 @@ export function ShopFiltersSidebar({
         </div>
       </div>
 
-      <div className="cb-shop-filters-section">
-        <h3 className="cb-shop-filters-section-title">{locale === "ar" ? "اللون" : "Color"}</h3>
-        <div className="cb-shop-color-swatches" role="list" aria-label={locale === "ar" ? "الألوان" : "Colors"}>
-          {COLOR_SWATCHES.map((swatch, index) => (
-            <button
-              key={swatch.id}
-              type="button"
-              role="listitem"
-              className={cn("cb-shop-color-swatch", index === 0 && "cb-shop-color-swatch-active")}
-              style={{ backgroundColor: swatch.color }}
-              aria-label={swatch.label}
-              aria-pressed={index === 0}
-            />
-          ))}
-          <button
-            type="button"
-            className="cb-shop-color-swatch flex items-center justify-center text-xs text-brand-muted"
-            style={{ backgroundColor: "#f5f1eb" }}
-            aria-label={locale === "ar" ? "المزيد" : "More colors"}
-          >
-            +
-          </button>
-        </div>
-      </div>
+      {/* ── Color (dynamic from products, fallback to palette) ── */}
+      {(() => {
+        const colors = availableColors.length > 0 ? availableColors : FALLBACK_COLORS;
+        return (
+          <div className="cb-shop-filters-section">
+            <div className="cb-shop-price-row">
+              <h3 className="cb-shop-filters-section-title !mb-0">
+                {locale === "ar" ? "اللون" : "Color"}
+              </h3>
+              {filters.color && (
+                <button
+                  type="button"
+                  className="cb-shop-filters-clear"
+                  onClick={() => update("color", "")}
+                >
+                  {locale === "ar" ? "مسح" : "Clear"}
+                </button>
+              )}
+            </div>
+            <div className="cb-shop-color-swatches" role="list" aria-label={locale === "ar" ? "الألوان" : "Colors"}>
+              {colors.map(({ en, ar, key }) => {
+                const label = locale === "ar" ? (ar || en) : (en || ar);
+                const hex = getColorFromName(en || ar) || "#ccc";
+                const selected = filters.color === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    role="listitem"
+                    onClick={() => toggleColor(key)}
+                    className={cn("cb-shop-color-swatch", selected && "cb-shop-color-swatch-active")}
+                    style={{ backgroundColor: hex }}
+                    aria-label={label}
+                    aria-pressed={selected}
+                    title={label}
+                  />
+                );
+              })}
+            </div>
+            {filters.color && (
+              <p className="cb-shop-color-selected-label">
+                {locale === "ar" ? "اللون: " : "Color: "}
+                <strong>
+                  {colors.find(c => c.key === filters.color)?.[locale === "ar" ? "ar" : "en"] || filters.color}
+                </strong>
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
+      {/* ── In stock ── */}
       <div className="cb-shop-filters-section">
         <label className="cb-shop-filter-option">
           <input
@@ -152,6 +191,7 @@ export function ShopFiltersSidebar({
         </label>
       </div>
 
+      {/* ── Actions ── */}
       <div className="cb-shop-filters-actions">
         <button type="button" className="cb-shop-btn-apply" onClick={onApply}>
           {locale === "ar" ? "تطبيق" : "Apply"}

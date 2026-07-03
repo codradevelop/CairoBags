@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Threading.RateLimiting;
 using CairoBags.Data;
 using CairoBags.Helpers;
@@ -75,6 +76,7 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<GoogleSignInService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddSingleton<ICatalogRealtimeService, CatalogRealtimeService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductImageService, ProductImageService>();
@@ -208,6 +210,13 @@ builder.Services.AddAuthentication(options =>
                 context.Token = accessToken;
             }
             return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            // Catalog hub is public — a bad/expired token must not block the connection.
+            if (context.Request.Path.StartsWithSegments("/hubs/catalog"))
+                context.NoResult();
+            return Task.CompletedTask;
         }
     };
 });
@@ -221,7 +230,11 @@ if (disableAuthorization)
 
 // SignalR: maps HubConnectionContext.UserIdentifier to JWT sub (NameIdentifier). Required for [Authorize] + user groups.
 // .NET 10 registers this via DI (same behavior as HubOptions.UserIdProvider in older templates).
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddSingleton<IUserIdProvider, NameIdentifierUserIdProvider>();
 builder.Services.AddHttpContextAccessor();
 
@@ -328,5 +341,6 @@ app.MapControllers();
 
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<NotificationHub>("/notificationsHub");
+app.MapHub<CatalogHub>("/hubs/catalog");
 
 app.Run();

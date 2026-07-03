@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import * as productService from "../../services/productService.js";
 import * as categoryService from "../../services/categoryService.js";
@@ -35,9 +36,12 @@ export function CategoryPage() {
   const categoryName = category ? getCategoryName(category, locale) : "";
   usePageTitle(categoryName || (locale === "ar" ? "التصنيف" : "Category"));
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(async (options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const cat = await categoryService.getCategoryByIdentifier(identifier);
       const categoryId = getCategoryId(cat);
@@ -47,17 +51,23 @@ export function CategoryPage() {
       setCategory(cat);
       setProducts(Array.isArray(prods) ? prods : []);
     } catch (err) {
-      setError(err);
-      setCategory(null);
-      setProducts([]);
+      if (!background) {
+        setError(err);
+        setCategory(null);
+        setProducts([]);
+      }
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [identifier]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useCatalogRefresh(loadData, {
+    categoryId: category ? getCategoryId(category) : undefined,
+  });
 
   useEffect(() => {
     if (!category) return;

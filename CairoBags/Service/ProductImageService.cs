@@ -15,17 +15,20 @@ public class ProductImageService : IProductImageService
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<ProductImageService> _logger;
+    private readonly ICatalogRealtimeService _catalogRealtime;
 
     public ProductImageService(
         CairoBagsContext context,
         IConfiguration configuration,
         IWebHostEnvironment environment,
-        ILogger<ProductImageService> logger)
+        ILogger<ProductImageService> logger,
+        ICatalogRealtimeService catalogRealtime)
     {
         _context = context;
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
+        _catalogRealtime = catalogRealtime;
     }
 
     public async Task<IReadOnlyList<ProductImageDto>> GetProductImagesAsync(
@@ -93,6 +96,7 @@ public class ProductImageService : IProductImageService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await NotifyProductUpdatedAsync(productId, cancellationToken);
         return ServiceResult<ProductImageDto>.Ok(MapImage(image));
     }
 
@@ -131,6 +135,7 @@ public class ProductImageService : IProductImageService
             .Select(MapImage)
             .ToList();
 
+        await NotifyProductUpdatedAsync(productId, cancellationToken);
         return ServiceResult<IReadOnlyList<ProductImageDto>>.Ok(ordered);
     }
 
@@ -179,6 +184,7 @@ public class ProductImageService : IProductImageService
         }
 
         TryDeletePhysicalFile(imageUrl);
+        await NotifyProductUpdatedAsync(productId, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -235,6 +241,7 @@ public class ProductImageService : IProductImageService
         _context.ProductImages.Add(image);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await NotifyProductUpdatedAsync(productId, cancellationToken);
         return ServiceResult<ProductImageDto>.Ok(MapImage(image));
     }
 
@@ -387,4 +394,15 @@ public class ProductImageService : IProductImageService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task NotifyProductUpdatedAsync(int productId, CancellationToken cancellationToken)
+    {
+        var categoryId = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Id == productId)
+            .Select(p => (int?)p.CategoryId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        await _catalogRealtime.NotifyProductChangedAsync("updated", productId, categoryId, cancellationToken);
+    }
 }

@@ -9,10 +9,12 @@ namespace CairoBags.Service;
 public class InventoryService : IInventoryService
 {
     private readonly CairoBagsContext _context;
+    private readonly ICatalogRealtimeService _catalogRealtime;
 
-    public InventoryService(CairoBagsContext context)
+    public InventoryService(CairoBagsContext context, ICatalogRealtimeService catalogRealtime)
     {
         _context = context;
+        _catalogRealtime = catalogRealtime;
     }
 
     public async Task<IReadOnlyList<InventoryListItemDto>> GetInventoryListAsync(CancellationToken cancellationToken = default)
@@ -212,6 +214,10 @@ public class InventoryService : IInventoryService
 
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+
+            var productId = inventory.ProductVariant.ProductId;
+            var categoryId = inventory.ProductVariant.Product.CategoryId;
+            await _catalogRealtime.NotifyProductChangedAsync("updated", productId, categoryId, cancellationToken);
 
             return ServiceResult<InventoryDetailsDto>.Ok(MapDetails(inventory));
         }

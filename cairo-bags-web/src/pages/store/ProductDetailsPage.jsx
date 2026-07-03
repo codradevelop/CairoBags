@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
@@ -68,24 +69,29 @@ export function ProductDetailsPage() {
   const productName = product ? getProductName(product, locale) : "";
   usePageTitle(productName || (locale === "ar" ? "المنتج" : "Product"));
 
-  const loadProduct = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadProduct = useCallback(async (options = {}) => {
+    const background = options?.background === true;
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await productService.getProductByIdentifier(identifier);
       setProduct(data);
       const variants = getProductVariants(data);
       const defaultVariant =
         variants.find((v) => v.isDefault ?? v.IsDefault) ?? variants[0] ?? null;
-      if (defaultVariant) {
+      if (defaultVariant && !background) {
         setSelectedColor(getVariantColorName(defaultVariant, locale) || null);
         setSelectedSize(getVariantSizeName(defaultVariant, locale) || null);
       }
     } catch (err) {
-      setError(err);
-      setProduct(null);
+      if (!background) {
+        setError(err);
+        setProduct(null);
+      }
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [identifier, locale]);
 
@@ -93,6 +99,11 @@ export function ProductDetailsPage() {
     loadProduct();
     setRatingStats(null);
   }, [loadProduct]);
+
+  useCatalogRefresh(loadProduct, {
+    entity: "product",
+    id: product ? (product.id ?? product.Id) : undefined,
+  });
 
   useEffect(() => {
     if (!product) return;

@@ -14,6 +14,7 @@ export function buildProductQueryParams(filters = {}) {
   if (filters.searchTerm?.trim()) {
     params.SearchTerm = filters.searchTerm.trim();
   }
+  // color is applied client-side after fetch
 
   return params;
 }
@@ -25,6 +26,7 @@ export function parseShopFilters(searchParams) {
     maxPrice: searchParams.get("maxPrice") ?? "",
     inStock: searchParams.get("inStock") === "true",
     searchTerm: searchParams.get("q") ?? searchParams.get("searchTerm") ?? "",
+    color: searchParams.get("color") ?? "",
   };
 }
 
@@ -35,5 +37,6 @@ export function filtersToSearchParams(filters) {
   if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
   if (filters.inStock === true) params.set("inStock", "true");
   if (filters.searchTerm) params.set("q", filters.searchTerm);
+  if (filters.color) params.set("color", filters.color);
   return params;
 }

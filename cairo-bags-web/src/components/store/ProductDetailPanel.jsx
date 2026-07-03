@@ -1,4 +1,5 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { ProductPrice } from "./ProductPrice.jsx";
 import { ProductBadges } from "./ProductBadges.jsx";
@@ -6,9 +7,16 @@ import { AdminPreviewBadge } from "./AdminPreviewBanner.jsx";
 import { ProductRatingLine } from "../reviews/ProductRatingLine.jsx";
 import { QuantitySelector } from "../cart/QuantitySelector.jsx";
 import { Button } from "../ui/Button.jsx";
+import { useWishlist } from "../../context/WishlistContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { useToast } from "../ui/Toast.jsx";
+import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { getColorFromName, isLightSwatch } from "../../utils/colorSwatchUtils.js";
 import {
   formatPrice,
+  getCategoryName,
+  getProductId,
+  getProductShortDescription,
   getVariantColorName,
   getVariantId,
   getVariantPrice,
@@ -31,6 +39,58 @@ function getDiscountPercent(price, compare) {
   return Math.round(((Number(compare) - Number(price)) / Number(compare)) * 100);
 }
 
+/* ── Feature bullets from short description ── */
+function FeatureBullets({ text }) {
+  if (!text) return null;
+  const lines = text.split(/\n|•|·/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  return (
+    <ul className="zpdp-bullets">
+      {lines.map((line, i) => (
+        <li key={i} className="zpdp-bullet">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="4 10 8 14 16 6" />
+          </svg>
+          <span>{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ── Wishlist text-link ── */
+function WishlistLink({ productId }) {
+  const readOnly = useStoreReadOnly();
+  if (readOnly) return null;
+  const { locale } = useLocale();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const { error: toastError } = useToast();
+  const [pending, setPending] = useState(false);
+  const active = isInWishlist(productId);
+
+  async function handle(e) {
+    e.preventDefault();
+    if (!isAuthenticated) { navigate("/login", { state: { from: window.location.pathname } }); return; }
+    setPending(true);
+    try { await toggleWishlist(productId); }
+    catch (err) { toastError(err.message || "Could not update wishlist"); }
+    finally { setPending(false); }
+  }
+
+  return (
+    <button type="button" onClick={handle} disabled={pending}
+      className={cn("zpdp-meta-link", active && "zpdp-meta-link--active")} aria-pressed={active}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      </svg>
+      {active ? (locale === "ar" ? "في المفضلة" : "In wishlist") : (locale === "ar" ? "أضف للمفضلة" : "Add to wishlist")}
+    </button>
+  );
+}
+
+/* ── Main panel ── */
 export const ProductDetailPanel = memo(function ProductDetailPanel({
   product,
   productName,
@@ -59,242 +119,183 @@ export const ProductDetailPanel = memo(function ProductDetailPanel({
 }) {
   const { locale } = useLocale();
   const selectedVariantId = selectedVariant ? getVariantId(selectedVariant) : null;
+  const productId = getProductId(product);
 
-  const colorSwatches = useMemo(() => {
-    return colorOptions.map((color) => {
-      const imageUrl = getVariantImageForColor(variants, color, locale, productImages);
-      const hex = getColorFromName(color);
-      return { color, imageUrl, hex, light: isLightSwatch(hex) };
-    });
-  }, [colorOptions, variants, locale, productImages]);
+  const categoryObj = product?.category ?? product?.Category;
+  const categoryName = categoryObj ? getCategoryName(categoryObj, locale) : null;
 
-  const selectionParts = useMemo(() => {
-    const parts = [];
-    if (selectedColor) parts.push(selectedColor);
-    if (hasSizes && selectedSize) parts.push(selectedSize);
-    if (quantity > 1) {
-      parts.push(
-        locale === "ar" ? `×${quantity}` : `Qty ${quantity}`
-      );
-    }
-    return parts;
-  }, [selectedColor, selectedSize, hasSizes, quantity, locale]);
+  const colorSwatches = useMemo(() => colorOptions.map((color) => {
+    const imageUrl = getVariantImageForColor(variants, color, locale, productImages);
+    const hex = getColorFromName(color);
+    return { color, imageUrl, hex, light: isLightSwatch(hex) };
+  }), [colorOptions, variants, locale, productImages]);
 
   const variantPrice = selectedVariant ? getVariantPrice(selectedVariant) : null;
   const variantCompare = selectedVariant ? getVariantComparePrice(selectedVariant) : null;
   const discount = getDiscountPercent(variantPrice, variantCompare);
 
-  const optionLabels = {
+  const shortDesc = product ? getProductShortDescription(product, locale) : "";
+
+  const t = {
     color: locale === "ar" ? "اللون" : "Color",
     size: locale === "ar" ? "المقاس" : "Size",
-    quantity: locale === "ar" ? "الكمية" : "Quantity",
-    yourSelection: locale === "ar" ? "اختيارك" : "Your selection",
-    selectOptions: locale === "ar" ? "اختر اللون والمقاس" : "Select color & size",
-    inStock: locale === "ar" ? "متوفر — جاهز للشحن" : "In stock — ready to ship",
-    outOfStock: locale === "ar" ? "غير متوفر حالياً" : "Currently unavailable",
-    maxQty: locale === "ar" ? "الحد الأقصى" : "Max",
+    inStock: locale === "ar" ? "متوفر" : "In stock",
+    outOfStock: locale === "ar" ? "غير متوفر" : "Out of stock",
+    category: locale === "ar" ? "الفئة" : "Category",
   };
 
-  const quantityDisabled = !selectedVariantId || !inStock || readOnly;
+  const qtyDisabled = !selectedVariantId || !inStock || readOnly;
 
   return (
-    <div className="cb-product-detail-panel">
-      <header className="cb-product-detail-header">
-        <div className="cb-product-detail-badges">
+    <div className="zpdp">
+
+      {/* ══════════════════ HEADER BLOCK ══════════════════ */}
+      <div className="zpdp-header">
+        {/* brand / category */}
+        {categoryName && <p className="zpdp-brand">{categoryName}</p>}
+
+        {/* badges */}
+        <div className="zpdp-badges">
           <ProductBadges product={product} showStock={false} />
           <AdminPreviewBadge />
         </div>
 
-        <h1 className="cb-product-detail-title">{productName}</h1>
+        {/* title */}
+        <h1 className="zpdp-title">{productName}</h1>
 
-        <ProductRatingLine
-          product={product}
-          size="sm"
-          className="cb-product-detail-rating"
-          onReviewsClick={onScrollToReviews}
-        />
-      </header>
+        {/* rating */}
+        <ProductRatingLine product={product} size="sm" className="zpdp-rating" onReviewsClick={onScrollToReviews} />
 
-      <div className="cb-product-detail-price-block" key={selectedVariantId ?? "range"}>
-        <ProductPrice
-          className="cb-product-detail-price"
-          size="detail"
-          price={variantPrice ?? undefined}
-          comparePrice={variantCompare ?? undefined}
-          product={!selectedVariant ? product : undefined}
-        />
-        {discount ? (
-          <span className="cb-product-detail-save">
-            {locale === "ar" ? `وفّر ${discount}%` : `Save ${discount}%`}
-          </span>
-        ) : null}
+        {/* feature bullets */}
+        <FeatureBullets text={shortDesc || description} />
+
+        {/* price */}
+        <div className="zpdp-price-row" key={selectedVariantId ?? "range"}>
+          <ProductPrice
+            size="detail"
+            price={variantPrice ?? undefined}
+            comparePrice={variantCompare ?? undefined}
+            product={!selectedVariant ? product : undefined}
+          />
+          {discount && (
+            <span className="zpdp-save">Save {discount}%</span>
+          )}
+        </div>
+
+        {/* stock pill */}
+        <div className={cn("zpdp-stock", inStock ? "zpdp-stock--in" : "zpdp-stock--out")}>
+          {inStock ? t.inStock : t.outOfStock}
+        </div>
       </div>
 
-      {description ? <p className="cb-product-detail-description">{description}</p> : null}
-
-      <div className="cb-product-detail-purchase">
-        {colorOptions.length > 0 ? (
-          <div className="cb-product-detail-option">
-            <div className="cb-product-detail-option-head">
-              <span className="cb-product-detail-option-label">{optionLabels.color}</span>
-              {selectedColor ? (
-                <span className="cb-product-detail-option-value">{selectedColor}</span>
-              ) : null}
-            </div>
-            <div className="cb-color-options" role="listbox" aria-label={optionLabels.color}>
-              {colorSwatches.map(({ color, imageUrl, hex, light }) => {
-                const selected = color === selectedColor;
-                const colorInStock = variants
-                  .filter((v) => getVariantColorName(v, locale) === color)
-                  .some((v) => isVariantInStock(v));
-                return (
-                  <button
-                    key={color}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    aria-label={color}
-                    disabled={!colorInStock}
-                    onClick={() => onColorChange(color)}
-                    className={cn(
-                      "cb-color-option",
-                      selected && "cb-color-option-active",
-                      !colorInStock && "cb-color-option-disabled"
-                    )}
-                    title={color}
-                  >
-                    <span
-                      className={cn(
-                        "cb-color-swatch",
-                        light && "cb-color-swatch-light",
-                        imageUrl && "cb-color-swatch-image"
-                      )}
-                      style={
-                        imageUrl
-                          ? { backgroundImage: `url(${imageUrl})` }
-                          : { backgroundColor: hex }
-                      }
-                      aria-hidden="true"
-                    />
-                    <span className="cb-color-name">{color}</span>
-                  </button>
-                );
-              })}
-            </div>
+      {/* ══════════════════ COLOR ══════════════════ */}
+      {colorOptions.length > 0 && (
+        <div className="zpdp-section">
+          <p className="zpdp-section-label">
+            {t.color}
+            {selectedColor && <span className="zpdp-section-val">{selectedColor}</span>}
+          </p>
+          <div className="cb-color-options" role="listbox" aria-label={t.color}>
+            {colorSwatches.map(({ color, imageUrl, hex, light }) => {
+              const selected = color === selectedColor;
+              const colorInStock = variants
+                .filter(v => getVariantColorName(v, locale) === color)
+                .some(v => isVariantInStock(v));
+              return (
+                <button key={color} type="button" role="option" aria-selected={selected}
+                  aria-label={color} disabled={!colorInStock} onClick={() => onColorChange(color)}
+                  className={cn("cb-color-option", selected && "cb-color-option-active", !colorInStock && "cb-color-option-disabled")}
+                  title={color}>
+                  <span
+                    className={cn("cb-color-swatch", light && "cb-color-swatch-light", imageUrl && "cb-color-swatch-image")}
+                    style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : { backgroundColor: hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="cb-color-name">{color}</span>
+                </button>
+              );
+            })}
           </div>
-        ) : null}
+        </div>
+      )}
 
-        {hasSizes && sizeOptions.length > 0 ? (
-          <div className="cb-product-detail-option">
-            <div className="cb-product-detail-option-head">
-              <span className="cb-product-detail-option-label">{optionLabels.size}</span>
-              {selectedSize ? (
-                <span className="cb-product-detail-option-value">{selectedSize}</span>
-              ) : null}
-            </div>
-            <div className="cb-size-grid" role="listbox" aria-label={optionLabels.size}>
-              {sizeOptions.map((size) => {
-                const selected = size === selectedSize;
-                const matchingVariant = variants.find(
-                  (v) =>
-                    (!selectedColor || getVariantColorName(v, locale) === selectedColor) &&
-                    getVariantSizeName(v, locale) === size
-                );
-                const sizeInStock = matchingVariant ? isVariantInStock(matchingVariant) : false;
-                const sizePrice = matchingVariant ? getVariantPrice(matchingVariant) : null;
-                return (
-                  <button
-                    key={size}
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    disabled={!sizeInStock}
-                    onClick={() => onSizeChange(size)}
-                    className={cn(
-                      "cb-size-option",
-                      selected && "cb-size-option-active",
-                      !sizeInStock && "cb-size-option-disabled"
-                    )}
-                  >
-                    <span className="cb-size-option-label">{size}</span>
-                    {sizePrice != null ? (
-                      <span className="cb-size-option-price">{formatPrice(sizePrice, locale)}</span>
-                    ) : null}
-                    {!sizeInStock ? (
-                      <span className="cb-size-option-sold">
-                        {locale === "ar" ? "نفد" : "Sold out"}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
+      {/* ══════════════════ SIZE ══════════════════ */}
+      {hasSizes && sizeOptions.length > 0 && (
+        <div className="zpdp-section">
+          <p className="zpdp-section-label">
+            {t.size}
+            {selectedSize && <span className="zpdp-section-val">{selectedSize}</span>}
+          </p>
+          <div className="cb-size-grid" role="listbox" aria-label={t.size}>
+            {sizeOptions.map((size) => {
+              const selected = size === selectedSize;
+              const mv = variants.find(v =>
+                (!selectedColor || getVariantColorName(v, locale) === selectedColor) &&
+                getVariantSizeName(v, locale) === size
+              );
+              const sizeInStock = mv ? isVariantInStock(mv) : false;
+              const sizePrice = mv ? getVariantPrice(mv) : null;
+              return (
+                <button key={size} type="button" role="option" aria-selected={selected}
+                  disabled={!sizeInStock} onClick={() => onSizeChange(size)}
+                  className={cn("cb-size-option", selected && "cb-size-option-active", !sizeInStock && "cb-size-option-disabled")}>
+                  <span className="cb-size-option-label">{size}</span>
+                  {sizePrice != null && <span className="cb-size-option-price">{formatPrice(sizePrice, locale)}</span>}
+                  {!sizeInStock && <span className="cb-size-option-sold">{locale === "ar" ? "نفد" : "Sold out"}</span>}
+                </button>
+              );
+            })}
           </div>
-        ) : null}
+        </div>
+      )}
 
-        <div className="cb-product-detail-option cb-product-detail-quantity-row">
-          <div className="cb-product-detail-option-head">
-            <span className="cb-product-detail-option-label">{optionLabels.quantity}</span>
-            {maxQuantity > 0 && inStock ? (
-              <span className="cb-product-detail-option-value">
-                {optionLabels.maxQty}: {maxQuantity}
-              </span>
-            ) : null}
-          </div>
+      {/* ══════════════════ ACTION ROW ══════════════════ */}
+      {!readOnly && (
+        <div className="zpdp-action-row">
           <QuantitySelector
             value={quantity}
             min={1}
             max={maxQuantity > 0 ? maxQuantity : 1}
-            disabled={quantityDisabled}
+            disabled={qtyDisabled}
             onChange={onQuantityChange}
-            className="cb-product-detail-quantity"
+            className="zpdp-qty"
           />
+          <Button type="button" variant="outline" size="lg"
+            className="zpdp-btn zpdp-btn-cart"
+            disabled={!selectedVariantId || !inStock}
+            loading={adding && !buying}
+            onClick={onAddToCart}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            {labels.addToCart}
+          </Button>
+          <Button type="button" variant="accent" size="lg"
+            className="zpdp-btn zpdp-btn-buy"
+            disabled={!selectedVariantId || !inStock}
+            loading={buying}
+            onClick={onBuyNow}>
+            {labels.buyNow}
+          </Button>
         </div>
+      )}
 
-        <div className="cb-product-detail-summary" aria-live="polite">
-          <span className="cb-product-detail-summary-label">{optionLabels.yourSelection}</span>
-          <span className="cb-product-detail-summary-value">
-            {selectionParts.length > 0 ? selectionParts.join(" · ") : optionLabels.selectOptions}
-          </span>
+      {/* ══════════════════ WISHLIST LINK ══════════════════ */}
+      {!readOnly && (
+        <div className="zpdp-links">
+          <WishlistLink productId={productId} />
         </div>
+      )}
 
-        <div
-          className={cn(
-            "cb-product-detail-stock",
-            inStock ? "cb-product-detail-stock--in" : "cb-product-detail-stock--out"
-          )}
-        >
-          <span className="cb-product-detail-stock-dot" aria-hidden="true" />
-          <span>{inStock ? optionLabels.inStock : optionLabels.outOfStock}</span>
-        </div>
-
-        {!readOnly ? (
-          <div className="cb-product-detail-actions">
-            <Button
-              type="button"
-              variant="accent"
-              size="lg"
-              className="cb-product-detail-btn cb-product-detail-btn-primary"
-              disabled={!selectedVariantId || !inStock}
-              loading={buying}
-              onClick={onBuyNow}
-            >
-              {labels.buyNow}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="cb-product-detail-btn cb-product-detail-btn-secondary"
-              disabled={!selectedVariantId || !inStock}
-              loading={adding && !buying}
-              onClick={onAddToCart}
-            >
-              {labels.addToCart}
-            </Button>
+      {/* ══════════════════ META (category) ══════════════════ */}
+      {categoryName && (
+        <div className="zpdp-meta">
+          <div className="zpdp-meta-row">
+            <span className="zpdp-meta-key">{t.category}:</span>
+            <span className="zpdp-meta-val zpdp-meta-link-text">{categoryName}</span>
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
     </div>
   );
 });

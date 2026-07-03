@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { StoreLayout } from "../../layouts/StoreLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
+import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import * as productService from "../../services/productService.js";
 import {
@@ -30,30 +31,35 @@ export function SearchResultsPage() {
       : "Search";
   usePageTitle(pageTitle);
 
-  const loadResults = useCallback(async () => {
+  const loadResults = useCallback(async (options = {}) => {
+    const background = options?.background === true;
     if (!query.trim()) {
       setProducts([]);
-      setLoading(false);
+      if (!background) setLoading(false);
       return;
     }
-    setLoading(true);
-    setError(null);
+    if (!background) setLoading(true);
+    if (!background) setError(null);
     try {
       const data = await productService.searchProducts(
         buildProductQueryParams({ searchTerm: query })
       );
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err);
-      setProducts([]);
+      if (!background) {
+        setError(err);
+        setProducts([]);
+      }
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [query]);
 
   useEffect(() => {
     loadResults();
   }, [loadResults]);
+
+  useCatalogRefresh(loadResults, { entity: "product" });
 
   return (
     <StoreLayout>
