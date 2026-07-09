@@ -1,12 +1,10 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../ui/Button.jsx";
 import { Input } from "../ui/Input.jsx";
 import { Navbar } from "./Navbar.jsx";
-import { getNavLabel, storeNavLinks } from "./navConfig.js";
 import { useLocale } from "./LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
-import { getStoreNavHref, handleStoreNavClick } from "../../utils/homeNav.js";
 
 function CloseIcon() {
   return (
@@ -16,10 +14,8 @@ function CloseIcon() {
   );
 }
 
-export function MobileMenu({ open, onClose, links = storeNavLinks }) {
+export function MobileMenu({ open, onClose, links }) {
   const { locale } = useLocale();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!open) return undefined;
@@ -38,26 +34,30 @@ export function MobileMenu({ open, onClose, links = storeNavLinks }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  if (!open) return null;
-
   const searchPlaceholder = locale === "ar" ? "ابحث عن حقائب..." : "Search bags...";
 
   return (
+    <AnimatePresence>
+      {open ? (
     <div className="fixed inset-0 z-50 lg:hidden" role="presentation">
       {/* Backdrop */}
-      <button
+      <motion.button
         type="button"
         className="absolute inset-0 backdrop-blur-[3px]"
         style={{ background: "rgba(17,17,17,0.6)" }}
         aria-label={locale === "ar" ? "إغلاق القائمة" : "Close menu"}
         onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
       />
 
       {/* Panel — glassmorphism */}
-      <aside
+      <motion.aside
         className={cn(
           "absolute inset-y-0 start-0 flex w-[min(100vw-3rem,22rem)] flex-col",
-          "animate-slide-in-left cb-glass-card shadow-modal",
+          "cb-glass-card shadow-modal",
         )}
         style={{
           background: "var(--cb-glass-bg)",
@@ -68,6 +68,10 @@ export function MobileMenu({ open, onClose, links = storeNavLinks }) {
         role="dialog"
         aria-modal="true"
         aria-label={locale === "ar" ? "قائمة الجوال" : "Mobile menu"}
+        initial={{ x: "-100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "-100%" }}
+        transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* Header */}
         <div
@@ -100,35 +104,7 @@ export function MobileMenu({ open, onClose, links = storeNavLinks }) {
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 cb-scrollbar-thin">
-          <ul className="space-y-0.5">
-            {links.map((link) => (
-              <li key={link.key}>
-                <a
-                  href={getStoreNavHref(link, location.pathname)}
-                  className="group flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-brand-text transition-all duration-fast hover:bg-brand-accent/8 hover:text-brand-accent"
-                  onClick={(event) => {
-                    if (link.key === "shop" || link.homeSection) {
-                      event.preventDefault();
-                      handleStoreNavClick(link, {
-                        pathname: location.pathname,
-                        navigate,
-                        onDone: onClose,
-                      });
-                      return;
-                    }
-                    onClose();
-                  }}
-                >
-                  {/* Gold bullet dot */}
-                  <span
-                    className="h-1 w-1 rounded-full flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ background: "#c9a962" }}
-                  />
-                  {getNavLabel(link, locale)}
-                </a>
-              </li>
-            ))}
-          </ul>
+          <Navbar orientation="vertical" links={links} onNavigate={onClose} />
         </nav>
 
         {/* Footer accent */}
@@ -138,7 +114,9 @@ export function MobileMenu({ open, onClose, links = storeNavLinks }) {
             {locale === "ar" ? "حقائب فاخرة • تصميم مصري" : "Luxury Bags • Egyptian Craft"}
           </p>
         </div>
-      </aside>
+      </motion.aside>
     </div>
+      ) : null}
+    </AnimatePresence>
   );
 }

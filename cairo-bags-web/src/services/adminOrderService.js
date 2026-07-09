@@ -43,3 +43,11 @@ export async function refundAdminOrder(id) {
     axiosInstance.post(ENDPOINTS.adminOrders.refund(id)).then(({ data }) => data)
   );
 }
+
+export async function updateCodOrderStatus(id, status) {
+  return handleServiceCall(
+    axiosInstance
+      .post(ENDPOINTS.adminOrders.codStatus(id), { status })
+      .then(({ data }) => data)
+  );
+}

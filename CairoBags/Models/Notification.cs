@@ -50,6 +50,9 @@ public class Notification
 
     public bool IsRead { get; set; }
 
+    /// <summary>Archived notifications are hidden from the active list but kept for history.</summary>
+    public bool IsArchived { get; set; }
+
     /// <summary>
     /// Deep-link target (e.g. Order, OrderPayment, ProductReview). See <see cref="NotificationTargetTypes"/>.
     /// </summary>

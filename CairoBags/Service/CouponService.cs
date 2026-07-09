@@ -1,5 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Coupons;
+using CairoBags.Dto.Store;
+using CairoBags.Hubs;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using CairoBags.Models.Coupons;
@@ -12,10 +14,17 @@ namespace CairoBags.Service;
 public class CouponService : ICouponService
 {
     private readonly CairoBagsContext _context;
+    private readonly IShippingFeeService _shippingFeeService;
+    private readonly IStoreUpdateBroadcastService _storeBroadcast;
 
-    public CouponService(CairoBagsContext context)
+    public CouponService(
+        CairoBagsContext context,
+        IShippingFeeService shippingFeeService,
+        IStoreUpdateBroadcastService storeBroadcast)
     {
         _context = context;
+        _shippingFeeService = shippingFeeService;
+        _storeBroadcast = storeBroadcast;
     }
 
     public async Task<AdminCouponStatsDto> GetStatsAsync(CancellationToken cancellationToken = default)
@@ -198,6 +207,7 @@ public class CouponService : ICouponService
         await _context.SaveChangesAsync(cancellationToken);
 
         var detail = await BuildDetailDtoAsync(coupon, cancellationToken);
+        await BroadcastCouponAsync(StoreUpdateEvents.CouponCreated, coupon.Id, coupon.Code, coupon.IsActive, cancellationToken);
         return ServiceResult<AdminCouponDetailDto>.Ok(detail);
     }
 
@@ -235,6 +245,7 @@ public class CouponService : ICouponService
         await _context.SaveChangesAsync(cancellationToken);
 
         var detail = await BuildDetailDtoAsync(coupon, cancellationToken);
+        await BroadcastCouponAsync(StoreUpdateEvents.CouponUpdated, coupon.Id, coupon.Code, coupon.IsActive, cancellationToken);
         return ServiceResult<AdminCouponDetailDto>.Ok(detail);
     }
 
@@ -252,6 +263,7 @@ public class CouponService : ICouponService
 
         _context.Coupons.Remove(coupon);
         await _context.SaveChangesAsync(cancellationToken);
+        await BroadcastCouponAsync(StoreUpdateEvents.CouponDeleted, id, coupon.Code, false, cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -271,6 +283,7 @@ public class CouponService : ICouponService
         await _context.SaveChangesAsync(cancellationToken);
 
         var detail = await BuildDetailDtoAsync(coupon, cancellationToken);
+        await BroadcastCouponAsync(StoreUpdateEvents.CouponUpdated, coupon.Id, coupon.Code, coupon.IsActive, cancellationToken);
         return ServiceResult<AdminCouponDetailDto>.Ok(detail);
     }
 
@@ -314,6 +327,7 @@ public class CouponService : ICouponService
         await _context.SaveChangesAsync(cancellationToken);
 
         var detail = await BuildDetailDtoAsync(duplicate, cancellationToken);
+        await BroadcastCouponAsync(StoreUpdateEvents.CouponCreated, duplicate.Id, duplicate.Code, duplicate.IsActive, cancellationToken);
         return ServiceResult<AdminCouponDetailDto>.Ok(detail);
     }
 
@@ -346,6 +360,7 @@ public class CouponService : ICouponService
 
         var coupon = validation.Coupon;
         var discount = validation.DiscountAmount;
+        // Product discount only; shipping is added after discount (coupon free-shipping zeroes shipping separately).
         var subtotalAfterDiscount = Math.Max(0m, subTotal - discount);
 
         ShippingAddress? address = null;
@@ -358,7 +373,7 @@ public class CouponService : ICouponService
 
         var shippingFee = address == null
             ? 0m
-            : await CalculateShippingFeeAsync(address.Governorate, subtotalAfterDiscount, coupon, cancellationToken);
+            : await _shippingFeeService.CalculateShippingFeeAsync(address.Governorate, coupon, cancellationToken);
 
         return ServiceResult<ValidateCouponResponseDto>.Ok(new ValidateCouponResponseDto
         {
@@ -521,36 +536,6 @@ public class CouponService : ICouponService
         return lines;
     }
 
-    private async Task<decimal> CalculateShippingFeeAsync(
-        string governorateName,
-        decimal subtotalAfterDiscount,
-        Coupon? coupon,
-        CancellationToken cancellationToken)
-    {
-        if (coupon?.Type == CouponType.FreeShipping)
-            return 0m;
-
-        var governorate = await _context.Governorates
-            .Include(g => g.ShippingZone)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(g =>
-                g.NameEn == governorateName || g.NameAr == governorateName,
-                cancellationToken);
-
-        if (governorate?.ShippingZone == null)
-            return 0m;
-
-        var zone = governorate.ShippingZone;
-        if (zone.FreeShippingThreshold.HasValue && subtotalAfterDiscount >= zone.FreeShippingThreshold.Value)
-            return 0m;
-
-        var settings = await _context.SystemSettings.AsNoTracking().FirstOrDefaultAsync(s => s.Id == 1, cancellationToken);
-        if (settings?.FreeShippingThreshold.HasValue == true && subtotalAfterDiscount >= settings.FreeShippingThreshold.Value)
-            return 0m;
-
-        return zone.BaseShippingFee;
-    }
-
     private static AdminCouponListItemDto MapListItem(Coupon coupon)
     {
         return new AdminCouponListItemDto
@@ -625,4 +610,20 @@ public class CouponService : ICouponService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private Task BroadcastCouponAsync(
+        string eventName,
+        int couponId,
+        string code,
+        bool isActive,
+        CancellationToken cancellationToken) =>
+        _storeBroadcast.BroadcastStorefrontAsync(
+            eventName,
+            new StoreUpdatePayloadDto
+            {
+                EntityId = couponId,
+                Code = code,
+                IsActive = isActive,
+            },
+            cancellationToken);
 }

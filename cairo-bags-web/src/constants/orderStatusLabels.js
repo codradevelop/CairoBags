@@ -57,6 +57,31 @@ export const ORDER_STATUS_META = {
     labelAr: "مسترد",
     variant: "outline",
   },
+  [ORDER_STATUS.CONFIRMED]: {
+    labelEn: "Confirmed",
+    labelAr: "مؤكد",
+    variant: "success",
+  },
+  [ORDER_STATUS.PREPARING]: {
+    labelEn: "Preparing",
+    labelAr: "قيد التجهيز",
+    variant: "primary",
+  },
+  [ORDER_STATUS.HANDED_TO_SHIPPING]: {
+    labelEn: "Handed to Shipping",
+    labelAr: "تم التسليم للشحن",
+    variant: "primary",
+  },
+  [ORDER_STATUS.AT_LOCAL_HUB]: {
+    labelEn: "At Local Hub",
+    labelAr: "في المركز المحلي",
+    variant: "primary",
+  },
+  [ORDER_STATUS.OUT_FOR_DELIVERY]: {
+    labelEn: "Out for Delivery",
+    labelAr: "خرج للتسليم",
+    variant: "primary",
+  },
 };
 
 export const PAYMENT_STATUS_META = {

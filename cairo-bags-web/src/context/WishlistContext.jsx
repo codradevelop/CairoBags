@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 import * as wishlistService from "../services/wishlistService.js";
+import { STORE_EVENTS } from "../constants/storeEvents.js";
+import { useStoreSync } from "../hooks/useStoreSync.js";
 import {
   normalizeWishlistCountResponse,
   normalizeWishlistResponse,
@@ -175,6 +177,19 @@ export function WishlistProvider({ children }) {
 
     return () => controller.abort();
   }, [isAuthenticated, resetWishlist]);
+
+  useStoreSync(
+    [
+      STORE_EVENTS.ProductUpdated,
+      STORE_EVENTS.ProductDeleted,
+      STORE_EVENTS.InventoryUpdated,
+    ],
+    () => {
+      if (isAuthenticated) {
+        loadWishlist().catch(() => {});
+      }
+    }
+  );
 
   const value = useMemo(
     () => ({

@@ -5,6 +5,8 @@ import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { DataTable } from "../../components/admin/index.js";
 import {
   ADMIN_COL,
@@ -49,6 +51,11 @@ export function CategoriesPage() {
         if (!background) setLoading(false);
       });
   }, [toastError]);
+
+  useStoreSync(
+    [STORE_EVENTS.CategoryCreated, STORE_EVENTS.CategoryUpdated, STORE_EVENTS.CategoryDeleted],
+    () => loadCategories()
+  );
 
   useEffect(() => {
     loadCategories();

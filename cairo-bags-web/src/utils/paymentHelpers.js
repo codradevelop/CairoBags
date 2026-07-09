@@ -5,6 +5,7 @@ export const TIMELINE_EVENT = {
   PAYMENT_REJECTED: "payment_rejected",
   PROOF_SUBMITTED: "proof_submitted",
   PAYMENT_APPROVED: "payment_approved",
+  ORDER_CONFIRMED: "order_confirmed",
   ORDER_STATUS: "order_status",
 };
 
@@ -14,6 +15,11 @@ const PAYMENT_REVIEW_STATUSES = new Set([
 ]);
 
 const SYSTEM_PROOF_NOTE = "Customer submitted payment proof.";
+
+function isCashOnDeliveryPayment(payment) {
+  const method = payment?.paymentMethod ?? payment?.PaymentMethod ?? "";
+  return method === "CashOnDelivery";
+}
 
 function isRejectionHistoryEntry(entry) {
   const newStatus = entry.newStatus ?? entry.NewStatus;
@@ -113,12 +119,25 @@ export function buildOrderTimelineEntries(history = [], payment = null) {
       continue;
     }
 
-    if (newStatus === ORDER_STATUS.PAYMENT_CONFIRMED) {
-      entries.push({
-        kind: TIMELINE_EVENT.PAYMENT_APPROVED,
-        createdAt,
-        key: `approved-${keyBase}`,
-      });
+    if (newStatus === ORDER_STATUS.PAYMENT_CONFIRMED || newStatus === ORDER_STATUS.CONFIRMED) {
+      if (isCashOnDeliveryPayment(payment)) {
+        entries.push({
+          kind: TIMELINE_EVENT.ORDER_CONFIRMED,
+          status: newStatus,
+          createdAt,
+          key: `confirmed-${keyBase}`,
+        });
+      } else {
+        entries.push({
+          kind: TIMELINE_EVENT.PAYMENT_APPROVED,
+          createdAt,
+          key: `approved-${keyBase}`,
+        });
+      }
+      continue;
+    }
+
+    if (isCashOnDeliveryPayment(payment) && newStatus === ORDER_STATUS.AT_LOCAL_HUB) {
       continue;
     }
 
@@ -147,6 +166,6 @@ export function buildOrderTimelineEntries(history = [], payment = null) {
   }
 
   return entries.sort(
-    (a, b) => new Date(b.createdAt ?? b.rejectedAt) - new Date(a.createdAt ?? a.rejectedAt)
+    (a, b) => new Date(a.createdAt ?? a.rejectedAt) - new Date(b.createdAt ?? b.rejectedAt)
   );
 }

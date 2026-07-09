@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import * as authService from "../services/authService.js";
 import * as cartService from "../services/cartService.js";
 import {
@@ -23,6 +24,7 @@ import { normalizeError } from "../utils/normalizeError.js";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -123,8 +125,9 @@ export function AuthProvider({ children }) {
       clearAuthStorage();
       setUser(null);
       setLoading(false);
+      navigate("/", { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   const refreshProfile = useCallback(async () => {
     const profile = await authService.getMe();

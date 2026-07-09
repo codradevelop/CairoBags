@@ -165,6 +165,8 @@ public class OrderStatusHistoryDto
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public string? ChangedByName { get; set; }
 }
 
 public class ReleasedInventoryItemDto

@@ -100,9 +100,17 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
 
         {stockWarning ? (
           <Badge variant="warning" size="sm" className="mt-2">
-            {locale === "ar"
-              ? `متوفر ${available} فقط`
-              : `Only ${available} available`}
+            {(item?.stockChanged ?? item?.StockChanged) === true
+              ? locale === "ar"
+                ? "تغيّر مخزون هذا المنتج."
+                : "This product stock has changed."
+              : available <= 0
+                ? locale === "ar"
+                  ? "غير متوفر"
+                  : "Out of stock"
+                : locale === "ar"
+                  ? `متوفر ${available} فقط`
+                  : `Only ${available} available`}
           </Badge>
         ) : null}
 
@@ -111,7 +119,7 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
             value={quantity}
             max={maxQty || undefined}
             onChange={handleQuantityChange}
-            disabled={loading}
+            disabled={loading || available <= 0}
           />
           <p className="font-medium text-brand-primary">
             {formatPrice(getCartItemLineTotal(item), locale)}

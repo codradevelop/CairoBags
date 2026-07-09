@@ -36,4 +36,10 @@ public interface IAdminOrderService
         int orderId,
         string adminUserId,
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<AdminOrderActionResponseDto>> UpdateCodOrderStatusAsync(
+        int orderId,
+        string targetStatus,
+        string adminUserId,
+        CancellationToken cancellationToken = default);
 }

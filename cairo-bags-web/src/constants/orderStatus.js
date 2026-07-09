@@ -10,4 +10,9 @@ export const ORDER_STATUS = {
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
   REFUNDED: "Refunded",
+  CONFIRMED: "Confirmed",
+  PREPARING: "Preparing",
+  HANDED_TO_SHIPPING: "HandedToShipping",
+  AT_LOCAL_HUB: "AtLocalHub",
+  OUT_FOR_DELIVERY: "OutForDelivery",
 };

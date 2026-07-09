@@ -17,6 +17,8 @@ import * as reviewService from "../../services/reviewService.js";
 import { getReviewSubmitError, normalizeReviewSummary, pinUserReviewFirst } from "../../utils/reviewHelpers.js";
 import { consumeReviewsHighlight, consumeReviewHighlight } from "../../utils/reviewScrollUtils.js";
 import { subscribeReviewChange, publishReviewChange } from "../../utils/reviewEvents.js";
+import { STORE_EVENTS } from "../../constants/storeEvents.js";
+import { useStoreSync } from "../../hooks/useStoreSync.js";
 import { useProductRatings } from "../../context/ProductRatingContext.jsx";
 import { getAccessToken, getUserIdFromToken } from "../../utils/index.js";
 import { cn } from "../../utils/cn.js";
@@ -126,7 +128,16 @@ export function ReviewSection({ productId, onStatsChange, className }) {
   useEffect(() => {
     if (!productId) return;
     loadInitial();
-  }, [productId, sort, rating, verifiedOnly]);
+  }, [productId, sort, rating, verifiedOnly, loadInitial]);
+
+  useStoreSync(
+    [STORE_EVENTS.ReviewCreated, STORE_EVENTS.ReviewUpdated, STORE_EVENTS.ReviewDeleted],
+    (payload) => {
+      publishReviewChange({ productId, action: "sync", payload });
+      loadInitial();
+    },
+    { productId: Number(productId) }
+  );
 
   useEffect(() => {
     if (summaryLoading) return;
@@ -311,33 +322,6 @@ export function ReviewSection({ productId, onStatsChange, className }) {
     }
   }, [adminDeleteTarget, animateRemoveReview, locale, refreshSummary, success, toastError]);
 
-  const handleAdminToggleVisibility = useCallback(
-    async (review) => {
-      try {
-        const updated = await reviewService.adminSetReviewVisibility(review.id, !review.isVisible);
-        if (!updated.isVisible) {
-          animateRemoveReview(review.id);
-        } else {
-          setReviews((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
-        }
-        const stats = await refreshSummary();
-        publishReviewChange({ productId, stats, action: updated.isVisible ? "unhidden" : "hidden" });
-        success(
-          updated.isVisible
-            ? locale === "ar"
-              ? "تم إظهار التقييم"
-              : "Review is now visible"
-            : locale === "ar"
-              ? "تم إخفاء التقييم"
-              : "Review hidden"
-        );
-      } catch (err) {
-        toastError(extractErrorMessage(err));
-      }
-    },
-    [animateRemoveReview, locale, refreshSummary, success, toastError]
-  );
-
   const handleToggleHelpful = useCallback(
     async (review) => {
       if (!isAuthenticated) {
@@ -482,7 +466,6 @@ export function ReviewSection({ productId, onStatsChange, className }) {
                     onDelete={setDeleteTarget}
                     onToggleHelpful={handleToggleHelpful}
                     onAdminDelete={setAdminDeleteTarget}
-                    onAdminToggleVisibility={handleAdminToggleVisibility}
                     isEntering={enteringIds.has(review.id)}
                     isPinned={Boolean(currentUserId && review.userId === currentUserId)}
                     isHighlighted={highlightedReviewId === review.id}

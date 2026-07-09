@@ -7,6 +7,7 @@ import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../../components/ui/Toast.jsx";
 import * as checkoutService from "../../services/checkoutService.js";
 import * as couponService from "../../services/couponService.js";
+import * as governorateService from "../../services/governorateService.js";
 import {
   ShippingAddressSelector,
   PaymentMethodSelector,
@@ -20,7 +21,13 @@ import { isWalletPaymentMethod } from "../../constants/paymentMethodOptions.js";
 import { getCouponErrorMessage } from "../../constants/couponHelpers.js";
 import { formatCheckoutResponse } from "../../utils/cartHelpers.js";
 import { getCartItems } from "../../utils/cartHelpers.js";
-import { Button, Input, Label, Textarea } from "../../components/ui/index.js";
+import {
+  buildCheckoutTotals,
+  findGovernorateByName,
+  getShippingErrorMessage,
+  resolveShippingFee,
+} from "../../utils/shippingHelpers.js";
+import { Button, Label, Textarea } from "../../components/ui/index.js";
 
 export function CheckoutPage() {
   const { locale } = useLocale();
@@ -31,16 +38,23 @@ export function CheckoutPage() {
 
   const [shippingAddressId, setShippingAddressId] = useState(null);
   const [selectedAddress, setSelectedAddress] = useState(null);
+  const [governorates, setGovernorates] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHOD.CASH_ON_DELIVERY);
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [governorateError, setGovernorateError] = useState("");
 
   usePageTitle(locale === "ar" ? "إتمام الشراء" : "Checkout");
+
+  useEffect(() => {
+    governorateService.getGovernorates().then(setGovernorates).catch(() => setGovernorates([]));
+  }, []);
 
   function handleAddressChange(id, address) {
     setShippingAddressId(id);
     setSelectedAddress(address);
+    setGovernorateError("");
   }
 
   useEffect(() => {
@@ -56,27 +70,54 @@ export function CheckoutPage() {
       .catch(() => setAppliedCoupon(null));
   }, [shippingAddressId]);
 
+  const selectedGovernorate = selectedAddress?.governorate ?? selectedAddress?.Governorate ?? "";
+  const hasValidGovernorate = Boolean(findGovernorateByName(governorates, selectedGovernorate));
+
   const summary = useMemo(() => {
     if (appliedCoupon) {
-      return {
-        subTotal: appliedCoupon.subTotal ?? appliedCoupon.SubTotal ?? cartSubTotal,
-        discountAmount: appliedCoupon.discountAmount ?? appliedCoupon.DiscountAmount ?? 0,
-        shippingFee: appliedCoupon.shippingFee ?? appliedCoupon.ShippingFee,
-        totalAmount: appliedCoupon.totalAmount ?? appliedCoupon.TotalAmount,
-      };
+      const couponSubTotal = appliedCoupon.subTotal ?? appliedCoupon.SubTotal ?? cartSubTotal;
+      const discountAmount = appliedCoupon.discountAmount ?? appliedCoupon.DiscountAmount ?? 0;
+      const couponShipping = appliedCoupon.shippingFee ?? appliedCoupon.ShippingFee;
+      const couponTotal = appliedCoupon.totalAmount ?? appliedCoupon.TotalAmount;
+
+      if (couponShipping != null && couponTotal != null) {
+        return {
+          subTotal: couponSubTotal,
+          discountAmount,
+          shippingFee: couponShipping,
+          totalAmount: couponTotal,
+        };
+      }
     }
 
-    return {
+    const localShipping = resolveShippingFee({
+      governorates,
+      governorateName: selectedGovernorate,
+      appliedCoupon,
+    });
+
+    return buildCheckoutTotals({
       subTotal: cartSubTotal,
-      discountAmount: 0,
-      shippingFee: undefined,
-      totalAmount: undefined,
-    };
-  }, [appliedCoupon, cartSubTotal]);
+      discountAmount: appliedCoupon?.discountAmount ?? appliedCoupon?.DiscountAmount ?? 0,
+      shippingFee: localShipping,
+    });
+  }, [appliedCoupon, cartSubTotal, governorates, selectedGovernorate]);
+
+  const canPlaceOrder =
+    Boolean(shippingAddressId) &&
+    items.length > 0 &&
+    hasValidGovernorate &&
+    summary.shippingFee != null;
 
   async function handlePlaceOrder() {
     if (!shippingAddressId) {
       toastError(locale === "ar" ? "اختر عنوان الشحن" : "Please select a shipping address");
+      return;
+    }
+    if (!hasValidGovernorate) {
+      const message = getShippingErrorMessage("governorate_required", locale);
+      setGovernorateError(message);
+      toastError(message);
       return;
     }
     if (items.length === 0) {
@@ -103,7 +144,12 @@ export function CheckoutPage() {
       }
     } catch (err) {
       const codeKey = err.code ?? err.errorCode;
-      toastError(getCouponErrorMessage(codeKey, locale, err.message || (locale === "ar" ? "فشل الطلب" : "Checkout failed")));
+      const shippingMessage = getShippingErrorMessage(codeKey, locale);
+      const message =
+        codeKey === "shipping_unavailable" || codeKey === "governorate_invalid"
+          ? shippingMessage
+          : getCouponErrorMessage(codeKey, locale, err.message || (locale === "ar" ? "فشل الطلب" : "Checkout failed"));
+      toastError(message);
     } finally {
       setSubmitting(false);
     }
@@ -165,13 +211,22 @@ export function CheckoutPage() {
 
         <div className="space-y-4 lg:sticky lg:top-28 lg:self-start">
           <OrderSummary
-            showEstimateNote={!appliedCoupon}
+            showEstimateNote={summary.shippingFee == null}
             subTotal={summary.subTotal}
             discountAmount={summary.discountAmount}
             shippingFee={summary.shippingFee}
             totalAmount={summary.totalAmount}
             couponCode={appliedCoupon?.code ?? appliedCoupon?.Code}
           />
+          {governorateError || (shippingAddressId && !hasValidGovernorate) ? (
+            <p className="text-sm text-red-700">
+              {governorateError ||
+                getShippingErrorMessage(
+                  selectedGovernorate ? "shipping_unavailable" : "governorate_required",
+                  locale
+                )}
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="accent"
@@ -179,7 +234,7 @@ export function CheckoutPage() {
             className="w-full"
             loading={submitting}
             onClick={handlePlaceOrder}
-            disabled={!shippingAddressId}
+            disabled={!canPlaceOrder}
           >
             {locale === "ar" ? "تأكيد الطلب" : "Place Order"}
           </Button>

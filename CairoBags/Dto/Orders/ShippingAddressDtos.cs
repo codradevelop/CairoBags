@@ -53,3 +53,7 @@ public class CreateShippingAddressRequest
 
     public bool IsDefault { get; set; }
 }
+
+public class UpdateShippingAddressRequest : CreateShippingAddressRequest
+{
+}

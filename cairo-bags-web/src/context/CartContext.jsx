@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import * as cartService from "../services/cartService.js";
@@ -11,15 +12,24 @@ import { getGuestSessionId } from "../utils/sessionId.js";
 import { normalizeError } from "../utils/normalizeError.js";
 import { assertStoreShoppingAllowed } from "../utils/storePermissions.js";
 import { useAuth } from "./AuthContext.jsx";
+import { STORE_EVENTS } from "../constants/storeEvents.js";
+import { useStoreSync } from "../hooks/useStoreSync.js";
+import { useToast } from "../components/ui/Toast.jsx";
+import { useLocale } from "../components/layout/LanguageSwitcher.jsx";
+import { getCartItems } from "../utils/cartHelpers.js";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const { isAuthenticated, user } = useAuth();
+  const { locale } = useLocale();
+  const { warning: toastWarning } = useToast();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
 
   const sessionId = useMemo(() => getGuestSessionId(), []);
 
@@ -160,6 +170,34 @@ export function CartProvider({ children }) {
     setCart(data);
     return data;
   }, [sessionId]);
+
+  const syncCartStock = useCallback(async () => {
+    const previousItems = getCartItems(cartRef.current);
+    if (previousItems.length === 0) return;
+
+    try {
+      const data = await cartService.getCart(isAuthenticated ? undefined : sessionId);
+      const nextItems = getCartItems(data);
+      setCart(data);
+
+      const stockAdjusted = nextItems.some(
+        (item) => item.stockChanged === true || item.StockChanged === true
+      );
+
+      if (stockAdjusted) {
+        toastWarning(
+          locale === "ar" ? "تغيّر مخزون أحد المنتجات في سلتك." : "This product stock has changed.",
+          locale === "ar" ? "تحديث المخزون" : "Stock updated"
+        );
+      }
+    } catch {
+      // Keep current cart if background sync fails.
+    }
+  }, [isAuthenticated, sessionId, locale, toastWarning]);
+
+  useStoreSync([STORE_EVENTS.InventoryUpdated, STORE_EVENTS.ProductUpdated], () => {
+    syncCartStock();
+  });
 
   const value = useMemo(
     () => ({

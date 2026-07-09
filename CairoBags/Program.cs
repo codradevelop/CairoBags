@@ -92,6 +92,7 @@ builder.Services.AddScoped<IHomeStatisticsService, HomeStatisticsService>();
 builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddSingleton<ICatalogRealtimeService, CatalogRealtimeService>();
 builder.Services.AddSingleton<IStatisticsRealtimeService, StatisticsRealtimeService>();
+builder.Services.AddScoped<IStoreUpdateBroadcastService, StoreUpdateBroadcastService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductImageService, ProductImageService>();
@@ -360,5 +361,6 @@ app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<NotificationHub>("/notificationsHub");
 app.MapHub<CatalogHub>("/hubs/catalog");
 app.MapHub<StatisticsHub>("/hubs/statistics");
+app.MapHub<StoreUpdateHub>("/hubs/store");
 
 app.Run();
