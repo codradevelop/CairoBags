@@ -8,6 +8,12 @@ export async function getProducts(params = {}, config = {}) {
   );
 }
 
+export async function getProductFilterOptions(config = {}) {
+  return handleServiceCall(
+    axiosInstance.get(ENDPOINTS.products.filterOptions, config).then(({ data }) => data)
+  );
+}
+
 export async function getFeaturedProducts() {
   return handleServiceCall(
     axiosInstance.get(ENDPOINTS.products.featured).then(({ data }) => data)

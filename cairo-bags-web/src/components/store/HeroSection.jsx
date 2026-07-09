@@ -1,203 +1,419 @@
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
-import { useRef } from "react";
-import { Button } from "../ui/Button.jsx";
-import { AnimatedCounter } from "../ui/animation.jsx";
-import { EASE_LUXURY } from "../ui/motion.jsx";
-import { MouseGlow } from "./MouseGlow.jsx";
+import { useMemo } from "react";
+import { motion } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
 
-function HeroVisual({ locale, visualY }) {
-  const prefersReduced = useReducedMotion();
+import heroBg from "../../assets/hero/hero-bg.png";
+import heroProducts from "../../assets/hero/hero-products-cutout.png";
+import backpackImg from "../../assets/hero/backpack.png";
+import suitcaseImg from "../../assets/hero/suitcase.png";
+import laptopBagImg from "../../assets/hero/laptop-bag.png";
+import crossbodyImg from "../../assets/hero/crossbody.png";
+import travelSetImg from "../../assets/hero/travel-set.png";
+
+const EASE = [0.16, 1, 0.3, 1];
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay, duration: 0.85, ease: EASE },
+  }),
+};
+
+const fadeRight = {
+  hidden: { opacity: 0, x: 48, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { delay: 0.2, duration: 1.1, ease: EASE },
+  },
+};
+
+const FLOAT_DUST = [
+  { left: "8%", top: "72%", size: 2, delay: 0 },
+  { left: "14%", top: "58%", size: 1.5, delay: 1.2 },
+  { left: "22%", top: "80%", size: 2, delay: 0.4 },
+  { left: "32%", top: "65%", size: 1, delay: 2.1 },
+  { left: "48%", top: "78%", size: 1.5, delay: 0.8 },
+  { left: "58%", top: "55%", size: 2, delay: 1.6 },
+  { left: "68%", top: "70%", size: 1, delay: 2.8 },
+  { left: "76%", top: "48%", size: 1.5, delay: 0.2 },
+  { left: "84%", top: "62%", size: 2, delay: 1.4 },
+  { left: "92%", top: "38%", size: 1, delay: 2.4 },
+  { left: "40%", top: "42%", size: 1.5, delay: 3.2 },
+  { left: "55%", top: "32%", size: 1, delay: 1.9 },
+];
+
+function HeroBackground() {
+  return (
+    <div className="cb-hero__bg" aria-hidden="true">
+      <img src={heroBg} alt="" className="cb-hero__bg-image" />
+      <div className="cb-hero__bg-shade" />
+      <div className="cb-hero__bg-vignette" />
+      <div className="cb-hero__bg-dust">
+        {FLOAT_DUST.map((p, i) => (
+          <motion.span
+            key={i}
+            className="cb-hero__bg-particle"
+            style={{ left: p.left, top: p.top, width: p.size, height: p.size }}
+            animate={{ opacity: [0.15, 0.55, 0.15], y: [0, -12, 0] }}
+            transition={{ duration: 4 + p.delay, repeat: Infinity, ease: "easeInOut", delay: p.delay }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatUsersIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function StatStarIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function StatShieldIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CategoryBackpackIcon() {
+  return (
+    <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 8V6a4 4 0 0 1 8 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="4" y="8" width="16" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CategoryLuggageIcon() {
+  return (
+    <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="6" y="8" width="12" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M12 14v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CategoryLaptopIcon() {
+  return (
+    <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="6" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CategoryCrossbodyIcon() {
+  return (
+    <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="5" y="9" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 9V7a4 4 0 0 1 8 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CategoryTravelSetIcon() {
+  return (
+    <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="10" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="8" y="7" width="8" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="13" y="10" width="8" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function HeroShowcase({ locale }) {
+  return (
+    <motion.div
+      className="cb-hero__showcase"
+      variants={fadeRight}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="cb-hero__showcase-scene">
+        <motion.img
+          src={heroProducts}
+          alt={locale === "ar" ? "مجموعة حقائب Cairo Bags الفاخرة" : "Cairo Bags premium collection"}
+          className="cb-hero__showcase-img"
+          width={3840}
+          height={3075}
+          fetchPriority="high"
+          decoding="async"
+          animate={{ y: [0, -8, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+      <div className="cb-hero__carousel-hint" aria-hidden="true">
+        <span className="cb-hero__carousel-arrow">↑</span>
+        <span className="cb-hero__carousel-dot cb-hero__carousel-dot--active" />
+        <span className="cb-hero__carousel-dot" />
+        <span className="cb-hero__carousel-dot" />
+        <span className="cb-hero__carousel-arrow">↓</span>
+      </div>
+    </motion.div>
+  );
+}
+
+function HeroCategoryStrip({ locale }) {
+  const categories = useMemo(
+    () => [
+      {
+        key: "backpacks",
+        title: locale === "ar" ? "حقائب الظهر" : "Backpacks",
+        desc:
+          locale === "ar"
+            ? "تنظيم ذكي وراحة يومية للسفر والعمل."
+            : "Smart organization and everyday comfort for work and travel.",
+        image: backpackImg,
+        href: "/shop",
+        Icon: CategoryBackpackIcon,
+      },
+      {
+        key: "luggage",
+        title: locale === "ar" ? "حقائب السفر" : "Travel Luggage",
+        desc:
+          locale === "ar"
+            ? "متانة فاخرة لكل رحلة بعيدة."
+            : "Premium durability engineered for every journey.",
+        image: suitcaseImg,
+        href: "/shop",
+        Icon: CategoryLuggageIcon,
+      },
+      {
+        key: "laptop",
+        title: locale === "ar" ? "حقائب اللابتوب" : "Laptop Bags",
+        desc:
+          locale === "ar"
+            ? "حماية أنيقة لأجهزتك المهنية."
+            : "Elegant protection for your professional gear.",
+        image: laptopBagImg,
+        href: "/shop",
+        Icon: CategoryLaptopIcon,
+      },
+      {
+        key: "crossbody",
+        title: locale === "ar" ? "حقائب كروس" : "Crossbody Bags",
+        desc:
+          locale === "ar"
+            ? "أناقة عملية للتنقل اليومي."
+            : "Hands-free style for effortless daily movement.",
+        image: crossbodyImg,
+        href: "/shop",
+        Icon: CategoryCrossbodyIcon,
+      },
+      {
+        key: "travel-sets",
+        title: locale === "ar" ? "أطقم السفر" : "Travel Sets",
+        desc:
+          locale === "ar"
+            ? "تنسيق متكامل لرحلاتك القادمة."
+            : "Coordinated sets for your next adventure.",
+        image: travelSetImg,
+        href: "/shop",
+        Icon: CategoryTravelSetIcon,
+      },
+    ],
+    [locale]
+  );
 
   return (
-    <motion.div style={prefersReduced ? undefined : { y: visualY }} className="relative mx-auto aspect-[4/5] w-full max-w-md lg:max-w-none">
-      <motion.div
-        className="absolute inset-[8%] rounded-[2rem] border border-brand-accent/20 bg-gradient-to-br from-brand-secondary/40 via-brand-surface/10 to-transparent"
-        animate={prefersReduced ? undefined : { y: [0, -10, 0] }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute inset-0 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#1a1814]"
-        style={{
-          boxShadow: "0 32px 80px -24px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
-        }}
-      >
-        <div
-          className="absolute inset-0 opacity-90"
-          style={{
-            background:
-              "radial-gradient(ellipse at 30% 20%, rgba(201,169,98,0.22) 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, rgba(234,228,216,0.08) 0%, transparent 45%), linear-gradient(165deg, #1a1814 0%, #0d0d0b 100%)",
-          }}
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-          <p className="text-[10px] font-medium tracking-luxury text-brand-accent uppercase">
-            {locale === "ar" ? "تصميم مصري" : "Egyptian Design"}
-          </p>
-          <div
-            className="mt-6 font-display text-6xl font-light text-brand-accent/90 md:text-7xl"
-            style={{ letterSpacing: "-0.04em" }}
-            aria-hidden="true"
+    <div className="cb-hero__categories">
+      <div className="cb-hero__categories-grid">
+        {categories.map((cat, index) => (
+          <motion.div
+            key={cat.key}
+            className="cb-hero__category-item"
+            custom={0.55 + index * 0.08}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
           >
-            CB
-          </div>
-          <div className="mt-8 h-px w-16 bg-gradient-to-r from-transparent via-brand-accent to-transparent" />
-          <p className="mt-6 max-w-[14rem] text-xs leading-relaxed text-brand-secondary/50">
-            {locale === "ar"
-              ? "حرفية فاخرة — جلد طبيعي — تفاصيل دقيقة"
-              : "Premium leather — meticulous detail — timeless craft"}
-          </p>
-        </div>
-        <div className="cb-grain pointer-events-none absolute inset-0 opacity-60" />
-      </motion.div>
-      <motion.div
-        className="absolute -end-4 top-1/4 hidden h-20 w-20 rounded-full border border-brand-accent/30 bg-brand-accent/5 backdrop-blur-sm lg:block"
-        animate={prefersReduced ? undefined : { y: [0, 14, 0], rotate: [0, 4, 0] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-      />
-      <motion.div
-        className="absolute -start-3 bottom-1/4 hidden h-14 w-14 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm lg:block"
-        animate={prefersReduced ? undefined : { y: [0, -12, 0] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
-    </motion.div>
+            <Link to={cat.href} className="cb-hero__category-card">
+              <div className="cb-hero__category-body">
+                <cat.Icon />
+                <h3 className="cb-hero__category-title">{cat.title}</h3>
+                <p className="cb-hero__category-desc">{cat.desc}</p>
+                <span className="cb-hero__category-link">
+                  {locale === "ar" ? "تسوق الآن" : "Shop Now"}
+                  <span aria-hidden="true">→</span>
+                </span>
+              </div>
+              <div className="cb-hero__category-img-wrap" aria-hidden="true">
+                <img src={cat.image} alt="" className="cb-hero__category-img" loading="lazy" decoding="async" />
+              </div>
+            </Link>
+          </motion.div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export function HeroSection({ className }) {
   const { locale } = useLocale();
-  const ref = useRef(null);
-  const prefersReduced = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const contentY = useTransform(scrollYProgress, [0, 1], [0, prefersReduced ? 0 : 72]);
-  const visualY = useTransform(scrollYProgress, [0, 1], [0, prefersReduced ? 0 : 48]);
-  const bgY = useTransform(scrollYProgress, [0, 1], [0, prefersReduced ? 0 : 120]);
-  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.25]);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, prefersReduced ? 1 : 0.96]);
 
   const stats = [
-    { value: "500+", label: locale === "ar" ? "عميلة سعيدة" : "Happy Clients" },
-    { value: "50+", label: locale === "ar" ? "تصميم حصري" : "Exclusive Designs" },
-    { value: "100%", label: locale === "ar" ? "جلد طبيعي" : "Genuine Leather" },
+    {
+      value: "500+",
+      label: locale === "ar" ? "عميل سعيد" : "Happy Customers",
+      Icon: StatUsersIcon,
+    },
+    {
+      value: "50+",
+      label: locale === "ar" ? "تصميم فاخر" : "Premium Designs",
+      Icon: StatStarIcon,
+    },
+    {
+      value: "100%",
+      label: locale === "ar" ? "مواد عالية الجودة" : "Quality Materials",
+      Icon: StatShieldIcon,
+    },
   ];
 
   return (
-    <section
-      ref={ref}
-      className={cn("relative overflow-hidden bg-brand-primary text-brand-secondary", className)}
-    >
-      <MouseGlow />
-      <motion.div
-        style={prefersReduced ? undefined : { y: bgY }}
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-      >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_20%,rgba(201,169,98,0.14)_0%,transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_10%_90%,rgba(234,228,216,0.05)_0%,transparent_50%)]" />
-        <div className="absolute start-[12%] top-[18%] h-40 w-40 rounded-full bg-brand-accent/[0.06] blur-3xl" />
-        <div className="absolute end-[8%] bottom-[22%] h-56 w-56 rounded-full bg-white/[0.03] blur-3xl" />
-      </motion.div>
-      <div className="cb-grain pointer-events-none absolute inset-0" />
+    <section className={cn("cb-hero", className)} aria-label={locale === "ar" ? "القسم الرئيسي" : "Hero"}>
+      <HeroBackground />
 
-      <div className="cb-container-wide relative">
-        <div className="grid min-h-[min(88vh,920px)] items-center gap-10 py-16 md:gap-12 md:py-20 lg:grid-cols-2 lg:gap-16 lg:py-24">
-          <motion.div
-            style={prefersReduced ? undefined : { y: contentY, opacity, scale }}
-            className="order-2 text-center lg:order-1 lg:text-start"
-          >
+      <div className="cb-hero__inner">
+        <div className="cb-hero__split">
+          <div className="cb-hero__content">
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: EASE_LUXURY }}
-              className="text-[10px] font-medium tracking-luxury text-brand-accent uppercase sm:text-xs"
+              className="cb-hero__label"
+              custom={0.05}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
             >
+              <span className="cb-hero__label-line" aria-hidden="true" />
               {locale === "ar" ? "مجموعة ٢٠٢٦" : "Collection 2026"}
             </motion.p>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2, ease: EASE_LUXURY }}
-              className="cb-section-heading-xl mt-4 max-w-xl text-brand-secondary lg:mt-5"
+            <h1 className="cb-hero__title">
+              <motion.span
+                className="cb-hero__title-line cb-hero__title-line--gold"
+                custom={0.12}
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+              >
+                Cairo Bags
+              </motion.span>
+              <motion.span
+                className="cb-hero__title-line cb-hero__title-line--white"
+                custom={0.18}
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+              >
+                {locale === "ar" ? "مصممة لـ" : "Crafted For"}
+              </motion.span>
+              <motion.span
+                className="cb-hero__title-line cb-hero__title-line--white"
+                custom={0.24}
+                variants={fadeUp}
+                initial="hidden"
+                animate="visible"
+              >
+                {locale === "ar" ? "كل رحلة" : "Every Journey"}
+              </motion.span>
+            </h1>
+
+            <motion.p
+              className="cb-hero__subtitle"
+              custom={0.3}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
             >
               {locale === "ar" ? (
                 <>
-                  فخامة القاهرة
-                  <span className="block text-brand-accent">في كل قطعة</span>
+                  حقائب ظهر وسفر ولابتوب وكروس فاخرة مصممة للحياة اليومية
+                  <br />
+                  وكل مغامرة.
                 </>
               ) : (
                 <>
-                  Cairo Luxury,
-                  <span className="block text-brand-accent">Crafted to Last</span>
+                  Premium backpacks, travel luggage, laptop bags and crossbody bags
+                  <br />
+                  designed for everyday life and every adventure.
                 </>
               )}
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.35, ease: EASE_LUXURY }}
-              className="mx-auto mt-5 max-w-md text-sm leading-relaxed text-brand-secondary/65 md:text-base lg:mx-0"
-            >
-              {locale === "ar"
-                ? "اكتشف حقائب يدوية الصنع تجمع بين الأناقة الخالدة والجودة الاستثنائية — مصممة للمرأة العصرية."
-                : "Discover handcrafted bags that blend timeless elegance with exceptional quality — designed for the modern woman."}
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.45, ease: EASE_LUXURY }}
-              className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start"
+              className="cb-hero__actions"
+              custom={0.38}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
             >
-              <Link to="/shop">
-                <Button variant="accent" size="lg" className="h-12 min-w-[168px] rounded-full px-8">
-                  {locale === "ar" ? "تسوق الآن" : "Shop Now"}
-                </Button>
+              <Link to="/shop" className="cb-hero__btn cb-hero__btn--primary">
+                {locale === "ar" ? "تسوق الآن" : "Shop Now"}
+                <span aria-hidden="true">→</span>
               </Link>
-              <Link to="/shop?filter=new">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-12 min-w-[168px] rounded-full border-brand-accent/50 !text-brand-accent hover:!border-brand-accent hover:!bg-brand-accent/10"
-                >
-                  {locale === "ar" ? "وصل حديثاً" : "New Arrivals"}
-                </Button>
+              <Link to="/shop" className="cb-hero__btn cb-hero__btn--secondary">
+                {locale === "ar" ? "استكشف المجموعة" : "Explore Collection"}
               </Link>
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.6, ease: EASE_LUXURY }}
-              className="mt-12 hidden items-center gap-8 border-t border-white/10 pt-8 lg:flex"
+              className="cb-hero__stats"
+              custom={0.5}
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
             >
               {stats.map((stat) => (
-                <div key={stat.label}>
-                  <p className="font-display text-2xl font-light text-brand-accent">
-                    <AnimatedCounter value={stat.value} />
-                  </p>
-                  <p className="mt-1 text-[10px] tracking-wide text-brand-secondary/45 uppercase">
-                    {stat.label}
-                  </p>
+                <div key={stat.label} className="cb-hero__stat">
+                  <div className="cb-hero__stat-icon">
+                    <stat.Icon />
+                  </div>
+                  <div className="cb-hero__stat-text">
+                    <p className="cb-hero__stat-value">{stat.value}</p>
+                    <p className="cb-hero__stat-label">{stat.label}</p>
+                  </div>
                 </div>
               ))}
             </motion.div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.25, ease: EASE_LUXURY }}
-            className="order-1 lg:order-2"
-          >
-            <HeroVisual locale={locale} visualY={visualY} />
-          </motion.div>
+          <HeroShowcase locale={locale} />
         </div>
-      </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-brand-background via-brand-background/80 to-transparent" />
+        <HeroCategoryStrip locale={locale} />
+      </div>
     </section>
   );
 }

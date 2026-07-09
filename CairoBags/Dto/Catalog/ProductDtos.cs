@@ -82,7 +82,28 @@ public class ProductQueryFilters
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public bool? InStock { get; set; }
+
     public string? SearchTerm { get; set; }
+
+    public string? Color { get; set; }
+}
+
+public class ProductFilterColorOptionDto
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string? NameAr { get; set; }
+
+    public string Hex { get; set; } = string.Empty;
+
+    public int Count { get; set; }
+
+    public int InStockCount { get; set; }
+}
+
+public class ProductFilterOptionsDto
+{
+    public List<ProductFilterColorOptionDto> Colors { get; set; } = new();
 }
 
 public class ProductVariantInputDto

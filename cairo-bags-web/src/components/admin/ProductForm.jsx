@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
-import * as fileService from "../../services/fileService.js";
+import * as productImageService from "../../services/productImageService.js";
 import { useAutoTranslate } from "../../hooks/useAutoTranslate.js";
 import { useToast } from "../ui/Toast.jsx";
 import { generateSlug } from "../../utils/slugHelper.js";
@@ -45,7 +45,7 @@ const EMPTY_PRODUCT = {
   shortDescriptionEn: "",
   descriptionAr: "",
   descriptionEn: "",
-  images: [],           // multi-image list: [{ imageUrl, fileName, isPrimary, uploading }]
+  images: [],           // [{ id?, imageUrl, thumbnailUrl?, fileName, isPrimary, uploading, pendingFile? }]
   variants: [{ ...DEFAULT_VARIANT }],
 };
 
@@ -97,7 +97,15 @@ function StarIcon({ filled }) {
   );
 }
 
-export function ProductForm({ initialValues, categories = [], onSubmit, submitting }) {
+function mapUploadedImage(dto) {
+  return {
+    id: dto?.id ?? dto?.Id,
+    imageUrl: dto?.imageUrl ?? dto?.ImageUrl ?? "",
+    thumbnailUrl: dto?.thumbnailUrl ?? dto?.ThumbnailUrl ?? "",
+  };
+}
+
+export function ProductForm({ productId, initialValues, categories = [], onSubmit, submitting }) {
   const { locale } = useLocale();
   const isAr = locale === "ar";
   const { error: toastError } = useToast();
@@ -242,6 +250,10 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
 
   function removeImageSlot(index) {
     setForm((prev) => {
+      const removed = prev.images[index];
+      if (removed?.imageUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(removed.imageUrl);
+      }
       let images = prev.images.filter((_, i) => i !== index);
       // If removed primary, make first one primary
       if (images.length > 0 && !images.some((img) => img.isPrimary)) {
@@ -262,24 +274,52 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Mark uploading
     setForm((prev) => {
       const images = [...prev.images];
-      images[index] = { ...images[index], fileName: file.name, uploading: true };
+      const previous = images[index];
+      if (previous?.imageUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(previous.imageUrl);
+      }
+      images[index] = { ...images[index], fileName: file.name, uploading: Boolean(productId), pendingFile: productId ? undefined : file };
+      if (!productId) {
+        images[index].imageUrl = URL.createObjectURL(file);
+      }
       return { ...prev, images };
     });
 
+    if (!productId) return;
+
     try {
-      const { imageUrl } = await fileService.uploadImageAndGetUrl(file);
+      const currentImage = formRef.current.images[index];
+      const uploaded = mapUploadedImage(
+        await productImageService.uploadProductImage(productId, file, {
+          isPrimary: Boolean(currentImage?.isPrimary),
+          sortOrder: index,
+        })
+      );
       setForm((prev) => {
         const images = [...prev.images];
-        images[index] = { ...images[index], imageUrl, uploading: false };
+        images[index] = {
+          ...images[index],
+          id: uploaded.id,
+          imageUrl: uploaded.imageUrl,
+          thumbnailUrl: uploaded.thumbnailUrl,
+          uploading: false,
+          pendingFile: undefined,
+        };
         return { ...prev, images };
       });
-    } catch {
+    } catch (err) {
+      toastError(err.message);
       setForm((prev) => {
         const images = [...prev.images];
-        images[index] = { ...images[index], uploading: false };
+        images[index] = {
+          ...images[index],
+          imageUrl: "",
+          fileName: "",
+          uploading: false,
+          pendingFile: undefined,
+        };
         return { ...prev, images };
       });
     }
@@ -319,6 +359,14 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
 
     const current = formRef.current;
 
+    const pendingUploads = current.images
+      .filter((img) => img.pendingFile)
+      .map((img, i) => ({
+        file: img.pendingFile,
+        isPrimary: img.isPrimary,
+        sortOrder: i,
+      }));
+
     const payload = {
       categoryId: Number(current.categoryId),
       status: Number(current.status),
@@ -347,17 +395,20 @@ export function ProductForm({ initialValues, categories = [], onSubmit, submitti
         quantity: Number(v.quantity) || 0,
         lowStockThreshold: Number(v.lowStockThreshold) || 5,
       })),
-      images: current.images
-        .filter((img) => img.imageUrl)
-        .map((img, i) => ({
-          id: img.id ?? undefined,
-          imageUrl: img.imageUrl,
-          isPrimary: img.isPrimary,
-          sortOrder: i,
-        })),
+      images: productId
+        ? current.images
+            .filter((img) => img.id && img.imageUrl)
+            .map((img, i) => ({
+              id: img.id,
+              imageUrl: img.imageUrl,
+              thumbnailUrl: img.thumbnailUrl || undefined,
+              isPrimary: img.isPrimary,
+              sortOrder: i,
+            }))
+        : [],
     };
 
-    await onSubmit(payload);
+    await onSubmit(payload, { pendingUploads });
   }
 
   // ── Labels ────────────────────────────────────────────────────────────────

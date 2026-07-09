@@ -122,12 +122,13 @@
 .cb-product-detail-gallery .cb-product-aspect {
   aspect-ratio: 1 / 1;
   max-height: min(72vh, 560px);
+  container-type: size;
+  container-name: product-gallery;
 }
 
-.cb-product-detail-gallery .cb-product-aspect img,
-.cb-product-detail-gallery .cb-luxury-card img {
-  object-fit: contain;
-  padding: 8%;
+.cb-product-detail-gallery .cb-pres {
+  border-radius: inherit;
+  min-height: 100%;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -1264,20 +1265,19 @@
   overflow: hidden;
   border-radius: 0.75rem;
   border: 1px solid color-mix(in srgb, var(--cb-border) 70%, transparent);
-  background: var(--cb-secondary);
   aspect-ratio: 4 / 5;
+  container-type: size;
+  container-name: wishlist-thumb;
 }
 
-.cb-wishlist-thumb img {
-  width: 100%;
+.cb-cart-thumb {
+  container-type: size;
+  container-name: cart-thumb;
+}
+
+.cb-wishlist-thumb .cb-pres {
   height: 100%;
-  object-fit: contain;
-  padding: 10%;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.cb-wishlist-card:hover .cb-wishlist-thumb img {
-  transform: scale(1.04);
+  border-radius: inherit;
 }
 
 /* ─── Home values / features (#featured, #features) ─── */
@@ -1373,7 +1373,6 @@
   }
 
   .cb-category-hero:hover .cb-category-hero-media img,
-  .cb-wishlist-card:hover .cb-wishlist-thumb img,
   .cb-value-card:hover,
   .cb-wishlist-card:hover {
     transform: none;

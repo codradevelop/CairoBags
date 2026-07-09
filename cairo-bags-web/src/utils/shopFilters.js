@@ -14,7 +14,9 @@ export function buildProductQueryParams(filters = {}) {
   if (filters.searchTerm?.trim()) {
     params.SearchTerm = filters.searchTerm.trim();
   }
-  // color is applied client-side after fetch
+  if (filters.color?.trim()) {
+    params.Color = filters.color.trim().toLowerCase();
+  }
 
   return params;
 }

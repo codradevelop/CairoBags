@@ -1,5 +1,6 @@
 using CairoBags.Data;
 using CairoBags.Dto.Wishlist;
+using CairoBags.Helpers;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using Microsoft.EntityFrameworkCore;
@@ -260,7 +261,7 @@ public class WishlistService : IWishlistService
             ProductNameEn = nameEn,
             ProductSlugAr = arTranslation?.Slug ?? string.Empty,
             ProductSlugEn = enTranslation?.Slug ?? string.Empty,
-            PrimaryImage = primaryImage?.ThumbnailUrl ?? primaryImage?.ImageUrl,
+            PrimaryImage = ProductImageUrlHelper.ResolveCompactUrl(primaryImage?.ImageUrl),
             Price = prices.Count == 0 ? null : prices.Min(),
             CompareAtPrice = product.CompareAtPrice,
             InStock = inStock,

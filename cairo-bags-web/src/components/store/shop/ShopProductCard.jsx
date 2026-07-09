@@ -16,8 +16,8 @@ import { StarRating } from "../../reviews/StarRating.jsx";
 import {
   buildProductPath,
   getProductId,
-  getProductImageAssetUrl,
-  getProductImageUrl,
+  getProductImageCardUrl,
+  getProductCardImageUrl,
   getProductImages,
   getProductName,
   getProductVariants,
@@ -27,6 +27,7 @@ import {
   isVariantInStock,
 } from "../../../utils/productHelpers.js";
 import { cn } from "../../../utils/cn.js";
+import { ProductPresentation, isAboveFoldPriority } from "../ProductPresentation.jsx";
 
 /* ─────────────────────────────────────────────────────────
    Cache & helpers
@@ -51,10 +52,10 @@ async function loadProductDetails(productId) {
 function getAllProductImageUrls(product) {
   const images = getProductImages(product);
   if (images.length) {
-    const urls = images.map((img) => getProductImageAssetUrl(img)).filter(Boolean);
+    const urls = images.map((img) => getProductImageCardUrl(img)).filter(Boolean);
     if (urls.length) return urls;
   }
-  const fallback = getProductImageUrl(product);
+  const fallback = getProductCardImageUrl(product);
   return fallback ? [fallback] : [];
 }
 
@@ -65,7 +66,7 @@ function getPurchasableVariants(product) {
 /* ─────────────────────────────────────────────────────────
    Simple image display — no arrows, just the slides + dots
 ───────────────────────────────────────────────────────── */
-function ShopCardImageSlides({ urls, current, name }) {
+function ShopCardImageSlides({ urls, current, name, priority = "low" }) {
   const primaryUrl = urls[0] ?? null;
   const count = urls.length;
 
@@ -76,37 +77,37 @@ function ShopCardImageSlides({ urls, current, name }) {
 
   return (
     <div className="relative h-full w-full">
-      {/* shimmer */}
       {!primaryLoaded && primaryUrl ? (
         <div className="cb-shimmer absolute inset-0 z-[1]" aria-hidden="true" />
       ) : null}
 
-      {/* slides */}
-      {urls.map((url, i) => (
-        <img
-          key={url}
-          ref={i === 0 ? imgRef : undefined}
-          src={url}
-          alt={i === 0 ? name : ""}
-          aria-hidden={i !== 0}
-          loading="lazy"
-          decoding="async"
-          onLoad={i === 0 ? handleLoad : undefined}
-          onError={i === 0 ? handleError : undefined}
-          className={cn(
-            "cb-shop-card-image absolute inset-0 transition-all duration-500 ease-in-out",
-            i === current ? "opacity-100 scale-[1.04]" : "opacity-0 scale-100 pointer-events-none"
-          )}
-        />
-      ))}
+      <ProductPresentation size="card" className="h-full" priority={priority}>
+        {primaryUrl ? (
+          <div className="cb-pres__images">
+            {urls.map((url, i) => (
+              <img
+                key={url}
+                ref={i === 0 ? imgRef : undefined}
+                src={url}
+                alt={i === 0 ? name : ""}
+                aria-hidden={i !== 0}
+                loading={priority === "high" && i === 0 ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={priority === "high" && i === 0 ? "high" : "low"}
+                onLoad={i === 0 ? handleLoad : undefined}
+                onError={i === 0 ? handleError : undefined}
+                className={cn(
+                  "cb-pres__img",
+                  i !== 0 && "cb-pres__img--secondary",
+                  i === current ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+              />
+            ))}
+          </div>
+        ) : null}
+      </ProductPresentation>
 
-      {/* no image fallback */}
-      {!primaryUrl && (
-        <span className="font-display text-3xl text-brand-accent/40">CB</span>
-      )}
-
-      {/* dot indicators — inside image area, bottom-center */}
-      {count > 1 && (
+      {count > 1 ? (
         <div className="absolute bottom-2 start-0 end-0 z-20 flex justify-center gap-1 pointer-events-none">
           {urls.map((_, i) => (
             <span
@@ -118,7 +119,7 @@ function ShopCardImageSlides({ urls, current, name }) {
             />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -205,7 +206,12 @@ function ShopCardRating({ product, href }) {
    Slider state lives here so arrows can be positioned
    relative to the card (outside the overflow:hidden image-wrap)
 ───────────────────────────────────────────────────────── */
-export const ShopProductCard = memo(function ShopProductCard({ product, className, listView = false }) {
+export const ShopProductCard = memo(function ShopProductCard({
+  product,
+  className,
+  listView = false,
+  listIndex = 0,
+}) {
   const { locale } = useLocale();
   const readOnly = useStoreReadOnly();
   const { addItem } = useCart();
@@ -351,7 +357,12 @@ export const ShopProductCard = memo(function ShopProductCard({ product, classNam
 
         <div className="cb-shop-card-image-wrap">
           <Link to={href} className="cb-shop-card-image-link" aria-label={name} tabIndex={-1}>
-            <ShopCardImageSlides urls={imageUrls} current={currentImg} name={name} />
+            <ShopCardImageSlides
+              urls={imageUrls}
+              current={currentImg}
+              name={name}
+              priority={isAboveFoldPriority(listIndex) ? "high" : "low"}
+            />
           </Link>
 
           {isNew ? (

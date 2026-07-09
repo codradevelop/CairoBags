@@ -19,7 +19,7 @@ function UserIcon() {
   );
 }
 
-export function UserDropdown({ className, adminContext = false }) {
+export function UserDropdown({ className, adminContext = false, triggerClassName }) {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { locale } = useLocale();
   const [open, setOpen] = useState(false);
@@ -49,19 +49,33 @@ export function UserDropdown({ className, adminContext = false }) {
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
-      <Button
-        type="button"
-        variant="ghost"
-        size={isAuthenticated ? "md" : "sm"}
-        className="gap-2"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <UserIcon />
-        <span className="hidden max-w-[8rem] truncate sm:inline">
-          {isAuthenticated ? displayName : labels.login}
-        </span>
-      </Button>
+      {triggerClassName ? (
+        <button
+          type="button"
+          className={triggerClassName}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <UserIcon />
+          <span className="hidden max-w-[8rem] truncate sm:inline">
+            {isAuthenticated ? displayName : labels.login}
+          </span>
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size={isAuthenticated ? "md" : "sm"}
+          className="gap-2"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <UserIcon />
+          <span className="hidden max-w-[8rem] truncate sm:inline">
+            {isAuthenticated ? displayName : labels.login}
+          </span>
+        </Button>
+      )}
 
       {open ? (
         <div

@@ -149,8 +149,8 @@ export function CategoryPage() {
       ) : null}
       {!loading && !error && products.length > 0 ? (
         <div className="cb-product-grid cb-animate-grid">
-          {products.map((product) => (
-            <ProductCard key={product.id ?? product.Id} product={product} />
+          {products.map((product, index) => (
+            <ProductCard key={product.id ?? product.Id} product={product} listIndex={index} />
           ))}
         </div>
       ) : null}

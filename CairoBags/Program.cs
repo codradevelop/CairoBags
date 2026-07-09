@@ -61,6 +61,15 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    options.AddPolicy("newsletter", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
@@ -75,11 +84,18 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<GoogleSignInService>();
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<EmailQueue>();
+builder.Services.AddSingleton<IEmailQueue>(sp => sp.GetRequiredService<EmailQueue>());
+builder.Services.AddHostedService<EmailQueueBackgroundService>();
+builder.Services.AddScoped<INewsletterService, NewsletterService>();
+builder.Services.AddScoped<IHomeStatisticsService, HomeStatisticsService>();
 builder.Services.AddScoped<PasswordResetService>();
 builder.Services.AddSingleton<ICatalogRealtimeService, CatalogRealtimeService>();
+builder.Services.AddSingleton<IStatisticsRealtimeService, StatisticsRealtimeService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IProductImageService, ProductImageService>();
+builder.Services.AddScoped<IProductImageProcessingService, ProductImageProcessingService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IWishlistService, WishlistService>();
@@ -214,7 +230,8 @@ builder.Services.AddAuthentication(options =>
         OnAuthenticationFailed = context =>
         {
             // Catalog hub is public — a bad/expired token must not block the connection.
-            if (context.Request.Path.StartsWithSegments("/hubs/catalog"))
+            if (context.Request.Path.StartsWithSegments("/hubs/catalog") ||
+                context.Request.Path.StartsWithSegments("/hubs/statistics"))
                 context.NoResult();
             return Task.CompletedTask;
         }
@@ -342,5 +359,6 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<NotificationHub>("/notificationsHub");
 app.MapHub<CatalogHub>("/hubs/catalog");
+app.MapHub<StatisticsHub>("/hubs/statistics");
 
 app.Run();

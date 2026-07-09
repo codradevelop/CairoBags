@@ -123,6 +123,9 @@ export function InventoryPage() {
     {
       key: "product",
       header: locale === "ar" ? "المنتج" : "Product",
+      align: "center",
+      headerClassName: `${ADMIN_COL.qty} px-4`,
+      cellClassName: `${ADMIN_COL.qty} px-4`,
       ...dataColumnShell,
       render: (row) => (
         <AdminTableText
@@ -134,6 +137,7 @@ export function InventoryPage() {
     {
       key: "sku",
       header: "SKU",
+      align: "center",
       headerClassName: `${ADMIN_COL.sku} px-4`,
       cellClassName: `${ADMIN_COL.sku} px-4 font-mono text-xs text-brand-muted`,
       render: (row) => row.sku ?? row.Sku ?? "—",

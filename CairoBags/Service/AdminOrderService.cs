@@ -20,11 +20,16 @@ public class AdminOrderService : IAdminOrderService
 
     private readonly CairoBagsContext _context;
     private readonly NotificationService _notificationService;
+    private readonly IStatisticsRealtimeService _statisticsRealtime;
 
-    public AdminOrderService(CairoBagsContext context, NotificationService notificationService)
+    public AdminOrderService(
+        CairoBagsContext context,
+        NotificationService notificationService,
+        IStatisticsRealtimeService statisticsRealtime)
     {
         _context = context;
         _notificationService = notificationService;
+        _statisticsRealtime = statisticsRealtime;
     }
 
     public async Task<IReadOnlyList<AdminOrderListItemDto>> GetOrdersAsync(
@@ -553,6 +558,9 @@ public class AdminOrderService : IAdminOrderService
                 order.Id,
                 order.OrderNumber,
                 cancellationToken);
+
+            if (newStatus is OrderStatus.Delivered or OrderStatus.Completed)
+                await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
 
             return ServiceResult<AdminOrderActionResponseDto>.Ok(MapActionResponse(order));
         }

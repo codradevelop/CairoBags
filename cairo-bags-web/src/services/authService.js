@@ -96,12 +96,6 @@ export async function updateUsername(payload) {
   );
 }
 
-export async function signInGoogle(payload) {
-  return handleServiceCall(
-    axiosInstance.post(ENDPOINTS.account.signInGoogle, payload).then(({ data }) => saveAuthResponse(data))
-  );
-}
-
 export async function forgotPasswordRequestCode(payload) {
   return handleServiceCall(
     axiosInstance.post(ENDPOINTS.account.forgotPasswordRequestCode, payload).then(({ data }) => data)

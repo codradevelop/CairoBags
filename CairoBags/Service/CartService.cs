@@ -1,5 +1,6 @@
 using CairoBags.Data;
 using CairoBags.Dto.Commerce;
+using CairoBags.Helpers;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using Microsoft.EntityFrameworkCore;
@@ -441,14 +442,14 @@ public class CartService : ICartService
             .FirstOrDefault();
 
         if (variantImage != null)
-            return variantImage.ThumbnailUrl ?? variantImage.ImageUrl;
+            return ProductImageUrlHelper.ResolveCompactUrl(variantImage.ImageUrl);
 
         var productImage = variant.Product.Images
             .OrderByDescending(i => i.IsPrimary)
             .ThenBy(i => i.SortOrder)
             .FirstOrDefault();
 
-        return productImage?.ThumbnailUrl ?? productImage?.ImageUrl;
+        return ProductImageUrlHelper.ResolveCompactUrl(productImage?.ImageUrl);
     }
 
     private static void TouchCart(Cart cart, DateTime timestamp) =>

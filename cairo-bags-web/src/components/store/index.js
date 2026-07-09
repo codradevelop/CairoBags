@@ -21,4 +21,11 @@ export { ShopFiltersSidebar } from "./shop/ShopFiltersSidebar.jsx";
 export { ShopToolbar } from "./shop/ShopToolbar.jsx";
 export { ShopFeatureBar } from "./shop/ShopFeatureBar.jsx";
 export { ShopProductCard } from "./shop/ShopProductCard.jsx";
-
+export {
+  ProductPresentation,
+  LuxuryImageWrapper,
+  FloatingRing,
+  GoldStand,
+  LuxuryGlow,
+  isAboveFoldPriority,
+} from "./ProductPresentation.jsx";

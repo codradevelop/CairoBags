@@ -23,6 +23,7 @@ export function ProductCarousel({
   className,
   showDots = true,
   showArrows = true,
+  loop = true,
 }) {
   const trackRef      = useRef(null);
   const autoplayRef   = useRef(null);
@@ -33,6 +34,7 @@ export function ProductCarousel({
 
   const items = Array.isArray(children) ? children : children ? [children] : [];
   const count = items.length;
+  const shouldLoop = loop && count > 1;
 
   /* ─────────────────────────────────────────────
      Helpers
@@ -42,17 +44,19 @@ export function ProductCarousel({
   const cellWidth = useCallback(() => {
     const el = trackRef.current;
     if (!el) return 0;
-    const child = el.children[count]; // first REAL item (after the clones prefix)
+    const childIndex = shouldLoop ? count : 0;
+    const child = el.children[childIndex];
     return (child?.offsetWidth ?? el.firstElementChild?.offsetWidth ?? 0) + gap;
-  }, [count, gap]);
+  }, [count, gap, shouldLoop]);
 
   /** Scroll offset that puts real item [index] in view */
   const realOffset = useCallback(
     (index) => {
+      if (!shouldLoop) return index * cellWidth();
       // real items start after `count` clones at the front
       return (count + index) * cellWidth();
     },
-    [count, cellWidth]
+    [count, cellWidth, shouldLoop]
   );
 
   /* ─────────────────────────────────────────────
@@ -62,16 +66,14 @@ export function ProductCarousel({
     const el = trackRef.current;
     if (!el || count === 0) return;
 
-    // Use requestAnimationFrame so the DOM has rendered
     const raf = requestAnimationFrame(() => {
       isJumpingRef.current = true;
-      el.scrollLeft = realOffset(0);
-      // Give the browser one more frame to settle
+      el.scrollLeft = shouldLoop ? realOffset(0) : 0;
       requestAnimationFrame(() => { isJumpingRef.current = false; });
     });
     return () => cancelAnimationFrame(raf);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [count]); // run once per mount / item change
+  }, [count, shouldLoop]);
 
   /* ─────────────────────────────────────────────
      Scroll handler — sync dot index & loop reset
@@ -84,13 +86,17 @@ export function ProductCarousel({
     if (!cw) return;
 
     const scroll = el.scrollLeft;
-    // Total real width
     const realWidth = count * cw;
 
-    // Update dot index (relative to real items)
-    const rawIndex = Math.round((scroll - realWidth) / cw);
-    const dotIndex = ((rawIndex % count) + count) % count;
+    const rawIndex = shouldLoop
+      ? Math.round((scroll - realWidth) / cw)
+      : Math.round(scroll / cw);
+    const dotIndex = shouldLoop
+      ? ((rawIndex % count) + count) % count
+      : Math.min(Math.max(rawIndex, 0), count - 1);
     setActiveIndex(dotIndex);
+
+    if (!shouldLoop) return;
 
     // ── Silent loop reset ──
     // If we scroll into the after-clone zone (past the real items)
@@ -105,7 +111,7 @@ export function ProductCarousel({
       el.scrollLeft = scroll + realWidth;
       requestAnimationFrame(() => { isJumpingRef.current = false; });
     }
-  }, [cellWidth, count]);
+  }, [cellWidth, count, shouldLoop]);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -206,22 +212,27 @@ export function ProductCarousel({
   ───────────────────────────────────────────── */
   if (count === 0) return null;
 
-  // Build: [clones-before] [real items] [clones-after]
-  const clonesBefore = items.map((child, i) => (
-    <div key={`clone-before-${i}`} className="cb-carousel-item" aria-hidden="true">
-      {child}
-    </div>
-  ));
   const realItems = items.map((child, i) => (
     <div key={`real-${i}`} className="cb-carousel-item">
       {child}
     </div>
   ));
-  const clonesAfter = items.map((child, i) => (
-    <div key={`clone-after-${i}`} className="cb-carousel-item" aria-hidden="true">
-      {child}
-    </div>
-  ));
+
+  const trackItems = shouldLoop
+    ? [
+        ...items.map((child, i) => (
+          <div key={`clone-before-${i}`} className="cb-carousel-item" aria-hidden="true">
+            {child}
+          </div>
+        )),
+        ...realItems,
+        ...items.map((child, i) => (
+          <div key={`clone-after-${i}`} className="cb-carousel-item" aria-hidden="true">
+            {child}
+          </div>
+        )),
+      ]
+    : realItems;
 
   return (
     <div
@@ -241,9 +252,7 @@ export function ProductCarousel({
         onPointerLeave={onPointerUp}
         onClickCapture={onClickCapture}
       >
-        {clonesBefore}
-        {realItems}
-        {clonesAfter}
+        {trackItems}
       </div>
 
       {/* ── arrows ── */}

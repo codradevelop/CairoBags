@@ -13,6 +13,7 @@ import * as productService from "../../services/productService.js";
 import { getWishlistItemName } from "../../utils/wishlistHelpers.js";
 import { buildProductPathFromRefs } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
+import { ProductPresentation } from "../../components/store/ProductPresentation.jsx";
 
 function WishlistItemCard({ item, locale, onRemove, onAddToCart, removing }) {
   const name = getWishlistItemName(item, locale);
@@ -27,15 +28,16 @@ function WishlistItemCard({ item, locale, onRemove, onAddToCart, removing }) {
 
   return (
     <article
-      className={cn("cb-wishlist-card", removing && "pointer-events-none scale-[0.98] opacity-0")}
+      className={cn("cb-wishlist-card group", removing && "pointer-events-none scale-[0.98] opacity-0")}
     >
       <div className="cb-wishlist-card-inner">
-        <Link to={href} className="cb-wishlist-thumb">
-          {item.primaryImage ? (
-            <img src={item.primaryImage} alt={name} loading="lazy" decoding="async" />
-          ) : (
-            <div className="flex h-full items-center justify-center font-display text-brand-muted/50">CB</div>
-          )}
+        <Link to={href} className="cb-wishlist-thumb block overflow-hidden">
+          <ProductPresentation
+            src={item.primaryImage || undefined}
+            alt={name}
+            size="thumb"
+            className="h-full"
+          />
         </Link>
 
         <div className="min-w-0 space-y-3">

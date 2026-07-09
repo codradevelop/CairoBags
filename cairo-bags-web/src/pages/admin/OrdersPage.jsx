@@ -85,6 +85,7 @@ export function OrdersPage() {
     {
       key: "orderNumber",
       header: locale === "ar" ? "رقم الطلب" : "Order",
+      align: "center",
       render: (row) => (
         <Link
           to={`/admin/orders/${getOrderId(row)}`}
@@ -97,28 +98,38 @@ export function OrdersPage() {
     {
       key: "customer",
       header: locale === "ar" ? "العميل" : "Customer",
+      align: "center",
       render: (row) => row.customerName ?? row.CustomerName ?? "—",
     },
     {
       key: "status",
       header: locale === "ar" ? "الحالة" : "Status",
+      align: "center",
       render: (row) => (
-        <StatusBadge status={getOrderStatus(row)} paymentStatus={getPaymentStatus(row)} />
+        <div className="flex w-full items-center justify-center">
+          <StatusBadge
+            status={getOrderStatus(row)}
+            paymentStatus={getPaymentStatus(row)}
+          />
+        </div>
       ),
     },
     {
       key: "total",
       header: locale === "ar" ? "الإجمالي" : "Total",
+      align: "center",
       render: (row) => formatPrice(row.totalAmount ?? row.TotalAmount, locale),
     },
     {
       key: "date",
       header: locale === "ar" ? "التاريخ" : "Date",
+      align: "center",
       render: (row) => formatOrderDate(row.createdAt ?? row.CreatedAt, locale),
     },
     {
       key: "actions",
       header: locale === "ar" ? "إجراءات" : "Actions",
+      align: "center",
       render: (row) => (
         <Link to={`/admin/orders/${getOrderId(row)}`}>
           <Button variant="outline" size="sm">

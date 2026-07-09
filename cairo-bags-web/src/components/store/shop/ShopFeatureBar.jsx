@@ -59,21 +59,28 @@ export function ShopFeatureBar({ className }) {
   const items = locale === "ar" ? FEATURES.ar : FEATURES.en;
 
   return (
-    <section className={cn("cb-shop-feature-bar", className)} aria-label={locale === "ar" ? "مزايا التسوق" : "Shopping benefits"}>
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <div key={item.title} className="cb-shop-feature-item">
-            <span className="cb-shop-feature-icon">
-              <Icon />
-            </span>
-            <div>
-              <p className="cb-shop-feature-title">{item.title}</p>
-              <p className="cb-shop-feature-desc">{item.desc}</p>
-            </div>
-          </div>
-        );
-      })}
+    <section
+      className={cn("cb-shop-feature-bar-section", className)}
+      aria-label={locale === "ar" ? "مزايا التسوق" : "Shopping benefits"}
+    >
+      <div className="cb-container-wide relative mx-auto max-w-[1280px]">
+        <div className="cb-shop-feature-bar">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="cb-shop-feature-item">
+                <span className="cb-shop-feature-icon">
+                  <Icon />
+                </span>
+                <div>
+                  <p className="cb-shop-feature-title">{item.title}</p>
+                  <p className="cb-shop-feature-desc">{item.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }

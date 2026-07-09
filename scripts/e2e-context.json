@@ -1,0 +1,11 @@
+{
+  "productId": 3,
+  "slug": "prod-20260709190542",
+  "base": "http://localhost:5073",
+  "web": "http://localhost:3000",
+  "variantId": 3,
+  "primaryImageUrl": "/FileStorage/products/3/main_600.jpg",
+  "imageUrl": "/FileStorage/products/3/main.jpg",
+  "thumbnailUrl": "/FileStorage/products/3/main_600.jpg",
+  "main300": "/FileStorage/products/3/main_300.jpg"
+}

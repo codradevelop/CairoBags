@@ -61,6 +61,14 @@ public class ProductController : ControllerBase
         return Ok(products);
     }
 
+    [HttpGet("/api/products/filter-options")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetFilterOptions(CancellationToken cancellationToken = default)
+    {
+        var options = await _productService.GetFilterOptionsAsync(storefront: true, cancellationToken);
+        return Ok(options);
+    }
+
     [HttpGet("/api/products/{identifier}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetByIdentifier(

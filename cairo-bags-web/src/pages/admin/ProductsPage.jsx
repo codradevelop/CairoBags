@@ -106,7 +106,10 @@ export function ProductsPage() {
   const columns = [
     {
       key: "image",
-      header: "",
+      header: locale === "ar" ? "الصورة" : "Image",
+      align: "center",
+      headerClassName: `${ADMIN_COL.status} px-4`,
+      cellClassName: `${ADMIN_COL.status} px-4`,
       ...imageColumnShell,
       render: (row) => {
         const name = getProductName(row, locale);
@@ -118,6 +121,9 @@ export function ProductsPage() {
     {
       key: "product",
       header: locale === "ar" ? "المنتج" : "Product",
+      align: "center",
+      headerClassName: `${ADMIN_COL.status} px-4`,
+      cellClassName: `${ADMIN_COL.status} px-4`,
       ...dataColumnShell,
       render: (row) => (
         <AdminTableText

@@ -6,8 +6,10 @@ import { useCart } from "../../context/CartContext.jsx";
 import { useToast } from "../ui/Toast.jsx";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
 import { ProductPrice } from "./ProductPrice.jsx";
+import { ProductPresentation } from "./ProductPresentation.jsx";
 import {
-  getProductImageUrl,
+  getProductImageThumbUrl,
+  getProductImages,
   getProductName,
   getProductVariants,
   getVariantColorName,
@@ -64,7 +66,13 @@ export function QuickAddModal({ open, product, onClose }) {
   const [adding, setAdding] = useState(false);
 
   const name = product ? getProductName(product, locale) : "";
-  const imageUrl = product ? getProductImageUrl(product) : null;
+  const imageUrl = useMemo(() => {
+    if (!product) return null;
+    const images = getProductImages(product);
+    const primary = images.find((img) => img.isPrimary ?? img.IsPrimary) ?? images[0];
+    if (primary) return getProductImageThumbUrl(primary);
+    return getProductImageThumbUrl({ imageUrl: product.primaryImageUrl ?? product.PrimaryImageUrl });
+  }, [product]);
   const variants = useMemo(() => (product ? getProductVariants(product) : []), [product]);
 
   const labels = useMemo(
@@ -237,12 +245,13 @@ export function QuickAddModal({ open, product, onClose }) {
         <div className="overflow-y-auto px-5 py-5 md:px-6">
           {/* Product info row */}
           <div className="flex gap-4">
-            <div className="h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-brand-border bg-brand-secondary md:h-32 md:w-28">
-              {imageUrl ? (
-                <img src={imageUrl} alt={name} className="h-full w-full object-cover object-center" />
-              ) : (
-                <div className="flex h-full items-center justify-center font-display text-brand-muted">CB</div>
-              )}
+            <div className="cb-cart-thumb h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-brand-border md:h-32 md:w-28">
+              <ProductPresentation
+                src={imageUrl || undefined}
+                alt={name}
+                size="thumb"
+                className="h-full rounded-xl"
+              />
             </div>
 
             <div className="min-w-0 flex-1">

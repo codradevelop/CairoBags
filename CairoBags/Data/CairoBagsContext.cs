@@ -86,6 +86,12 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
 
     public virtual DbSet<BannerTranslation> BannerTranslations { get; set; }
 
+    public virtual DbSet<NewsletterSubscriber> NewsletterSubscribers { get; set; }
+
+    public virtual DbSet<NewsletterEmailJob> NewsletterEmailJobs { get; set; }
+
+    public virtual DbSet<ProductLaunchNotification> ProductLaunchNotifications { get; set; }
+
     public virtual DbSet<DailySalesSummary> DailySalesSummaries { get; set; }
 
     public virtual DbSet<UserProductView> UserProductViews { get; set; }
@@ -783,6 +789,49 @@ public class CairoBagsContext : IdentityDbContext<ApplicationUser>
                 .WithMany(e => e.Translations)
                 .HasForeignKey(e => e.BannerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NewsletterSubscriber>(entity =>
+        {
+            entity.ToTable("NewsletterSubscribers");
+
+            entity.Property(e => e.Email).HasMaxLength(320).IsRequired();
+            entity.Property(e => e.Language).HasMaxLength(2).IsFixedLength();
+            entity.Property(e => e.UnsubscribeToken).HasMaxLength(64).IsRequired();
+
+            entity.HasIndex(e => e.Email).IsUnique();
+            entity.HasIndex(e => e.UnsubscribeToken).IsUnique();
+            entity.HasIndex(e => e.IsSubscribed);
+            entity.HasIndex(e => e.SubscribedAt);
+        });
+
+        modelBuilder.Entity<NewsletterEmailJob>(entity =>
+        {
+            entity.ToTable("NewsletterEmailJobs");
+
+            entity.Property(e => e.ToEmail).HasMaxLength(320).IsRequired();
+            entity.Property(e => e.Subject).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Error).HasMaxLength(2000);
+            entity.Property(e => e.EmailType).HasConversion<byte>();
+            entity.Property(e => e.Status).HasConversion<byte>();
+
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.EmailType);
+            entity.HasIndex(e => new { e.ProductId, e.EmailType });
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.Subscriber)
+                .WithMany()
+                .HasForeignKey(e => e.SubscriberId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ProductLaunchNotification>(entity =>
+        {
+            entity.ToTable("ProductLaunchNotifications");
+
+            entity.HasIndex(e => e.ProductId).IsUnique();
+            entity.HasIndex(e => e.SentAt);
         });
     }
 

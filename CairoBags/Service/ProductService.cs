@@ -1,5 +1,6 @@
 using CairoBags.Data;
 using CairoBags.Dto.Catalog;
+using CairoBags.Helpers;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Inventories;
 using CairoBags.Models.Orders;
@@ -19,11 +20,22 @@ public class ProductService : IProductService
 
     private readonly CairoBagsContext _context;
     private readonly ICatalogRealtimeService _catalogRealtime;
+    private readonly IStatisticsRealtimeService _statisticsRealtime;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<ProductService> _logger;
 
-    public ProductService(CairoBagsContext context, ICatalogRealtimeService catalogRealtime)
+    public ProductService(
+        CairoBagsContext context,
+        ICatalogRealtimeService catalogRealtime,
+        IStatisticsRealtimeService statisticsRealtime,
+        IServiceScopeFactory scopeFactory,
+        ILogger<ProductService> logger)
     {
         _context = context;
         _catalogRealtime = catalogRealtime;
+        _statisticsRealtime = statisticsRealtime;
+        _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     public Task<IReadOnlyList<ProductSummaryDto>> GetProductsAsync(
@@ -69,6 +81,77 @@ public class ProductService : IProductService
         bool storefront,
         CancellationToken cancellationToken = default) =>
         ListProductsAsync(filters, storefront, featuredOnly: false, newArrivalsOnly: false, cancellationToken);
+
+    public async Task<ProductFilterOptionsDto> GetFilterOptionsAsync(
+        bool storefront,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products
+            .AsNoTracking()
+            .Include(p => p.Variants).ThenInclude(v => v.Inventory)
+            .Where(p => !p.IsDeleted);
+
+        if (storefront)
+            query = query.Where(p => p.Status == ProductStatus.Active);
+
+        var products = await query.ToListAsync(cancellationToken);
+
+        var colorBuckets = new Dictionary<string, (string NameEn, string NameAr, HashSet<int> ProductIds, HashSet<int> InStockProductIds)>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var product in products)
+        {
+            foreach (var variant in product.Variants.Where(v => v.Status == VariantStatus.Active))
+            {
+                var nameEn = variant.ColorNameEn.Trim();
+                var nameAr = variant.ColorNameAr.Trim();
+                if (string.IsNullOrWhiteSpace(nameEn) && string.IsNullOrWhiteSpace(nameAr))
+                    continue;
+
+                var canonicalName = !string.IsNullOrWhiteSpace(nameEn) ? nameEn : nameAr;
+                var key = canonicalName.ToLowerInvariant();
+
+                if (!colorBuckets.TryGetValue(key, out var bucket))
+                {
+                    bucket = (nameEn, nameAr, new HashSet<int>(), new HashSet<int>());
+                    colorBuckets[key] = bucket;
+                }
+
+                if (string.IsNullOrWhiteSpace(bucket.NameEn) && !string.IsNullOrWhiteSpace(nameEn))
+                    bucket.NameEn = nameEn;
+                if (string.IsNullOrWhiteSpace(bucket.NameAr) && !string.IsNullOrWhiteSpace(nameAr))
+                    bucket.NameAr = nameAr;
+
+                bucket.ProductIds.Add(product.Id);
+                if (IsVariantInStock(variant))
+                    bucket.InStockProductIds.Add(product.Id);
+
+                colorBuckets[key] = bucket;
+            }
+        }
+
+        // Count = distinct products per color (not variant rows). InStockCount = products with available stock.
+        var colors = colorBuckets
+            .Select(entry =>
+            {
+                var displayName = !string.IsNullOrWhiteSpace(entry.Value.NameEn)
+                    ? entry.Value.NameEn
+                    : entry.Value.NameAr;
+                return new ProductFilterColorOptionDto
+                {
+                    Name = displayName,
+                    NameAr = string.IsNullOrWhiteSpace(entry.Value.NameAr) ? null : entry.Value.NameAr,
+                    Hex = ColorSwatchHelper.GetHexFromName(displayName),
+                    Count = entry.Value.ProductIds.Count,
+                    InStockCount = entry.Value.InStockProductIds.Count,
+                };
+            })
+            .Where(color => color.Count > 0)
+            .OrderBy(color => color.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new ProductFilterOptionsDto { Colors = colors };
+    }
 
     public async Task<ServiceResult<ProductDetailsDto>> CreateAsync(
         CreateProductRequest request,
@@ -138,6 +221,10 @@ public class ProductService : IProductService
             .FirstAsync(p => p.Id == product.Id, cancellationToken);
 
         await _catalogRealtime.NotifyProductChangedAsync("created", product.Id, product.CategoryId, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
+
+        if (request.Status == ProductStatus.Active)
+            TriggerProductLaunchEmails(product.Id);
 
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(created, activeVariantsOnly: false));
     }
@@ -201,6 +288,7 @@ public class ProductService : IProductService
             .FirstAsync(p => p.Id == id, cancellationToken);
 
         await _catalogRealtime.NotifyProductChangedAsync("updated", id, product.CategoryId, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
 
         return ServiceResult<ProductDetailsDto>.Ok(MapToDetails(updated, activeVariantsOnly: false));
     }
@@ -232,6 +320,7 @@ public class ProductService : IProductService
 
         await _context.SaveChangesAsync(cancellationToken);
         await _catalogRealtime.NotifyProductChangedAsync("deleted", id, product.CategoryId, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -329,6 +418,17 @@ public class ProductService : IProductService
                 t.Name.Contains(term) ||
                 (t.ShortDescription != null && t.ShortDescription.Contains(term)) ||
                 (t.Description != null && t.Description.Contains(term))));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.Color))
+        {
+            var colorKey = filters.Color.Trim().ToLowerInvariant();
+            query = query.Where(p => p.Variants.Any(v =>
+                v.Status == VariantStatus.Active &&
+                (
+                    (!string.IsNullOrWhiteSpace(v.ColorNameEn) && v.ColorNameEn.ToLower() == colorKey) ||
+                    (string.IsNullOrWhiteSpace(v.ColorNameEn) && !string.IsNullOrWhiteSpace(v.ColorNameAr) && v.ColorNameAr.ToLower() == colorKey)
+                )));
         }
 
         return query;
@@ -521,7 +621,8 @@ public class ProductService : IProductService
 
                 image.VariantId = variantId;
                 image.ImageUrl = input.ImageUrl.Trim();
-                image.ThumbnailUrl = NormalizeOptional(input.ThumbnailUrl);
+                image.ThumbnailUrl = NormalizeOptional(input.ThumbnailUrl)
+                    ?? ProductImageUrlHelper.GetMediumThumbnailUrl(input.ImageUrl.Trim());
                 image.AltTextAr = NormalizeOptional(input.AltTextAr);
                 image.AltTextEn = NormalizeOptional(input.AltTextEn);
                 image.IsPrimary = input.IsPrimary;
@@ -535,7 +636,8 @@ public class ProductService : IProductService
                 {
                     VariantId = variantId,
                     ImageUrl = input.ImageUrl.Trim(),
-                    ThumbnailUrl = NormalizeOptional(input.ThumbnailUrl),
+                    ThumbnailUrl = NormalizeOptional(input.ThumbnailUrl)
+                        ?? ProductImageUrlHelper.GetMediumThumbnailUrl(input.ImageUrl.Trim()),
                     AltTextAr = NormalizeOptional(input.AltTextAr),
                     AltTextEn = NormalizeOptional(input.AltTextEn),
                     IsPrimary = input.IsPrimary,
@@ -691,9 +793,9 @@ public class ProductService : IProductService
             PublishedAt = product.PublishedAt,
             Arabic = MapTranslation(product.Translations.FirstOrDefault(t => t.LanguageCode == "ar")),
             English = MapTranslation(product.Translations.FirstOrDefault(t => t.LanguageCode == "en")),
-            PrimaryImageUrl = !string.IsNullOrWhiteSpace(primaryImage?.ThumbnailUrl)
-                ? primaryImage!.ThumbnailUrl
-                : primaryImage?.ImageUrl,
+            PrimaryImageUrl = ProductImageUrlHelper.ResolveListingUrl(
+                primaryImage?.ImageUrl,
+                primaryImage?.ThumbnailUrl),
             LowestPrice = prices.Count == 0 ? null : prices.Min(),
             HighestPrice = prices.Count == 0 ? null : prices.Max(),
             TotalStock = stock.TotalStock,
@@ -743,6 +845,10 @@ public class ProductService : IProductService
                 .ToList()
         };
     }
+
+    private static bool IsVariantInStock(ProductVariant variant) =>
+        variant.Inventory != null &&
+        variant.Inventory.QuantityOnHand - variant.Inventory.QuantityReserved > 0;
 
     private static List<ProductVariant> GetVariantsForPricing(Product product, bool activeVariantsOnly) =>
         activeVariantsOnly
@@ -829,5 +935,22 @@ public class ProductService : IProductService
         }
 
         return false;
+    }
+
+    private void TriggerProductLaunchEmails(int productId)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var newsletter = scope.ServiceProvider.GetRequiredService<INewsletterService>();
+                await newsletter.EnqueueProductLaunchEmailsAsync(productId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to enqueue product launch emails for product {ProductId}", productId);
+            }
+        });
     }
 }

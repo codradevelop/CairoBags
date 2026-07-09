@@ -33,7 +33,7 @@ function BellIcon() {
   );
 }
 
-export function NotificationDropdown({ className, adminContext = false }) {
+export function NotificationDropdown({ className, adminContext = false, triggerClassName }) {
   const { isAuthenticated } = useAuth();
   const { locale } = useLocale();
   const { success } = useToast();
@@ -91,26 +91,43 @@ export function NotificationDropdown({ className, adminContext = false }) {
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="relative"
-        aria-label={`${title}${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <BellIcon />
-        {unreadCount > 0 ? (
-          <Badge
-            size="sm"
-            variant="accent"
-            className="absolute -end-1 -top-1 min-w-[1.25rem] justify-center px-1"
-          >
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </Badge>
-        ) : null}
-      </Button>
+      {triggerClassName ? (
+        <button
+          type="button"
+          className={cn("relative", triggerClassName)}
+          aria-label={`${title}${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <BellIcon />
+          {unreadCount > 0 ? (
+            <span key={unreadCount} className="cb-header-cart-badge">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          ) : null}
+        </button>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={`${title}${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <BellIcon />
+          {unreadCount > 0 ? (
+            <Badge
+              size="sm"
+              variant="accent"
+              className="absolute -end-1 -top-1 min-w-[1.25rem] justify-center px-1"
+            >
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </Badge>
+          ) : null}
+        </Button>
+      )}
 
       {open ? (
         <div

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "../ui/Button.jsx";
 import { Navbar } from "./Navbar.jsx";
 import { MobileMenu } from "./MobileMenu.jsx";
 import { LanguageSwitcher } from "./LanguageSwitcher.jsx";
@@ -16,7 +15,7 @@ import { cn } from "../../utils/cn.js";
 
 function MenuIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
@@ -24,123 +23,107 @@ function MenuIcon() {
 
 function SearchIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5" />
       <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
 
-export function AnnouncementBar({ message, messageAr, href = "/shop", className }) {
-  const { locale } = useLocale();
-  const text =
-    message ||
-    (locale === "ar"
-      ? messageAr || "شحن مجاني للطلبات فوق ٢٠٠٠ جنيه — تسوق الآن"
-      : "Complimentary shipping on orders over EGP 2,000 — Shop Now");
-
-  return (
-    <div className={cn("relative overflow-hidden", className)}>
-      <div className="absolute inset-0 bg-brand-primary" />
-      <div
-        className="absolute inset-0 opacity-15"
-        style={{
-          background:
-            "linear-gradient(105deg, transparent 30%, rgba(201,169,98,0.9) 50%, transparent 70%)",
-          backgroundSize: "300% 100%",
-          animation: "shimmer-gold 5s ease-in-out infinite",
-        }}
-      />
-      <div className="cb-container relative">
-        <Link
-          to={href}
-          className="flex min-h-9 items-center justify-center gap-3 px-4 py-2 text-center text-[10px] font-medium tracking-luxury uppercase transition-opacity hover:opacity-75 sm:text-[11px]"
-          style={{ color: "#e8d5a3" }}
-        >
-          <span className="hidden h-px w-8 bg-gradient-to-r from-transparent to-brand-accent/70 sm:block" />
-          {text}
-          <span className="hidden h-px w-8 bg-gradient-to-l from-transparent to-brand-accent/70 sm:block" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-export function Header({ className, showAnnouncement = true, announcement }) {
+export function Header({ className }) {
   const { locale } = useLocale();
   const readOnly = useStoreReadOnly();
+  const headerRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [glowVisible, setGlowVisible] = useState(false);
 
   const searchPlaceholder = locale === "ar" ? "ابحث عن حقائب..." : "Search bags...";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 30);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  return (
-    <header
-      className={cn(
-        "cb-header-floating cb-glass transition-all duration-500",
-        scrolled && "cb-header-scrolled cb-header-compact",
-        className
-      )}
-    >
-      {showAnnouncement ? <AnnouncementBar {...announcement} /> : null}
+  const onHeaderMouseMove = useCallback((e) => {
+    const el = headerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--header-glow-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--header-glow-y", `${e.clientY - rect.top}px`);
+    setGlowVisible(true);
+  }, []);
 
-      <div className="cb-container">
-        <div className="cb-header-inner flex h-16 items-center justify-between gap-3 transition-all duration-500 md:h-[4.5rem] md:gap-6">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Button
+  const onHeaderMouseLeave = useCallback(() => {
+    setGlowVisible(false);
+  }, []);
+
+  return (
+    <>
+      <header
+        ref={headerRef}
+        className={cn(
+          "cb-header-premium cb-header-floating",
+          scrolled && "cb-header-scrolled",
+          className
+        )}
+        onMouseMove={onHeaderMouseMove}
+        onMouseLeave={onHeaderMouseLeave}
+      >
+      <div
+        className={cn(
+          "cb-header-premium__cursor-glow",
+          glowVisible && "cb-header-premium__cursor-glow--visible"
+        )}
+        aria-hidden="true"
+      />
+      <div className="cb-header-premium__container">
+        <div className="cb-header-premium__inner">
+          <div className="cb-header-premium__left">
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
-              className="shrink-0 lg:hidden"
+              className="cb-header-icon-btn cb-header-premium__menu-btn"
               aria-label={locale === "ar" ? "فتح القائمة" : "Open menu"}
               onClick={() => setMobileOpen(true)}
             >
               <MenuIcon />
-            </Button>
+            </button>
 
-            <Link
-              to="/"
-              className="group shrink-0 font-display text-lg font-medium tracking-tight text-brand-primary transition-colors duration-300 hover:text-brand-accent sm:text-xl md:text-[1.35rem]"
-              style={{ letterSpacing: "-0.03em" }}
-            >
-              <span className="relative">
-                Cairo Bags
-                <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-brand-accent transition-all duration-500 group-hover:w-full" />
+            <Link to="/" className="cb-header-premium__brand-link">
+              <span className="cb-header-premium__monogram" aria-hidden="true">
+                CB
               </span>
+              <span className="cb-header-premium__brand-name">Cairo Bags</span>
             </Link>
           </div>
 
-          <Navbar className="mx-2 hidden flex-1 justify-center lg:flex xl:mx-6" />
+          <Navbar className="cb-header-premium__nav" />
 
-          <div className="hidden max-w-xs flex-1 lg:block xl:max-w-sm">
-            <ProductSearch compact />
+          <div className="cb-header-premium__search">
+            <ProductSearch compact className="cb-header-search" />
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-            <Button
+          <div className="cb-header-premium__actions">
+            <button
               type="button"
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
+              className="cb-header-icon-btn lg:hidden"
               aria-label={searchPlaceholder}
               aria-expanded={searchOpen}
               onClick={() => setSearchOpen((v) => !v)}
             >
               <SearchIcon />
-            </Button>
-            <LanguageSwitcher className="hidden sm:inline-flex" />
-            <NotificationDropdown />
-            {!readOnly ? <WishlistHeaderButton /> : null}
-            {!readOnly ? <CartButton /> : null}
-            <UserDropdown />
+            </button>
+            <LanguageSwitcher
+              unstyled
+              className="cb-header-icon-btn cb-header-lang-btn hidden sm:inline-flex"
+            />
+            <NotificationDropdown triggerClassName="cb-header-icon-btn cb-header-icon-btn--notify" />
+            {!readOnly ? <WishlistHeaderButton className="cb-header-icon-btn" /> : null}
+            {!readOnly ? <CartButton className="cb-header-icon-btn" /> : null}
+            <UserDropdown triggerClassName="cb-header-user-btn" />
           </div>
         </div>
 
@@ -151,11 +134,9 @@ export function Header({ className, showAnnouncement = true, announcement }) {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3, ease: [0.19, 1, 0.22, 1] }}
-              className="overflow-hidden border-t border-brand-border/40 lg:hidden"
+              className="cb-header-premium__search-mobile lg:hidden"
             >
-              <div className="py-3">
-                <ProductSearch autoFocus onSubmit={() => setSearchOpen(false)} />
-              </div>
+              <ProductSearch autoFocus className="cb-header-search" onSubmit={() => setSearchOpen(false)} />
             </motion.div>
           ) : null}
         </AnimatePresence>
@@ -163,5 +144,7 @@ export function Header({ className, showAnnouncement = true, announcement }) {
 
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
     </header>
+    <div className="cb-header-premium__spacer" aria-hidden="true" />
+    </>
   );
 }

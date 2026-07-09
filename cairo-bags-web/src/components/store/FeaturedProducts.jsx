@@ -146,9 +146,14 @@ function ProductSection({
         />
       ) : null}
       {!loading && !error && products.length > 0 ? (
-        <ProductCarousel autoplay={3500} showDots={products.length > 4}>
-          {products.map((product) => (
-            <ProductCard key={product.id ?? product.Id} product={product} variant="landing" />
+        <ProductCarousel autoplay={3500} showDots={products.length > 4} loop={false}>
+          {products.map((product, index) => (
+            <ProductCard
+              key={product.id ?? product.Id}
+              product={product}
+              variant="landing"
+              listIndex={index}
+            />
           ))}
         </ProductCarousel>
       ) : null}

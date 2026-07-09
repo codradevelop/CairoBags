@@ -26,15 +26,18 @@ public class ReviewService : IReviewService
     private readonly CairoBagsContext _context;
     private readonly NotificationService _notificationService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStatisticsRealtimeService _statisticsRealtime;
 
     public ReviewService(
         CairoBagsContext context,
         NotificationService notificationService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IStatisticsRealtimeService statisticsRealtime)
     {
         _context = context;
         _notificationService = notificationService;
         _userManager = userManager;
+        _statisticsRealtime = statisticsRealtime;
     }
 
     public async Task<PagedReviewsDto> GetProductReviewsAsync(
@@ -207,6 +210,7 @@ public class ReviewService : IReviewService
 
         var dto = await GetReviewDtoByIdAsync(review.Id, userId, cancellationToken);
         await NotifyAdminsOfNewReviewAsync(review, userId, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 
@@ -335,6 +339,7 @@ public class ReviewService : IReviewService
         await _context.SaveChangesAsync(cancellationToken);
 
         var dto = await GetReviewDtoByIdAsync(review.Id, userId, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 
@@ -358,6 +363,7 @@ public class ReviewService : IReviewService
         await RecalculateProductReviewStatsAsync(productId, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -431,6 +437,7 @@ public class ReviewService : IReviewService
         await RecalculateProductReviewStatsAsync(productId, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<bool>.Ok(true);
     }
 
@@ -453,6 +460,7 @@ public class ReviewService : IReviewService
         await _context.SaveChangesAsync(cancellationToken);
 
         var dto = await GetReviewDtoByIdAsync(review.Id, null, cancellationToken);
+        await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
         return ServiceResult<ReviewDto>.Ok(dto!);
     }
 

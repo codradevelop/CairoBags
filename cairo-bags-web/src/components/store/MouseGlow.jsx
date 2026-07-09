@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../../utils/cn.js";
 
+const SMOOTHING = 0.065;
+
 export function MouseGlow({ className }) {
   const ref = useRef(null);
+  const glowRef = useRef(null);
+  const targetRef = useRef({ x: 0, y: 0 });
+  const posRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef(0);
   const [enabled, setEnabled] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -25,14 +30,33 @@ export function MouseGlow({ className }) {
     const onMove = (event) => {
       const bounds = ref.current?.getBoundingClientRect();
       if (!bounds) return;
-      setPos({
+      targetRef.current = {
         x: event.clientX - bounds.left,
         y: event.clientY - bounds.top,
-      });
+      };
+    };
+
+    const tick = () => {
+      const target = targetRef.current;
+      const pos = posRef.current;
+      pos.x += (target.x - pos.x) * SMOOTHING;
+      pos.y += (target.y - pos.y) * SMOOTHING;
+
+      const glow = glowRef.current;
+      if (glow) {
+        glow.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
     };
 
     window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(rafRef.current);
+    };
   }, [enabled]);
 
   if (!enabled) return <div ref={ref} className={cn("pointer-events-none absolute inset-0", className)} />;
@@ -40,13 +64,10 @@ export function MouseGlow({ className }) {
   return (
     <div ref={ref} className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)} aria-hidden="true">
       <div
-        className="absolute h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full will-change-transform"
+        ref={glowRef}
+        className="cb-mouse-glow__spot"
         style={{
-          left: pos.x,
-          top: pos.y,
-          background:
-            "radial-gradient(circle, rgba(201,169,98,0.14) 0%, rgba(201,169,98,0.04) 35%, transparent 70%)",
-          transition: "left 0.15s ease-out, top 0.15s ease-out",
+          transform: "translate3d(0, 0, 0) translate(-50%, -50%)",
         }}
       />
     </div>

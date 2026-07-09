@@ -7,7 +7,6 @@ export const ENDPOINTS = {
     logout: "/api/Account/LogOut",
     refreshToken: "/api/Account/refresh-token",
     createAdmin: "/api/Account/create-admin",
-    signInGoogle: "/api/Account/sign-in-google",
     updateUsername: "/api/Account/update-username",
     forgotPasswordRequestCode: "/api/Account/forgot-password/request-code",
     forgotPasswordComplete: "/api/Account/forgot-password/complete",
@@ -31,6 +30,7 @@ export const ENDPOINTS = {
   },
   products: {
     list: "/api/products",
+    filterOptions: "/api/products/filter-options",
     featured: "/api/products/featured",
     newArrivals: "/api/products/new-arrivals",
     search: "/api/products/search",
@@ -132,6 +132,7 @@ export const ENDPOINTS = {
   signalR: {
     notifications: "/hubs/notifications",
     catalog: "/hubs/catalog",
+    statistics: "/hubs/statistics",
   },
   wishlist: {
     list: "/api/wishlist",
@@ -149,5 +150,19 @@ export const ENDPOINTS = {
     adminDelete: (id) => `/api/admin/reviews/${id}`,
     adminVisibility: (id) => `/api/admin/reviews/${id}/visibility`,
     adminLatest: "/api/admin/reviews/latest",
+  },
+  newsletter: {
+    subscribe: "/api/newsletter/subscribe",
+    unsubscribe: "/api/newsletter/unsubscribe",
+    me: "/api/newsletter/me",
+  },
+  adminNewsletter: {
+    stats: "/api/admin/newsletter/stats",
+    list: "/api/admin/newsletter/subscribers",
+    exportCsv: "/api/admin/newsletter/export/csv",
+    exportExcel: "/api/admin/newsletter/export/excel",
+  },
+  home: {
+    statistics: "/api/home/statistics",
   },
 };

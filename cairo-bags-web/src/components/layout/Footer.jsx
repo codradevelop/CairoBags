@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ScrollReveal } from "../ui/motion.jsx";
 import { useLocale } from "./LanguageSwitcher.jsx";
+import { NewsletterSection } from "../store/NewsletterSection.jsx";
 import { cn } from "../../utils/cn.js";
 
 const footerLinks = {
@@ -11,16 +12,30 @@ const footerLinks = {
     { href: "/#features", labelEn: "Featured", labelAr: "مميز" },
   ],
   support: [
-    { href: "/contact", labelEn: "Contact", labelAr: "تواصل معنا" },
-    { href: "/shipping", labelEn: "Shipping", labelAr: "الشحن" },
-    { href: "/returns", labelEn: "Returns", labelAr: "الاسترجاع" },
-    { href: "/faq", labelEn: "FAQ", labelAr: "الأسئلة الشائعة" },
+    {
+      href: "mailto:cairobags4@gmail.com?subject=Contact%20Cairo%20Bags",
+      labelEn: "Contact",
+      labelAr: "تواصل معنا",
+      ariaLabel: "Contact Cairo Bags",
+    },
+    {
+      href: "mailto:cairobags4@gmail.com?subject=Shipping%20Inquiry",
+      labelEn: "Shipping",
+      labelAr: "الشحن",
+      ariaLabel: "Shipping Inquiry",
+    },
+    {
+      href: "mailto:cairobags4@gmail.com?subject=General%20Question",
+      labelEn: "Support",
+      labelAr: "الدعم",
+      ariaLabel: "General Question",
+    },
   ],
   account: [
     { href: "/login", labelEn: "Sign In", labelAr: "تسجيل الدخول" },
     { href: "/account/orders", labelEn: "My Orders", labelAr: "طلباتي" },
     { href: "/wishlist", labelEn: "Wishlist", labelAr: "المفضلة" },
-    { href: "/account", labelEn: "Profile", labelAr: "الملف الشخصي" },
+    { href: "/account/profile", labelEn: "Account Settings", labelAr: "إعدادات الحساب" },
   ],
 };
 
@@ -66,10 +81,10 @@ const socialLinks = [
 ];
 
 const trustBadges = [
-  { en: "Secure Checkout", ar: "دفع آمن" },
-  { en: "Authentic Craft", ar: "حرفية أصيلة" },
+  { en: "Secure Payments", ar: "مدفوعات آمنة" },
+  { en: "Premium Quality", ar: "جودة فاخرة" },
   { en: "Premium Packaging", ar: "تغليف فاخر" },
-  { en: "Fast Delivery", ar: "توصيل سريع" },
+  { en: "Fast & Secure Delivery", ar: "توصيل سريع وآمن" },
 ];
 
 const paymentMethods = [
@@ -90,6 +105,7 @@ function FooterColumn({ title, links, locale }) {
             <a
               href={link.href}
               className="text-sm text-brand-secondary/55 transition-opacity duration-300 hover:text-brand-accent-muted"
+              {...(link.ariaLabel ? { "aria-label": link.ariaLabel } : {})}
             >
               {locale === "ar" ? link.labelAr : link.labelEn}
             </a>
@@ -112,31 +128,12 @@ export function Footer({ className }) {
 
   return (
     <footer className={cn("relative overflow-hidden bg-[#0d0d0d] text-brand-secondary", className)}>
-      <div className="cb-container-wide relative max-w-[1280px]">
-        <ScrollReveal className="border-b border-white/[0.06] py-8 md:py-9">
-          <div className="flex flex-col items-center gap-4 text-center lg:flex-row lg:justify-between lg:text-start">
-            <div className="max-w-lg">
-              <p className="text-[10px] font-medium tracking-[0.2em] text-brand-accent uppercase">
-                {locale === "ar" ? "النشرة البريدية" : "Newsletter"}
-              </p>
-              <h3 className="mt-1.5 font-display text-xl font-light text-brand-secondary md:text-2xl">
-                {locale === "ar" ? "انضم إلى عالم Cairo Bags" : "Join the Cairo Bags World"}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-brand-secondary/50">
-                {locale === "ar"
-                  ? "عروض حصرية وإطلاقات جديدة — مباشرة إلى بريدك."
-                  : "Exclusive offers and new collection drops — straight to your inbox."}
-              </p>
-            </div>
-            <Link
-              to="/#newsletter"
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-brand-accent/40 px-7 text-xs font-medium tracking-wide text-brand-accent transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-accent hover:bg-brand-accent/10 hover:shadow-[0_4px_16px_-6px_rgba(201,169,98,0.35)]"
-            >
-              {locale === "ar" ? "اشترك الآن" : "Subscribe Now"}
-            </Link>
-          </div>
-        </ScrollReveal>
+      <div className="cb-container-wide relative max-w-[1400px] px-4 md:px-6">
+        <div id="newsletter" className="cb-footer-newsletter">
+          <NewsletterSection />
+        </div>
 
+        <div className="cb-footer-main">
         <div className="grid gap-8 py-8 md:grid-cols-2 lg:grid-cols-12 lg:gap-6 lg:py-9">
           <ScrollReveal className="lg:col-span-4">
             <Link
@@ -208,6 +205,7 @@ export function Footer({ className }) {
               {locale === "ar" ? "الشروط" : "Terms"}
             </a>
           </div>
+        </div>
         </div>
       </div>
     </footer>

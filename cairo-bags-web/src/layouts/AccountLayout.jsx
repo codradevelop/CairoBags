@@ -72,7 +72,7 @@ export function AccountLayout({
 
   return (
     <div className={cn("flex min-h-screen flex-col bg-brand-background", className)}>
-      <Header showAnnouncement={false} />
+      <Header />
 
       <div className="cb-container flex-1 py-6 md:py-10">
         <div className="mb-6 flex items-center justify-between lg:hidden">

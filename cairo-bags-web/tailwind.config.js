@@ -109,10 +109,6 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        "shimmer-gold": {
-          "0%": { backgroundPosition: "-300% 0" },
-          "100%": { backgroundPosition: "300% 0" },
-        },
         "border-pulse": {
           "0%, 100%": { borderColor: "rgba(201, 169, 98, 0.3)" },
           "50%": { borderColor: "rgba(201, 169, 98, 0.7)" },
@@ -135,7 +131,6 @@ export default {
         "blur-in": "blur-in 400ms ease-out",
         float: "float 4s ease-in-out infinite",
         shimmer: "shimmer 2s ease-in-out infinite",
-        "shimmer-gold": "shimmer-gold 3s ease-in-out infinite",
         "border-pulse": "border-pulse 2s ease-in-out infinite",
         spin: "spin 0.8s linear infinite",
       },

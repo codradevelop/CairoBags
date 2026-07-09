@@ -1,4 +1,4 @@
-export { AnnouncementBar, Header } from "./Header.jsx";
+export { Header } from "./Header.jsx";
 export { Footer } from "./Footer.jsx";
 export { Navbar } from "./Navbar.jsx";
 export { MobileMenu } from "./MobileMenu.jsx";

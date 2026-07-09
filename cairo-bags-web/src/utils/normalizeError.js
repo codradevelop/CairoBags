@@ -47,11 +47,24 @@ export function normalizeError(error) {
   }
 
   const { status, data } = error.response;
-  const message =
-    data?.message ||
-    (Array.isArray(data) ? data.join(", ") : null) ||
-    error.message ||
-    "Request failed";
+
+  let message = null;
+  if (typeof data === "string" && data.trim()) {
+    message = data.trim();
+  } else if (data?.message) {
+    message = data.message;
+  } else if (Array.isArray(data)) {
+    message = data.join(", ");
+  }
+
+  if (!message) {
+    const rawMessage = error.message || "Request failed";
+    if (status === 401 && /^Request failed with status code 401$/i.test(rawMessage)) {
+      message = "Authentication failed";
+    } else {
+      message = rawMessage;
+    }
+  }
 
   return {
     status,

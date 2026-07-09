@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
+import { Header } from "../../components/layout/Header.jsx";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
-import { LanguageSwitcher } from "../../components/layout/LanguageSwitcher.jsx";
 import { cn } from "../../utils/cn.js";
 
 export function AuthPageLayout({ children, className, variant = "card" }) {
@@ -8,20 +7,8 @@ export function AuthPageLayout({ children, className, variant = "card" }) {
   const isSliding = variant === "sliding";
 
   return (
-    <div className="min-h-screen bg-brand-background">
-      <header className="border-b border-brand-border/60 bg-brand-background/90 backdrop-blur-sm">
-        <div className="cb-container flex min-h-16 items-center justify-between py-3">
-          <Link
-            to="/"
-            className="font-display text-xl font-semibold tracking-[0.12em] text-brand-primary uppercase"
-          >
-            Cairo Bags
-          </Link>
-          <div className="flex items-center gap-1">
-            <LanguageSwitcher />
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col bg-brand-background">
+      <Header />
 
       <main
         className={cn(

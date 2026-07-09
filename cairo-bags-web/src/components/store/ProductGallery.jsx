@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { EASE_LUXURY } from "../ui/motion.jsx";
 import { cn } from "../../utils/cn.js";
-import { getProductImageAssetUrl } from "../../utils/productHelpers.js";
+import { getProductImageFullUrl, getProductImageThumbUrl } from "../../utils/productHelpers.js";
+import { ProductPresentation } from "./ProductPresentation.jsx";
 
 function getImageAlt(image, locale) {
   if (locale === "ar") {
@@ -15,9 +16,6 @@ function getImageAlt(image, locale) {
 export function ProductGallery({ images = [], productName = "", className }) {
   const { locale } = useLocale();
   const prefersReduced = useReducedMotion();
-  const frameRef = useRef(null);
-  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
-  const [zooming, setZooming] = useState(false);
 
   const sorted = [...images].sort((a, b) => {
     const aPrimary = a?.isPrimary ?? a?.IsPrimary ? 0 : 1;
@@ -28,18 +26,7 @@ export function ProductGallery({ images = [], productName = "", className }) {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const active = sorted[activeIndex] ?? sorted[0];
-  const activeUrl = active ? getProductImageAssetUrl(active) : null;
-
-  const onMove = useCallback(
-    (event) => {
-      if (prefersReduced || !frameRef.current) return;
-      const rect = frameRef.current.getBoundingClientRect();
-      const x = ((event.clientX - rect.left) / rect.width) * 100;
-      const y = ((event.clientY - rect.top) / rect.height) * 100;
-      setZoomOrigin({ x, y });
-    },
-    [prefersReduced]
-  );
+  const activeUrl = active ? getProductImageFullUrl(active) : null;
 
   if (!sorted.length) {
     return (
@@ -57,33 +44,26 @@ export function ProductGallery({ images = [], productName = "", className }) {
   return (
     <div className={cn("lg:sticky lg:top-28 lg:self-start", className)}>
       <div className="space-y-3">
-        <div
-          ref={frameRef}
-          className="cb-luxury-card relative cb-product-aspect overflow-hidden bg-brand-secondary"
-          onMouseEnter={() => setZooming(true)}
-          onMouseLeave={() => setZooming(false)}
-          onMouseMove={onMove}
-        >
+        <div className="cb-luxury-card relative cb-product-aspect overflow-hidden rounded-xl">
           <AnimatePresence mode="wait">
             {activeUrl ? (
-              <motion.img
+              <motion.div
                 key={activeUrl}
-                src={activeUrl}
-                alt={getImageAlt(active, locale) || productName}
-                loading="lazy"
-                decoding="async"
-                initial={{ opacity: 0, scale: 1.03 }}
-                animate={{
-                  opacity: 1,
-                  scale: zooming && !prefersReduced ? 1.08 : 1,
-                }}
-                exit={{ opacity: 0, scale: 1.01 }}
-                transition={{ duration: 0.5, ease: EASE_LUXURY }}
-                className="h-full w-full object-cover object-center will-change-transform"
-                style={{
-                  transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`,
-                }}
-              />
+                className="absolute inset-0"
+                initial={prefersReduced ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={prefersReduced ? undefined : { opacity: 0 }}
+                transition={{ duration: 0.45, ease: EASE_LUXURY }}
+              >
+                <ProductPresentation
+                  src={activeUrl}
+                  alt={getImageAlt(active, locale) || productName}
+                  size="gallery"
+                  interactive
+                  loading="eager"
+                  priority="high"
+                />
+              </motion.div>
             ) : null}
           </AnimatePresence>
         </div>
@@ -91,7 +71,7 @@ export function ProductGallery({ images = [], productName = "", className }) {
         {sorted.length > 1 ? (
           <div className="flex gap-2 overflow-x-auto pb-1 cb-scrollbar-thin">
             {sorted.map((image, index) => {
-              const url = getProductImageAssetUrl(image);
+              const url = getProductImageThumbUrl(image);
               if (!url) return null;
               const selected = index === activeIndex;
               return (
@@ -111,7 +91,14 @@ export function ProductGallery({ images = [], productName = "", className }) {
                   aria-label={`${productName} ${index + 1}`}
                   aria-pressed={selected}
                 >
-                  <img src={url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  <img
+                    src={url}
+                    alt=""
+                    className="h-full w-full object-contain p-1"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                  />
                 </motion.button>
               );
             })}

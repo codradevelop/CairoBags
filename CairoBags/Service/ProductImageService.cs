@@ -16,19 +16,22 @@ public class ProductImageService : IProductImageService
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<ProductImageService> _logger;
     private readonly ICatalogRealtimeService _catalogRealtime;
+    private readonly IProductImageProcessingService _productImageProcessing;
 
     public ProductImageService(
         CairoBagsContext context,
         IConfiguration configuration,
         IWebHostEnvironment environment,
         ILogger<ProductImageService> logger,
-        ICatalogRealtimeService catalogRealtime)
+        ICatalogRealtimeService catalogRealtime,
+        IProductImageProcessingService productImageProcessing)
     {
         _context = context;
         _configuration = configuration;
         _environment = environment;
         _logger = logger;
         _catalogRealtime = catalogRealtime;
+        _productImageProcessing = productImageProcessing;
     }
 
     public async Task<IReadOnlyList<ProductImageDto>> GetProductImagesAsync(
@@ -228,8 +231,8 @@ public class ProductImageService : IProductImageService
         {
             ProductId = productId,
             VariantId = variantId,
-            ImageUrl = saveResult.Data,
-            ThumbnailUrl = saveResult.Data,
+            ImageUrl = saveResult.Data.ImageUrl,
+            ThumbnailUrl = saveResult.Data.ThumbnailUrl,
             AltTextAr = NormalizeOptional(request.AltTextAr),
             AltTextEn = NormalizeOptional(request.AltTextEn),
             IsPrimary = shouldBePrimary,
@@ -245,7 +248,9 @@ public class ProductImageService : IProductImageService
         return ServiceResult<ProductImageDto>.Ok(MapImage(image));
     }
 
-    private async Task<ServiceResult<string>> SaveImageFileAsync(
+    private sealed record SavedImagePaths(string ImageUrl, string ThumbnailUrl);
+
+    private async Task<ServiceResult<SavedImagePaths>> SaveImageFileAsync(
         int productId,
         int? variantId,
         Product product,
@@ -253,17 +258,17 @@ public class ProductImageService : IProductImageService
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
-            return ServiceResult<string>.Fail("file_required", "No file uploaded.");
+            return ServiceResult<SavedImagePaths>.Fail("file_required", "No file uploaded.");
 
         if (file.Length > MaxFileSizeBytes)
-            return ServiceResult<string>.Fail("file_too_large", "Image must be 10 MB or smaller.");
+            return ServiceResult<SavedImagePaths>.Fail("file_too_large", "Image must be 10 MB or smaller.");
 
         if (!ImageValidationHelper.IsAllowedContentType(file.ContentType))
-            return ServiceResult<string>.Fail("invalid_file_type", "Invalid image type. Allowed types: JPEG, PNG, WebP.");
+            return ServiceResult<SavedImagePaths>.Fail("invalid_file_type", "Invalid image type. Allowed types: JPEG, PNG, WebP.");
 
         await using var validationStream = file.OpenReadStream();
         if (!ImageValidationHelper.HasValidImageSignature(validationStream, out var normalizedContentType))
-            return ServiceResult<string>.Fail("invalid_file_signature", "File content is not a valid image.");
+            return ServiceResult<SavedImagePaths>.Fail("invalid_file_signature", "File content is not a valid image.");
 
         var extension = ExtensionForContentType(normalizedContentType);
         var fileName = await BuildFileNameAsync(product, variantId, extension, cancellationToken);
@@ -280,8 +285,24 @@ public class ProductImageService : IProductImageService
             await file.CopyToAsync(output, cancellationToken);
         }
 
-        var relativePath = $"/{storageFolder}/products/{productId}/{fileName}";
-        return ServiceResult<string>.Ok(relativePath);
+        var processResult = await _productImageProcessing.TryNormalizeAsync(fullPath, cancellationToken);
+        var finalAbsolutePath = processResult.Succeeded && !string.IsNullOrWhiteSpace(processResult.OriginalAbsolutePath)
+            ? processResult.OriginalAbsolutePath
+            : fullPath;
+
+        var relativeMain = ToRelativeStoragePath(finalAbsolutePath, storageFolder, rootPath);
+        var relativeThumb = !string.IsNullOrWhiteSpace(processResult.MediumAbsolutePath)
+            ? ToRelativeStoragePath(processResult.MediumAbsolutePath, storageFolder, rootPath)
+            : ProductImageUrlHelper.GetMediumThumbnailUrl(relativeMain);
+
+        return ServiceResult<SavedImagePaths>.Ok(new SavedImagePaths(relativeMain, relativeThumb));
+    }
+
+    private static string ToRelativeStoragePath(string absolutePath, string storageFolder, string rootPath)
+    {
+        var storageRoot = Path.Combine(rootPath, storageFolder);
+        var relative = Path.GetRelativePath(storageRoot, absolutePath).Replace('\\', '/');
+        return $"/{storageFolder}/{relative}";
     }
 
     private async Task<string> BuildFileNameAsync(
@@ -351,10 +372,43 @@ public class ProductImageService : IProductImageService
 
             if (File.Exists(fullPath))
                 File.Delete(fullPath);
+
+            DeleteDerivativeFiles(imageUrl);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to delete product image file {ImageUrl}", imageUrl);
+        }
+    }
+
+    private void DeleteDerivativeFiles(string imageUrl)
+    {
+        TryDeleteResolvedPhysicalFile(ProductImageUrlHelper.GetMediumThumbnailUrl(imageUrl));
+        TryDeleteResolvedPhysicalFile(ProductImageUrlHelper.GetSmallThumbnailUrl(imageUrl));
+    }
+
+    private void TryDeleteResolvedPhysicalFile(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+            return;
+
+        try
+        {
+            var storageFolder = _configuration["FileStorage:Path"] ?? "FileStorage";
+            var prefix = $"/{storageFolder}/";
+            if (!imageUrl.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var relative = imageUrl[prefix.Length..].Replace('/', Path.DirectorySeparatorChar);
+            var rootPath = _environment.ContentRootPath ?? Directory.GetCurrentDirectory();
+            var fullPath = Path.Combine(rootPath, storageFolder, relative);
+
+            if (File.Exists(fullPath))
+                File.Delete(fullPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete derivative product image file {ImageUrl}", imageUrl);
         }
     }
 

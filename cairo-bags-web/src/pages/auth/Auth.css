@@ -373,37 +373,6 @@
   transform: translateX(20%);
 }
 
-.auth-page .social-links {
-  margin: 25px 0;
-}
-
-.auth-page .social-links a {
-  border: 2px solid var(--border-soft);
-  border-radius: 50%;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0 8px;
-  height: 45px;
-  width: 45px;
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.25s ease,
-    border-color 0.25s ease, color 0.25s ease;
-  color: var(--main-color);
-}
-
-.auth-page .social-links a svg {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.auth-page .social-links a:hover {
-  border-color: var(--main-color);
-  background: var(--main-color);
-  color: #fff;
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 0 12px var(--accent-glow), 0 4px 14px rgba(197, 155, 39, 0.3);
-}
-
 .auth-page .auth-forgot-link {
   align-self: flex-end;
   margin: 8px 0 4px;
@@ -478,12 +447,6 @@
   .auth-page button {
     padding: 12px 42px;
     font-size: 12px;
-  }
-
-  .auth-page .social-links a {
-    height: 42px;
-    width: 42px;
-    margin: 0 6px;
   }
 
   .auth-page .mobile-switch {

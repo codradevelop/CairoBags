@@ -20,8 +20,8 @@ import {
   getCategoryName,
   getProductComparePrice,
   getProductId,
-  getProductImageAssetUrl,
-  getProductImageUrl,
+  getProductImageCardUrl,
+  getProductCardImageUrl,
   getProductImages,
   getProductName,
   getProductPriceRange,
@@ -34,6 +34,7 @@ import {
 import { cn } from "../../utils/cn.js";
 import { useCardTilt } from "../ui/useCardTilt.jsx";
 import { ShopProductCard } from "./shop/ShopProductCard.jsx";
+import { ProductPresentation, isAboveFoldPriority } from "./ProductPresentation.jsx";
 
 import { getColorFromName } from "../../utils/colorSwatchUtils.js";
 
@@ -56,7 +57,7 @@ function getSecondaryImageFromProduct(product) {
     images.find((image, index) => index !== primaryIndex && !(image.isPrimary ?? image.IsPrimary)) ??
     images[primaryIndex === 0 ? 1 : 0];
 
-  return getProductImageAssetUrl(secondary);
+  return getProductImageCardUrl(secondary);
 }
 
 function preloadImage(url) {
@@ -231,9 +232,15 @@ function DiscountBadge({ product, className }) {
   );
 }
 
-const ProductCardImage = memo(function ProductCardImage({ product, name, href, hoverCapable }) {
+const ProductCardImage = memo(function ProductCardImage({
+  product,
+  name,
+  href,
+  hoverCapable,
+  listIndex = 0,
+}) {
   const productId = getProductId(product);
-  const primaryUrl = getProductImageUrl(product);
+  const primaryUrl = getProductCardImageUrl(product);
   const inlineSecondary = getSecondaryImageFromProduct(product);
   const { loaded: imageLoaded, imgRef, handleLoad, handleError } = useResolvedImageLoad(
     primaryUrl,
@@ -274,7 +281,7 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
 
   return (
     <div
-      className="cb-product-aspect relative overflow-hidden bg-brand-secondary/60"
+      className="cb-product-aspect relative overflow-hidden"
       onMouseEnter={() => canCrossfade && setShowSecondary(true)}
       onMouseLeave={() => setShowSecondary(false)}
     >
@@ -282,60 +289,30 @@ const ProductCardImage = memo(function ProductCardImage({ product, name, href, h
         <div className="cb-shimmer absolute inset-0 z-[1] animate-shimmer" aria-hidden="true" />
       ) : null}
       <Link to={href} className="absolute inset-0 z-[2] block" aria-label={name}>
-        {primaryUrl ? (
-          <div className="relative h-full w-full">
-            <img
-              ref={imgRef}
-              key={primaryUrl}
-              src={primaryUrl}
-              alt={name}
-              loading="lazy"
-              decoding="async"
-              onLoad={handlePrimaryLoad}
-              onError={handleError}
-              className={cn(
-                "cb-product-image absolute inset-0 transition-all duration-500 ease-out-expo",
-                canCrossfade && showSecondary ? "scale-[1.03] opacity-0" : "scale-100 opacity-100",
-                "group-hover:scale-[1.03]"
-              )}
-            />
-            {canCrossfade ? (
-              <img
-                src={secondaryUrl}
-                alt=""
-                aria-hidden="true"
-                loading="lazy"
-                decoding="async"
-                className={cn(
-                  "cb-product-image absolute inset-0 transition-all duration-500 ease-out-expo",
-                  showSecondary ? "scale-[1.03] opacity-100" : "scale-100 opacity-0"
-                )}
-              />
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <span
-              className="font-display text-4xl opacity-40"
-              style={{
-                background: "linear-gradient(135deg, #c9a962, #e8d5a3)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              CB
-            </span>
-          </div>
-        )}
+        <ProductPresentation
+          src={primaryUrl}
+          alt={name}
+          size="card"
+          imgRef={imgRef}
+          onLoad={handlePrimaryLoad}
+          onError={handleError}
+          secondarySrc={canCrossfade ? secondaryUrl : undefined}
+          showSecondary={showSecondary}
+          priority={isAboveFoldPriority(listIndex) ? "high" : "low"}
+        />
       </Link>
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-primary/30 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-brand-primary/30 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
     </div>
   );
 });
 
-const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, compact = false }) {
+const LuxuryProductCard = memo(function LuxuryProductCard({
+  product,
+  className,
+  compact = false,
+  listIndex = 0,
+}) {
   const { locale } = useLocale();
   const navigate = useNavigate();
   const hoverCapable = useHoverCapable();
@@ -440,6 +417,7 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
               name={name}
               href={href}
               hoverCapable={hoverCapable}
+              listIndex={listIndex}
             />
 
             <div
@@ -555,13 +533,13 @@ const LuxuryProductCard = memo(function LuxuryProductCard({ product, className, 
    Clean carousel card — image top, info bottom, no overlays
    Same clean structure as CategoryCard
 ───────────────────────────────────────────────────────── */
-const CarouselProductCard = memo(function CarouselProductCard({ product, className }) {
+const CarouselProductCard = memo(function CarouselProductCard({ product, className, listIndex = 0 }) {
   const { locale } = useLocale();
   const productId    = getProductId(product);
   const name         = getProductName(product, locale);
   const href         = buildProductPath(product, locale);
   const inStock      = isProductInStock(product);
-  const primaryUrl   = getProductImageUrl(product);
+  const primaryUrl   = getProductCardImageUrl(product);
   const categoryName = getProductCategoryName(product, locale);
   const discount     = getDiscountPercent(product);
 
@@ -575,51 +553,31 @@ const CarouselProductCard = memo(function CarouselProductCard({ product, classNa
       <div className="cb-product-card-shell relative flex h-full flex-col overflow-hidden rounded-xl border border-brand-border/70 bg-brand-surface transition-all duration-300 group-hover:-translate-y-0.5">
 
         {/* ── image ── */}
-        <div className="cb-product-aspect relative overflow-hidden bg-brand-secondary/60 shrink-0">
+        <div className="cb-product-aspect relative overflow-hidden shrink-0">
           {!imageLoaded && primaryUrl ? (
             <div className="cb-shimmer absolute inset-0 z-[1] animate-shimmer" aria-hidden="true" />
           ) : null}
 
-          {/* badges top-left */}
           <div className="absolute start-2 top-2 z-10 flex flex-wrap gap-1">
             <ProductBadges product={product} showStock={false} />
             {discount ? <DiscountBadge product={product} /> : null}
           </div>
 
-          {/* wishlist top-right */}
           <div className="absolute end-2 top-2 z-10">
             <WishlistButton productId={productId} />
           </div>
 
-          {primaryUrl ? (
-            <img
-              ref={imgRef}
-              key={primaryUrl}
-              src={primaryUrl}
-              alt={name}
-              loading="lazy"
-              decoding="async"
-              onLoad={handleLoad}
-              onError={handleError}
-              className="cb-product-image transition-transform duration-500 group-hover:scale-[1.04]"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <span
-                className="font-display text-4xl opacity-40"
-                style={{
-                  background: "linear-gradient(135deg, #c9a962, #e8d5a3)",
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                CB
-              </span>
-            </div>
-          )}
+          <ProductPresentation
+            src={primaryUrl}
+            alt={name}
+            size="compact"
+            imgRef={imgRef}
+            onLoad={handleLoad}
+            onError={handleError}
+            priority={isAboveFoldPriority(listIndex) ? "high" : "low"}
+          />
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-brand-primary/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-brand-primary/20 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         </div>
 
         {/* ── info below image ── */}
@@ -648,13 +606,18 @@ const CarouselProductCard = memo(function CarouselProductCard({ product, classNa
   );
 });
 
-export const ProductCard = memo(function ProductCard({ product, className, variant = "store" }) {
+export const ProductCard = memo(function ProductCard({
+  product,
+  className,
+  variant = "store",
+  listIndex = 0,
+}) {
   if (variant === "shop") {
-    return <ShopProductCard product={product} className={className} />;
+    return <ShopProductCard product={product} className={className} listIndex={listIndex} />;
   }
 
   if (variant === "landing") {
-    return <CarouselProductCard product={product} className={className} />;
+    return <CarouselProductCard product={product} className={className} listIndex={listIndex} />;
   }
 
   return (
@@ -662,6 +625,7 @@ export const ProductCard = memo(function ProductCard({ product, className, varia
       product={product}
       className={className}
       compact={false}
+      listIndex={listIndex}
     />
   );
 });

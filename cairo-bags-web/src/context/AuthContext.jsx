@@ -112,24 +112,6 @@ export function AuthProvider({ children }) {
     [handleAuthSuccess]
   );
 
-  const signInWithGoogle = useCallback(
-    async (token) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await authService.signInGoogle({ token });
-        return await handleAuthSuccess(response);
-      } catch (err) {
-        const normalized = normalizeError(err);
-        setError(normalized);
-        throw normalized;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [handleAuthSuccess]
-  );
-
   const logout = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -167,7 +149,6 @@ export function AuthProvider({ children }) {
       isGuest: !getAccessToken(),
       login,
       register,
-      signInWithGoogle,
       logout,
       refreshProfile,
       updateProfile,
@@ -183,7 +164,7 @@ export function AuthProvider({ children }) {
         if (session.user) setUser(session.user);
       },
     }),
-    [user, loading, error, login, register, signInWithGoogle, logout, refreshProfile, updateProfile]
+    [user, loading, error, login, register, logout, refreshProfile, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

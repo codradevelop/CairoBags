@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ShopLayout } from "../../layouts/ShopLayout.jsx";
 import { usePageTitle } from "../../hooks/usePageTitle.js";
 import { useCatalogRefresh } from "../../hooks/useCatalogRefresh.js";
+import { useShopFilterOptions } from "../../hooks/useShopFilterOptions.js";
 import { useLocale } from "../../components/layout/LanguageSwitcher.jsx";
 import * as productService from "../../services/productService.js";
 import * as categoryService from "../../services/categoryService.js";
@@ -17,7 +18,8 @@ import {
   filtersToSearchParams,
   parseShopFilters,
 } from "../../utils/shopFilters.js";
-import { getProductName, getProductPriceRange, getProductVariants, getVariantColorName } from "../../utils/productHelpers.js";
+import { isValidShopCategoryId } from "../../utils/collectionCategory.js";
+import { getProductName, getProductPriceRange } from "../../utils/productHelpers.js";
 import { Button } from "../../components/ui/index.js";
 import { cn } from "../../utils/cn.js";
 
@@ -50,6 +52,7 @@ export function ShopPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortValue, setSortValue] = useState("featured");
   const [viewMode, setViewMode] = useState("grid");
+  const { colors: filterColors } = useShopFilterOptions();
 
   usePageTitle(locale === "ar" ? "تسوق" : "Shop");
 
@@ -70,6 +73,21 @@ export function ShopPage() {
     loadCategories();
   }, [loadCategories]);
 
+  useEffect(() => {
+    if (!urlFilters.categoryId || categories.length === 0) return;
+    if (isValidShopCategoryId(categories, urlFilters.categoryId)) return;
+
+    const next = { ...urlFilters, categoryId: "" };
+    setDraftFilters(next);
+    setSearchParams(filtersToSearchParams(next), { replace: true });
+  }, [categories, urlFilters.categoryId, urlFilters.minPrice, urlFilters.maxPrice, urlFilters.inStock, urlFilters.searchTerm, urlFilters.color, setSearchParams]);
+
+  const activeFilters = useMemo(() => {
+    if (!urlFilters.categoryId || categories.length === 0) return urlFilters;
+    if (isValidShopCategoryId(categories, urlFilters.categoryId)) return urlFilters;
+    return { ...urlFilters, categoryId: "" };
+  }, [urlFilters, categories]);
+
   const loadProducts = useCallback(async (options = {}) => {
     const background = options?.background === true;
     if (!background) {
@@ -77,7 +95,7 @@ export function ShopPage() {
       setError(null);
     }
     try {
-      const data = await productService.getProducts(buildProductQueryParams(urlFilters));
+      const data = await productService.getProducts(buildProductQueryParams(activeFilters));
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       if (!background) {
@@ -87,7 +105,7 @@ export function ShopPage() {
     } finally {
       if (!background) setLoading(false);
     }
-  }, [urlFilters.categoryId, urlFilters.minPrice, urlFilters.maxPrice, urlFilters.inStock, urlFilters.searchTerm]);
+  }, [activeFilters.categoryId, activeFilters.minPrice, activeFilters.maxPrice, activeFilters.inStock, activeFilters.searchTerm, activeFilters.color]);
 
   useEffect(() => {
     loadProducts();
@@ -97,37 +115,8 @@ export function ShopPage() {
   useCatalogRefresh(loadCategories, { entity: "category" });
 
   const sortedAndFiltered = useMemo(() => {
-    let items = sortProducts(products, sortValue, locale);
-    if (urlFilters.color) {
-      const needle = urlFilters.color.toLowerCase();
-      items = items.filter((product) =>
-        getProductVariants(product).some((v) =>
-          getVariantColorName(v, locale).toLowerCase() === needle ||
-          (v.colorNameEn ?? v.ColorNameEn ?? "").toLowerCase() === needle ||
-          (v.colorNameAr ?? v.ColorNameAr ?? "").toLowerCase() === needle
-        )
-      );
-    }
-    return items;
-  }, [products, sortValue, locale, urlFilters.color]);
-
-  /* derive available colors from current product list */
-  const availableColors = useMemo(() => {
-    const seen = new Set();
-    const colors = [];
-    for (const product of products) {
-      for (const variant of getProductVariants(product)) {
-        const en = (variant.colorNameEn ?? variant.ColorNameEn ?? "").trim();
-        const ar = (variant.colorNameAr ?? variant.ColorNameAr ?? "").trim();
-        const key = en.toLowerCase() || ar.toLowerCase();
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          colors.push({ en, ar, key });
-        }
-      }
-    }
-    return colors;
-  }, [products]);
+    return sortProducts(products, sortValue, locale);
+  }, [products, sortValue, locale]);
 
   function applyFilters() {
     setSearchParams(filtersToSearchParams(draftFilters));
@@ -135,7 +124,7 @@ export function ShopPage() {
   }
 
   function resetFilters() {
-    const empty = { categoryId: "", minPrice: "", maxPrice: "", inStock: false, searchTerm: "" };
+    const empty = { categoryId: "", minPrice: "", maxPrice: "", inStock: false, searchTerm: "", color: "" };
     setDraftFilters(empty);
     setSearchParams({});
     setFiltersOpen(false);
@@ -151,7 +140,7 @@ export function ShopPage() {
     <ShopLayout>
       <ShopHero
         categories={categories}
-        activeCategoryId={urlFilters.categoryId}
+        activeCategoryId={activeFilters.categoryId}
         onCategorySelect={handleCategoryPillSelect}
       />
 
@@ -169,7 +158,7 @@ export function ShopPage() {
             <ShopFiltersSidebar
               categories={categories}
               filters={draftFilters}
-              availableColors={availableColors}
+              availableColors={filterColors}
               onChange={setDraftFilters}
               onApply={applyFilters}
               onReset={resetFilters}
@@ -222,20 +211,21 @@ export function ShopPage() {
                 data-count={viewMode === "grid" && sortedAndFiltered.length <= 3 ? String(sortedAndFiltered.length) : undefined}
                 key={`${viewMode}-${sortedAndFiltered.length}`}
               >
-                {sortedAndFiltered.map((product) => (
+                {sortedAndFiltered.map((product, index) => (
                   <ShopProductCard
                     key={product.id ?? product.Id}
                     product={product}
                     listView={viewMode === "list"}
+                    listIndex={index}
                   />
                 ))}
               </div>
             ) : null}
           </div>
         </div>
-
-        <ShopFeatureBar />
       </div>
+
+      <ShopFeatureBar />
     </ShopLayout>
   );
 }

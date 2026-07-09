@@ -124,95 +124,149 @@ export function CouponsPage() {
     }
   }
 
-  const columns = [
-    {
-      key: "code",
-      header: locale === "ar" ? "الكود" : "Coupon",
-      render: (row) => (
+const columns = [
+  {
+    key: "code",
+    header: locale === "ar" ? "الكود" : "Coupon",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
         <CouponCodeCell
           code={row.code ?? row.Code}
           couponId={row.id ?? row.Id}
         />
-      ),
-    },
-    {
-      key: "discount",
-      header: locale === "ar" ? "الخصم" : "Discount",
-      render: (row) => row.discountLabel ?? row.DiscountLabel,
-    },
-    {
-      key: "status",
-      header: locale === "ar" ? "الحالة" : "Status",
-      render: (row) => {
-        const status = computeCouponStatus(row);
-        return (
-          <div className="flex min-w-[7.5rem] flex-col items-start gap-1.5">
-            <CouponStatusBadge status={status} />
-            <CouponCountdown coupon={row} status={status} variant="compact" />
-          </div>
-        );
-      },
-    },
-    {
-      key: "created",
-      header: locale === "ar" ? "تاريخ الإنشاء" : "Created",
-      render: (row) => formatOrderDate(row.createdAt ?? row.CreatedAt, locale),
-    },
-    {
-      key: "start",
-      header: locale === "ar" ? "البداية" : "Start",
-      render: (row) => formatOrderDate(row.startDate ?? row.StartDate, locale),
-    },
-    {
-      key: "end",
-      header: locale === "ar" ? "الانتهاء" : "Expiration",
-      render: (row) => formatOrderDate(row.endDate ?? row.EndDate, locale),
-    },
-    {
-      key: "uses",
-      header: locale === "ar" ? "الاستخدام" : "Uses",
-      render: (row) => `${row.usageCount ?? row.UsageCount}${row.usageLimit ?? row.UsageLimit ? ` / ${row.usageLimit ?? row.UsageLimit}` : ""}`,
-    },
-    {
-      key: "actions",
-      header: locale === "ar" ? "إجراءات" : "Actions",
-      render: (row) => (
-        <div className="flex flex-wrap gap-1">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setEditingCoupon(row);
-              setModalOpen(true);
-            }}
-          >
-            {locale === "ar" ? "تعديل" : "Edit"}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => handleToggleActive(row, !(row.isActive ?? row.IsActive))}
-          >
-            {row.isActive ?? row.IsActive
-              ? locale === "ar"
-                ? "إيقاف"
-                : "Deactivate"
-              : locale === "ar"
-                ? "تفعيل"
-                : "Activate"}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => handleDuplicate(row)}>
-            {locale === "ar" ? "نسخ" : "Duplicate"}
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setDeleteId(row.id ?? row.Id)}>
-            {locale === "ar" ? "حذف" : "Delete"}
-          </Button>
+      </div>
+    ),
+  },
+  {
+    key: "discount",
+    header: locale === "ar" ? "الخصم" : "Discount",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
+        {row.discountLabel ?? row.DiscountLabel}
+      </div>
+    ),
+  },
+  {
+    key: "status",
+    header: locale === "ar" ? "الحالة" : "Status",
+    align: "center",
+    render: (row) => {
+      const status = computeCouponStatus(row);
+
+      return (
+        <div className="flex min-w-[180px] flex-col items-center justify-center gap-2">
+          <CouponStatusBadge status={status} />
+          <CouponCountdown
+            coupon={row}
+            status={status}
+            variant="compact"
+          />
         </div>
-      ),
+      );
     },
-  ];
+  },
+  {
+    key: "created",
+    header: locale === "ar" ? "تاريخ الإنشاء" : "Created",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
+        {formatOrderDate(row.createdAt ?? row.CreatedAt, locale)}
+      </div>
+    ),
+  },
+  {
+    key: "start",
+    header: locale === "ar" ? "البداية" : "Start",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
+        {formatOrderDate(row.startDate ?? row.StartDate, locale)}
+      </div>
+    ),
+  },
+  {
+    key: "end",
+    header: locale === "ar" ? "الانتهاء" : "Expiration",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
+        {formatOrderDate(row.endDate ?? row.EndDate, locale)}
+      </div>
+    ),
+  },
+  {
+    key: "uses",
+    header: locale === "ar" ? "الاستخدام" : "Uses",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center whitespace-nowrap px-6 py-3">
+        {`${row.usageCount ?? row.UsageCount}${
+          row.usageLimit ?? row.UsageLimit
+            ? ` / ${row.usageLimit ?? row.UsageLimit}`
+            : ""
+        }`}
+      </div>
+    ),
+  },
+  {
+    key: "actions",
+    header: locale === "ar" ? "إجراءات" : "Actions",
+    align: "center",
+    render: (row) => (
+      <div className="flex items-center justify-center gap-2 whitespace-nowrap min-w-[340px]">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setEditingCoupon(row);
+            setModalOpen(true);
+          }}
+        >
+          {locale === "ar" ? "تعديل" : "Edit"}
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            handleToggleActive(row, !(row.isActive ?? row.IsActive))
+          }
+        >
+          {row.isActive ?? row.IsActive
+            ? locale === "ar"
+              ? "إيقاف"
+              : "Deactivate"
+            : locale === "ar"
+            ? "تفعيل"
+            : "Activate"}
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => handleDuplicate(row)}
+        >
+          {locale === "ar" ? "نسخ" : "Duplicate"}
+        </Button>
+
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setDeleteId(row.id ?? row.Id)}
+        >
+          {locale === "ar" ? "حذف" : "Delete"}
+        </Button>
+      </div>
+    ),
+  },
+];
 
   return (
     <AdminLayout activeKey="coupons" title={title}>

@@ -1,5 +1,6 @@
 using CairoBags.Data;
 using CairoBags.Dto.Recommendations;
+using CairoBags.Helpers;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Orders;
 using Microsoft.EntityFrameworkCore;
@@ -198,7 +199,9 @@ public class RecommendationService : IRecommendationService
             ProductId = product.Id,
             ProductNameAr = nameAr,
             ProductNameEn = nameEn,
-            PrimaryImage = primaryImage?.ThumbnailUrl ?? primaryImage?.ImageUrl,
+            PrimaryImage = ProductImageUrlHelper.ResolveListingUrl(
+                primaryImage?.ImageUrl,
+                primaryImage?.ThumbnailUrl),
             Price = prices.Count == 0 ? null : prices.Min(),
             IsInStock = isInStock
         };

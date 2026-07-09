@@ -22,19 +22,21 @@ function HeartIcon({ filled = false }) {
 export function WishlistHeaderButton({ className }) {
   const { count } = useWishlist();
   const displayCount = count ?? 0;
+  const isPremium = className?.includes("cb-header-icon-btn");
 
   return (
     <Link
       to="/wishlist"
       className={cn(
-        "relative inline-flex h-10 w-10 items-center justify-center rounded-md",
-        "text-brand-text transition-colors hover:bg-brand-secondary",
+        isPremium
+          ? "cb-header-icon-btn"
+          : "relative inline-flex h-10 w-10 items-center justify-center rounded-md text-brand-text transition-colors hover:bg-brand-secondary",
         className
       )}
       aria-label={`Wishlist${displayCount > 0 ? `, ${displayCount} items` : ""}`}
     >
       <HeartIcon />
-      {displayCount > 0 ? (
+      {displayCount > 0 && !isPremium ? (
         <Badge
           size="sm"
           variant="accent"
@@ -45,6 +47,11 @@ export function WishlistHeaderButton({ className }) {
         >
           {displayCount > 99 ? "99+" : displayCount}
         </Badge>
+      ) : null}
+      {displayCount > 0 && isPremium ? (
+        <span key={displayCount} className="cb-header-cart-badge">
+          {displayCount > 99 ? "99+" : displayCount}
+        </span>
       ) : null}
     </Link>
   );

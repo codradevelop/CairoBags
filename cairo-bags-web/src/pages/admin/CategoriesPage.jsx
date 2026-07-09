@@ -97,7 +97,10 @@ export function CategoriesPage() {
   const columns = [
     {
       key: "image",
-      header: "",
+      header: locale === "ar" ? "الصورة" : "Image",
+      align: "center",
+      headerClassName: `${ADMIN_COL.sort} px-4`,
+      cellClassName: `${ADMIN_COL.sort} px-4 text-brand-muted`,
       ...imageColumnShell,
       render: (row) => {
         const name = getCategoryName(row, locale);
@@ -113,6 +116,9 @@ export function CategoriesPage() {
     {
       key: "name",
       header: locale === "ar" ? "التصنيف" : "Category",
+      align: "center",
+      headerClassName: `${ADMIN_COL.sort} px-4`,
+      cellClassName: `${ADMIN_COL.sort} px-4 text-brand-muted`,
       ...dataColumnShell,
       render: (row) => <AdminTableText title={getCategoryName(row, locale)} />,
     },

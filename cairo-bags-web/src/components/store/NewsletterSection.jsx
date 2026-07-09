@@ -1,41 +1,47 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "../ui/Button.jsx";
-import { FieldError, Input } from "../ui/Input.jsx";
+import { motion } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import { useStoreReadOnly } from "../../hooks/useStoreReadOnly.js";
+import { useNewsletter } from "../../context/NewsletterContext.jsx";
+import * as newsletterService from "../../services/newsletterService.js";
 import { cn } from "../../utils/cn.js";
 
 const COPY = {
   en: {
-    label: "Exclusive Welcome Offer",
-    title: "Get 10% OFF Your First Order",
+    label: "Stay Updated",
+    title: "Stay Ahead of Every Collection",
     description:
-      "Subscribe with your email and we'll send you an exclusive 10% discount coupon directly to your inbox.",
+      "Be the first to discover new arrivals, exclusive collections, and members-only offers.",
     placeholder: "Enter your email address",
-    button: "Get My Coupon",
-    disclaimer: "No spam. Only exclusive offers and early access to new collections.",
+    button: "Subscribe",
     invalidEmpty: "Please enter your email address.",
     invalidFormat: "Please enter a valid email address.",
-    successTitle: "Welcome to Cairo Bags!",
-    successLead: "Your exclusive 10% discount coupon will be sent to your email shortly.",
-    successHint: "Please check your inbox (and spam folder if needed).",
-    continueShopping: "Continue Shopping",
+    genericError: "Something went wrong. Please try again.",
+    subscribedTitle: "Welcome to Cairo Bags",
+    subscribedSubtitle: "You're all set!",
+    subscribedBenefits: [
+      "Early access to new collections",
+      "Exclusive member offers",
+      "New arrivals alerts",
+    ],
   },
   ar: {
-    label: "العرض الترحيبي",
-    title: "احصل على خصم 10٪ على أول طلب",
+    label: "ابقَ على اطلاع",
+    title: "تقدّم على كل مجموعة",
     description:
-      "أدخل بريدك الإلكتروني وسنرسل لك كوبون خصم 10٪ مباشرة إلى بريدك الإلكتروني.",
+      "كن أول من يكتشف الوصولات الجديدة، المجموعات الحصرية، وعروض الأعضاء فقط.",
     placeholder: "أدخل بريدك الإلكتروني",
-    button: "احصل على الكوبون",
-    disclaimer: "لن نرسل رسائل مزعجة. فقط عروض حصرية وإطلاقات جديدة.",
+    button: "اشترك",
     invalidEmpty: "يرجى إدخال بريدك الإلكتروني.",
     invalidFormat: "يرجى إدخال بريد إلكتروني صحيح.",
-    successTitle: "أهلاً بك في Cairo Bags",
-    successLead: "سيتم إرسال كوبون خصم 10٪ إلى بريدك الإلكتروني خلال لحظات.",
-    successHint: "يرجى التحقق من صندوق الوارد أو الرسائل غير المرغوب فيها.",
-    continueShopping: "متابعة التسوق",
+    genericError: "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    subscribedTitle: "أهلاً بك في Cairo Bags",
+    subscribedSubtitle: "كل شيء جاهز!",
+    subscribedBenefits: [
+      "وصول مبكر للمجموعات الجديدة",
+      "عروض حصرية للأعضاء",
+      "تنبيهات الوصولات الجديدة",
+    ],
   },
 };
 
@@ -48,127 +54,127 @@ function validateEmail(value, copy) {
   return "";
 }
 
-// TODO: Replace mock success with POST /api/newsletter/subscribe
-async function subscribeToWelcomeCoupon(_email) {
-  await new Promise((resolve) => window.setTimeout(resolve, 700));
-  return { success: true };
+function MailIcon({ className }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M3 7l9 6 9-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
 }
 
-function WelcomeCouponSuccess({ copy, className }) {
-  const navigate = useNavigate();
-
+function NewsletterBannerSkeleton() {
   return (
-    <div
-      className={cn(
-        "mx-auto flex max-w-lg flex-col items-center text-center",
-        "animate-slide-down motion-reduce:animate-none",
-        className
-      )}
-      role="status"
-      aria-live="polite"
-    >
-      <div
-        className={cn(
-          "mb-5 flex h-14 w-14 items-center justify-center rounded-full",
-          "bg-brand-accent/15 text-2xl ring-1 ring-brand-accent/30",
-          "shadow-glow-sm dark:bg-brand-accent/20"
-        )}
-        aria-hidden="true"
-      >
-        🎉
+    <div className="cb-nl-banner__skeleton" aria-busy="true" aria-label="Loading newsletter">
+      <div className="cb-nl-banner__skeleton-left">
+        <div className="cb-nl-banner__skeleton-icon" />
+        <div className="cb-nl-banner__skeleton-text">
+          <span />
+          <span />
+          <span />
+        </div>
       </div>
-
-      <p className="text-xs font-medium tracking-[0.25em] text-brand-accent uppercase">
-        {copy.label}
-      </p>
-      <h2 className="mt-3 font-display text-2xl font-light text-brand-secondary md:text-3xl">
-        {copy.successTitle}
-      </h2>
-      <p className="mt-3 text-sm leading-relaxed text-brand-secondary/60 md:text-base">
-        {copy.successLead}
-      </p>
-      <p className="mt-2 text-sm text-brand-secondary/45">{copy.successHint}</p>
-
-      <Button
-        type="button"
-        variant="accent"
-        size="lg"
-        className="mt-8 h-12 min-w-[160px] px-6 text-base"
-        onClick={() => navigate("/shop")}
-      >
-        {copy.continueShopping}
-      </Button>
+      <div className="cb-nl-banner__skeleton-form">
+        <span />
+        <span />
+      </div>
     </div>
   );
 }
 
-function WelcomeCouponForm({ copy, email, error, submitting, disabled, onEmailChange, onSubmit }) {
+function NewsletterBannerSuccess({ copy }) {
   return (
-    <div className="animate-fade-in motion-reduce:animate-none">
-      <p className="text-xs font-medium tracking-luxury text-brand-accent uppercase">
-        {copy.label}
-      </p>
-      <h2 className="mt-3 font-display text-2xl font-light text-brand-secondary md:text-3xl">
-        {copy.title}
-      </h2>
-      <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-brand-secondary/60 md:text-base">
-        {copy.description}
-      </p>
-
-      <form
-        onSubmit={onSubmit}
-        noValidate
-        className="mx-auto mt-8 max-w-md space-y-3 text-start"
-      >
-        <div>
-          <Input
-            id="welcome-coupon-email"
-            type="email"
-            value={email}
-            onChange={onEmailChange}
-            placeholder={copy.placeholder}
-            variant={error ? "error" : "default"}
-            autoComplete="email"
-            aria-invalid={Boolean(error)}
-            aria-describedby={error ? "welcome-coupon-email-error" : undefined}
-            disabled={disabled || submitting}
-            className="transition-shadow duration-fast"
-          />
-          <FieldError id="welcome-coupon-email-error">{error}</FieldError>
+    <motion.div
+      className="cb-nl-banner__success"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="cb-nl-banner__success-head">
+        <span className="cb-nl-banner__success-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+            <path
+              d="M8 12.5l2.5 2.5L16 9.5"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <div className="cb-nl-banner__success-copy">
+          <p className="cb-nl-banner__success-title">{copy.subscribedTitle}</p>
+          <p className="cb-nl-banner__success-subtitle">{copy.subscribedSubtitle}</p>
         </div>
+      </div>
+      <ul className="cb-nl-banner__success-list">
+        {copy.subscribedBenefits.map((item) => (
+          <li key={item}>
+            <span className="cb-nl-banner__success-check" aria-hidden="true">
+              ✓
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </motion.div>
+  );
+}
 
-        <div className="flex justify-center pt-1">
-          <Button
-            type="submit"
-            variant="accent"
-            size="lg"
-            loading={submitting}
-            disabled={disabled || submitting}
-            className="h-12 min-w-[160px] px-6 text-base"
-          >
-            {copy.button}
-          </Button>
-        </div>
-      </form>
-
-      <p className="mx-auto mt-5 max-w-md text-xs leading-relaxed text-brand-secondary/45">
-        {copy.disclaimer}
-      </p>
-    </div>
+function NewsletterBannerForm({
+  copy,
+  email,
+  error,
+  submitting,
+  disabled,
+  isAr,
+  onEmailChange,
+  onSubmit,
+}) {
+  return (
+    <form className="cb-nl-banner__form" onSubmit={onSubmit} noValidate>
+      <div className="cb-nl-banner__field">
+        <input
+          id="newsletter-email"
+          type="email"
+          value={email}
+          onChange={onEmailChange}
+          placeholder={copy.placeholder}
+          autoComplete="email"
+          disabled={disabled || submitting}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? "newsletter-email-error" : undefined}
+          className={cn("cb-nl-banner__input", error && "cb-nl-banner__input--error")}
+          dir={isAr ? "rtl" : "ltr"}
+        />
+        <MailIcon className="cb-nl-banner__input-icon" />
+      </div>
+      <button type="submit" className="cb-nl-banner__btn" disabled={disabled || submitting}>
+        <span>{copy.button}</span>
+        <span aria-hidden="true">→</span>
+      </button>
+      {error ? (
+        <p id="newsletter-email-error" className="cb-nl-banner__error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </form>
   );
 }
 
 export function NewsletterSection({ className }) {
   const { locale } = useLocale();
+  const isAr = locale === "ar";
   const readOnly = useStoreReadOnly();
-  const copy = locale === "ar" ? COPY.ar : COPY.en;
+  const { isSubscribed, showLoadingSkeleton, markSubscribed } = useNewsletter();
+  const copy = isAr ? COPY.ar : COPY.en;
 
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("idle");
-
-  const submitting = status === "submitting";
-  const succeeded = status === "success";
+  const [submitting, setSubmitting] = useState(false);
 
   function handleEmailChange(event) {
     setEmail(event.target.value);
@@ -177,7 +183,8 @@ export function NewsletterSection({ className }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    if (readOnly) return;
+    if (readOnly || isSubscribed) return;
+
     const validationError = validateEmail(email, copy);
     if (validationError) {
       setError(validationError);
@@ -185,54 +192,77 @@ export function NewsletterSection({ className }) {
     }
 
     setError("");
-    setStatus("submitting");
+    setSubmitting(true);
+
+    const trimmedEmail = email.trim();
 
     try {
-      await subscribeToWelcomeCoupon(email.trim());
-      setStatus("success");
-    } catch {
-      setStatus("idle");
-      setError(
-        locale === "ar"
-          ? "حدث خطأ. يرجى المحاولة مرة أخرى."
-          : "Something went wrong. Please try again."
-      );
+      await newsletterService.subscribeNewsletter({
+        email: trimmedEmail,
+        language: locale,
+      });
+      markSubscribed(trimmedEmail);
+    } catch (err) {
+      if (err.code === "already_subscribed") {
+        markSubscribed(trimmedEmail);
+      } else if (err.code === "invalid_email") {
+        setError(copy.invalidFormat);
+      } else {
+        setError(err.message || copy.genericError);
+      }
+    } finally {
+      setSubmitting(false);
     }
   }
 
   return (
-    <section
-      className={cn(
-        "relative overflow-hidden rounded-2xl border border-brand-border/70 bg-brand-primary px-6 py-12 text-center md:px-14 md:py-16",
-        className
-      )}
+    <motion.section
+      className={cn("cb-nl-banner", className)}
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      aria-labelledby="newsletter-banner-title"
     >
-      <div
-        className="pointer-events-none absolute inset-0 opacity-60"
-        style={{
-          background:
-            "radial-gradient(ellipse at 50% 0%, rgba(201,169,98,0.15) 0%, transparent 55%)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-accent/50 to-transparent"
-        aria-hidden="true"
-      />
+      <div className={cn("cb-nl-banner__card", isSubscribed && "cb-nl-banner__card--success")}>
+        <span className="cb-nl-banner__glow" aria-hidden="true" />
+        <span className="cb-nl-banner__shimmer" aria-hidden="true" />
 
-      {succeeded ? (
-        <WelcomeCouponSuccess copy={copy} />
-      ) : (
-        <WelcomeCouponForm
-          copy={copy}
-          email={email}
-          error={error}
-          submitting={submitting}
-          disabled={readOnly}
-          onEmailChange={handleEmailChange}
-          onSubmit={handleSubmit}
-        />
-      )}
-    </section>
+        <div className={cn("cb-nl-banner__inner", isAr && "cb-nl-banner__inner--rtl")}>
+          <div className="cb-nl-banner__left">
+            <div className="cb-nl-banner__icon-wrap" aria-hidden="true">
+              <MailIcon className="cb-nl-banner__icon" />
+            </div>
+            <div className="cb-nl-banner__copy">
+              <span className="cb-nl-banner__label">{copy.label}</span>
+              <h2 id="newsletter-banner-title" className="cb-nl-banner__title">
+                {copy.title}
+              </h2>
+              <p className="cb-nl-banner__desc">{copy.description}</p>
+            </div>
+          </div>
+
+          <div className="cb-nl-banner__right">
+            {showLoadingSkeleton ? (
+              <NewsletterBannerSkeleton />
+            ) : isSubscribed ? (
+              <NewsletterBannerSuccess copy={copy} />
+            ) : (
+              <NewsletterBannerForm
+                copy={copy}
+                email={email}
+                error={error}
+                submitting={submitting}
+                disabled={readOnly}
+                isAr={isAr}
+                onEmailChange={handleEmailChange}
+                onSubmit={handleSubmit}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.section>
   );
 }
 

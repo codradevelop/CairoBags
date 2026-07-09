@@ -29,6 +29,7 @@ namespace CairoBags.Controllers
        private readonly IEmailService _emailService;
        private readonly ILogger<AccountController> _logger;
        private readonly CairoBagsContext _db;
+       private readonly IStatisticsRealtimeService _statisticsRealtime;
 
        public AccountController(
            UserManager<ApplicationUser> userManager,
@@ -39,7 +40,8 @@ namespace CairoBags.Controllers
            PasswordResetService passwordReset,
            IEmailService emailService,
            ILogger<AccountController> logger,
-           CairoBagsContext db)
+           CairoBagsContext db,
+           IStatisticsRealtimeService statisticsRealtime)
        {
            _userManager = userManager;
            _Token = Token;
@@ -50,6 +52,7 @@ namespace CairoBags.Controllers
            _emailService = emailService;
            _logger = logger;
            _db = db;
+           _statisticsRealtime = statisticsRealtime;
        }
 
        private static string GetDisplayName(ApplicationUser user) =>
@@ -249,216 +252,10 @@ namespace CairoBags.Controllers
        /// </summary>
        [AllowAnonymous]
        [HttpPost("sign-in-google")]
-       public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto? dto)
+       public Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto? dto)
        {
-           try
-           {
-               _logger.LogInformation("Google sign-in request started. TraceId={TraceId}", HttpContext.TraceIdentifier);
-
-               var submittedToken = (dto?.Token ?? dto?.IdToken)?.Trim();
-               if (string.IsNullOrWhiteSpace(submittedToken))
-                   return BadRequest("id_token is required");
-
-               var clientId = _configuration["Google:ClientId"];
-               if (string.IsNullOrWhiteSpace(clientId))
-                   return StatusCode(500, new { message = "Google sign-in is not configured on the server." });
-
-               // Debug: only log prefix/shape (never log full token).
-               var tokenLooksJwt = submittedToken.Contains('.') && submittedToken.StartsWith("eyJ", StringComparison.Ordinal);
-               _logger.LogInformation("Google sign-in received token. LooksJwt={LooksJwt} Len={Len} TraceId={TraceId}",
-                   tokenLooksJwt, submittedToken.Length, HttpContext.TraceIdentifier);
-
-               var googleUser = await _googleSignIn.ValidateIdTokenAsync(submittedToken, clientId.Trim(), HttpContext.RequestAborted);
-               if (googleUser == null)
-               {
-                   _logger.LogWarning("Google sign-in failed: token validation returned null. TraceId={TraceId}", HttpContext.TraceIdentifier);
-                   return Unauthorized(new { message = "Invalid or expired Google token." });
-               }
-
-               if (!googleUser.EmailVerified || string.IsNullOrWhiteSpace(googleUser.Email))
-               {
-                   _logger.LogWarning(
-                       "Google sign-in failed: email missing or not verified. Verified={EmailVerified} TraceId={TraceId}",
-                       googleUser.EmailVerified,
-                       HttpContext.TraceIdentifier);
-                   return BadRequest(new { message = "Google account email is not verified." });
-               }
-
-               var email = googleUser.Email.Trim();
-               _logger.LogInformation("Google sign-in token validated. Email={Email} Verified={EmailVerified} TraceId={TraceId}",
-                   email, googleUser.EmailVerified, HttpContext.TraceIdentifier);
-
-               var user = await _userManager.Users
-                   .Include(u => u.CustomerProfile)
-                   .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
-               if (user != null)
-               {
-                   var isFirstLogin = user.IsFirstLogin;
-                   await SyncGoogleProfileAsync(user, googleUser.Name, googleUser.Picture);
-
-                   // Keep HasPassword in sync with Identity (without overwriting true->false).
-                   try
-                   {
-                       var identityHasPwd = await _userManager.HasPasswordAsync(user);
-                       if (identityHasPwd && !user.HasPassword)
-                       {
-                           user.HasPassword = true;
-                           await _userManager.UpdateAsync(user);
-                       }
-                       if (!user.IsGoogleUser)
-                       {
-                           user.IsGoogleUser = true;
-                           await _userManager.UpdateAsync(user);
-                       }
-                       else
-                       {
-                           await _userManager.UpdateAsync(user);
-                       }
-                   }
-                   catch (Exception ex)
-                   {
-                       _logger.LogWarning(ex, "Could not sync HasPassword for existing user. UserId={UserId}", user.Id);
-                   }
-
-                   string refreshLogin;
-                   try
-                   {
-                       refreshLogin = await PersistRefreshTokenAsync(user);
-                   }
-                   catch (Exception ex)
-                   {
-                       _logger.LogError(ex, "Google sign-in failed while persisting refresh token for existing user. Email={Email} UserId={UserId} TraceId={TraceId}",
-                           email, user.Id, HttpContext.TraceIdentifier);
-                       return StatusCode(500, new { message = "Google sign-in failed.", detail = "Could not persist refresh token." });
-                   }
-
-                   string accessToken;
-                   try
-                   {
-                       accessToken = await _Token.CreateToken(user);
-                   }
-                   catch (Exception ex)
-                   {
-                       _logger.LogError(ex, "Google sign-in failed while creating JWT for existing user. Email={Email} UserId={UserId} TraceId={TraceId}",
-                           email, user.Id, HttpContext.TraceIdentifier);
-                       return StatusCode(500, new { message = "Google sign-in failed.", detail = "Could not generate access token." });
-                   }
-
-                   return Ok(new NewUserDto
-                   {
-                       UserName = user.UserName,
-                       Name = GetDisplayName(user),
-                       Email = user.Email,
-                       Id = user.Id,
-                       PhoneNumber = user.PhoneNumber,
-                       ProfileImageUrl = GetProfileImageUrl(user),
-                       Token = accessToken,
-                       RefreshToken = refreshLogin,
-                       Role = await _userManager.GetRolesAsync(user),
-                       MustChangePassword = user.MustChangePassword,
-                       AuthProvider = string.IsNullOrWhiteSpace(user.AuthProvider) ? "Local" : user.AuthProvider,
-                       HasPassword = user.HasPassword,
-                       IsFirstLogin = isFirstLogin,
-                       IsGoogleUser = user.IsGoogleUser || string.Equals(user.AuthProvider, "Google", StringComparison.OrdinalIgnoreCase)
-                   });
-               }
-
-               var baseName = DeriveUserNameFromGoogle(email, googleUser.Name);
-               var userName = baseName;
-               for (var i = 0; i < 25 && await _userManager.FindByNameAsync(userName) != null; i++)
-                   userName = $"{baseName}_{Guid.NewGuid().ToString("N")[..6]}";
-
-               var citizen = new ApplicationUser
-               {
-                   UserName = userName,
-                   Email = email,
-                   EmailConfirmed = true,
-                   PhoneNumber = "",
-                   AuthProvider = "Google",
-                   HasPassword = false,
-                   IsFirstLogin = true,
-                   IsGoogleUser = true,
-               };
-
-               var createResult = await _userManager.CreateAsync(citizen, GenerateRandomPassword());
-               if (!createResult.Succeeded)
-               {
-                   _logger.LogWarning("Google sign-in failed: could not create Identity user. Email={Email} Errors={Errors} TraceId={TraceId}",
-                       email,
-                       string.Join("; ", createResult.Errors.Select(e => $"{e.Code}:{e.Description}")),
-                       HttpContext.TraceIdentifier);
-                   return BadRequest(createResult.Errors.Select(e => e.Description).ToList());
-               }
-
-               var roleResult = await _userManager.AddToRoleAsync(citizen, "Customer");
-               if (!roleResult.Succeeded)
-               {
-                   _logger.LogWarning("Google sign-in failed: could not assign Customer role. Email={Email} UserId={UserId} Errors={Errors} TraceId={TraceId}",
-                       email,
-                       citizen.Id,
-                       string.Join("; ", roleResult.Errors.Select(e => $"{e.Code}:{e.Description}")),
-                       HttpContext.TraceIdentifier);
-                   await _userManager.DeleteAsync(citizen);
-                   return BadRequest(roleResult.Errors.Select(e => e.Description).ToList());
-               }
-
-               var reloaded = await _userManager.Users.Include(u => u.CustomerProfile).FirstOrDefaultAsync(u => u.Id == citizen.Id);
-               if (reloaded != null)
-                   citizen = reloaded;
-
-               await EnsureCustomerProfileAsync(
-                   citizen,
-                   string.IsNullOrWhiteSpace(googleUser.Name) ? userName : googleUser.Name,
-                   googleUser.Picture);
-
-               var returnFirstLogin = citizen.IsFirstLogin;
-
-               string refresh;
-               try
-               {
-                   refresh = await PersistRefreshTokenAsync(citizen);
-               }
-               catch (Exception ex)
-               {
-                   _logger.LogError(ex, "Google sign-in failed while persisting refresh token for new user. Email={Email} UserId={UserId} TraceId={TraceId}",
-                       email, citizen.Id, HttpContext.TraceIdentifier);
-                   return StatusCode(500, new { message = "Google sign-in failed.", detail = "Could not persist refresh token." });
-               }
-
-               string newAccessToken;
-               try
-               {
-                   newAccessToken = await _Token.CreateToken(citizen);
-               }
-               catch (Exception ex)
-               {
-                   _logger.LogError(ex, "Google sign-in failed while creating JWT for new user. Email={Email} UserId={UserId} TraceId={TraceId}",
-                       email, citizen.Id, HttpContext.TraceIdentifier);
-                   return StatusCode(500, new { message = "Google sign-in failed.", detail = "Could not generate access token." });
-               }
-
-               return Ok(new NewUserDto
-               {
-                   Email = citizen.Email,
-                   UserName = citizen.UserName,
-                   Token = newAccessToken,
-                   RefreshToken = refresh,
-                   Id = citizen.Id,
-                   ProfileImageUrl = GetProfileImageUrl(citizen),
-                   Role = await _userManager.GetRolesAsync(citizen),
-                   MustChangePassword = false,
-                   Name = GetDisplayName(citizen),
-                   AuthProvider = "Google",
-                   HasPassword = citizen.HasPassword,
-                   IsFirstLogin = returnFirstLogin,
-                   IsGoogleUser = true
-               });
-           }
-           catch (Exception ex)
-           {
-               _logger.LogError(ex, "Unhandled error during Google sign-in. TraceId={TraceId}", HttpContext.TraceIdentifier);
-               return StatusCode(500, new { message = "Google sign-in failed.", detail = "Unexpected server error." });
-           }
+           return Task.FromResult<IActionResult>(
+               StatusCode(StatusCodes.Status403Forbidden, new { message = "Google sign-in is disabled." }));
        }
 
        private async Task<string> PersistRefreshTokenAsync(ApplicationUser user)
@@ -528,6 +325,7 @@ namespace CairoBags.Controllers
                        await EnsureCustomerProfileAsync(customer, registermodel.UserName);
                        await TrySendCustomerWelcomeEmailAsync(customer);
                        var refresh = await PersistRefreshTokenAsync(customer);
+                       await _statisticsRealtime.NotifyStatisticsUpdatedAsync();
                        return Ok(
                        new NewUserDto
                        {

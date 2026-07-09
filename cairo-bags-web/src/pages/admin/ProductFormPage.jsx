@@ -8,6 +8,7 @@ import { useToast } from "../../components/ui/Toast.jsx";
 import { ProductForm } from "../../components/admin/index.js";
 import { Button, Skeleton } from "../../components/ui/index.js";
 import * as productService from "../../services/productService.js";
+import * as productImageService from "../../services/productImageService.js";
 import * as categoryService from "../../services/categoryService.js";
 import {
   getPrimaryImagePath,
@@ -59,6 +60,7 @@ function mapProductToForm(product) {
         ? images.map((img, index) => ({
             id: img?.id ?? img?.Id,
             imageUrl: img?.imageUrl ?? img?.ImageUrl ?? "",
+            thumbnailUrl: img?.thumbnailUrl ?? img?.ThumbnailUrl ?? "",
             fileName: "",
             isPrimary: img?.isPrimary ?? img?.IsPrimary ?? index === 0,
             uploading: false,
@@ -125,14 +127,24 @@ export function ProductFormPage() {
     enabled: isEdit,
   });
 
-  async function handleSubmit(payload) {
+  async function handleSubmit(payload, { pendingUploads } = {}) {
     setSubmitting(true);
     try {
       if (isEdit) {
         await productService.updateProduct(id, payload);
         success(locale === "ar" ? "تم تحديث المنتج" : "Product updated");
       } else {
-        await productService.createProduct(payload);
+        const created = await productService.createProduct(payload);
+        const productId = created?.id ?? created?.Id;
+        if (productId && pendingUploads?.length) {
+          for (let i = 0; i < pendingUploads.length; i++) {
+            const item = pendingUploads[i];
+            await productImageService.uploadProductImage(productId, item.file, {
+              isPrimary: item.isPrimary,
+              sortOrder: item.sortOrder ?? i,
+            });
+          }
+        }
         success(locale === "ar" ? "تم إنشاء المنتج" : "Product created");
       }
       navigate("/admin/products");
@@ -171,6 +183,7 @@ export function ProductFormPage() {
       ) : (
         <ProductForm
           key={id ?? "new"}
+          productId={isEdit ? Number(id) : undefined}
           initialValues={initialValues}
           categories={categories}
           onSubmit={handleSubmit}

@@ -20,6 +20,7 @@ import {
 } from "../../utils/cartHelpers.js";
 import { formatPrice } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
+import { ProductPresentation } from "../store/ProductPresentation.jsx";
 
 export function CartItem({ item, className, compact = false, onUpdated }) {
   const { locale } = useLocale();
@@ -64,13 +65,14 @@ export function CartItem({ item, className, compact = false, onUpdated }) {
     >
       <Link
         to={productHref}
-        className="h-24 w-20 shrink-0 overflow-hidden rounded-md border border-brand-border bg-brand-secondary sm:h-28 sm:w-24"
+        className="cb-cart-thumb h-24 w-20 shrink-0 overflow-hidden rounded-md border border-brand-border sm:h-28 sm:w-24"
       >
-        {imageUrl ? (
-          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full items-center justify-center font-display text-brand-muted">CB</div>
-        )}
+        <ProductPresentation
+          src={imageUrl || undefined}
+          alt={name}
+          size="thumb"
+          className="h-full rounded-md"
+        />
       </Link>
 
       <div className="min-w-0 flex-1">

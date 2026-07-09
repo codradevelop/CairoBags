@@ -33,6 +33,8 @@ import { CheckoutPage } from "../pages/checkout/CheckoutPage.jsx";
 import { OrderSuccessPage } from "../pages/checkout/OrderSuccessPage.jsx";
 import { PaymentUploadPage } from "../pages/checkout/PaymentUploadPage.jsx";
 import { WishlistPage } from "../pages/store/WishlistPage.jsx";
+import { NewsletterUnsubscribePage } from "../pages/store/NewsletterUnsubscribePage.jsx";
+import { NewsletterPage } from "../pages/admin/NewsletterPage.jsx";
 
 export function AppRouter() {
   return (
@@ -42,6 +44,7 @@ export function AppRouter() {
       <Route path="/categories/:slug" element={<CategoryPage />} />
       <Route path="/products/:slug" element={<ProductDetailsPage />} />
       <Route path="/search" element={<SearchResultsPage />} />
+      <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribePage />} />
 
       <Route element={<AdminShoppingBlockRoute />}>
         <Route path="/cart" element={<CartPage />} />
@@ -83,6 +86,7 @@ export function AppRouter() {
         <Route path="/admin/payments" element={<PaymentsPage />} />
         <Route path="/admin/coupons" element={<CouponsPage />} />
         <Route path="/admin/coupons/:id" element={<CouponDetailsPage />} />
+        <Route path="/admin/newsletter" element={<NewsletterPage />} />
         <Route path="/admin/settings" element={<SettingsPage />} />
       </Route>
 

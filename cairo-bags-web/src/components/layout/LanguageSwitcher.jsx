@@ -4,8 +4,21 @@ import { useLocale } from "../../context/LocaleContext.jsx";
 
 export { useLocale };
 
-export function LanguageSwitcher({ className, variant = "ghost", size = "sm" }) {
+export function LanguageSwitcher({ className, variant = "ghost", size = "sm", unstyled = false }) {
   const { locale, toggleLocale } = useLocale();
+
+  if (unstyled) {
+    return (
+      <button
+        type="button"
+        onClick={toggleLocale}
+        className={className}
+        aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+      >
+        {locale === "ar" ? "English" : "عربي"}
+      </button>
+    );
+  }
 
   return (
     <Button

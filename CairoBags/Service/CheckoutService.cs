@@ -1,6 +1,7 @@
 using CairoBags.Data;
 using CairoBags.Dto.Checkout;
 using CairoBags.Dto.Coupons;
+using CairoBags.Helpers;
 using CairoBags.Models.Catalog;
 using CairoBags.Models.Commerce;
 using CairoBags.Models.Coupons;
@@ -414,14 +415,14 @@ public class CheckoutService : ICheckoutService
             .FirstOrDefault();
 
         if (variantImage != null)
-            return variantImage.ThumbnailUrl ?? variantImage.ImageUrl;
+            return ProductImageUrlHelper.ResolveCompactUrl(variantImage.ImageUrl);
 
         var productImage = variant.Product.Images
             .OrderByDescending(i => i.IsPrimary)
             .ThenBy(i => i.SortOrder)
             .FirstOrDefault();
 
-        return productImage?.ThumbnailUrl ?? productImage?.ImageUrl;
+        return ProductImageUrlHelper.ResolveCompactUrl(productImage?.ImageUrl);
     }
 
     private static string BuildNextStepMessage(PaymentMethodType paymentMethod) =>

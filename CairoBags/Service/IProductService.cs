@@ -22,6 +22,10 @@ public interface IProductService
         bool storefront,
         CancellationToken cancellationToken = default);
 
+    Task<ProductFilterOptionsDto> GetFilterOptionsAsync(
+        bool storefront,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<ProductDetailsDto>> CreateAsync(
         CreateProductRequest request,
         string? userId,

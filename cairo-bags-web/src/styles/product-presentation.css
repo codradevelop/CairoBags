@@ -1,0 +1,603 @@
+/* Shared luxury product presentation — mirrors Home Categories (cb-coll) */
+
+.cb-pres {
+  --cb-pres-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --cb-pres-lift: 6px;
+  --cb-pres-plat-gap: 2px;
+  --cb-pres-plat-w: min(76%, 100%);
+  --cb-pres-plat-h: 2.35rem;
+  --cb-pres-ring-w: 64%;
+  --cb-pres-shadow-w: 72%;
+  --cb-pres-orbit-size: 68%;
+  --cb-pres-orbit-duration: 15s;
+  --cb-pres-img-w: min(90%, 14rem);
+  --cb-pres-img-h: min(72%, 11rem);
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(180deg, #faf8f5 0%, #f3ede4 100%);
+}
+
+.cb-pres__stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  perspective: 900px;
+  perspective-origin: 50% 46%;
+}
+
+.cb-pres__float-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cb-pres__lift {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1 1 0;
+  min-height: 68%;
+  margin-bottom: var(--cb-pres-plat-gap);
+  transform: translate3d(0, calc(-1 * var(--cb-pres-lift)), 0) translateZ(0);
+  animation: cb-pres-levitate 6.5s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.cb-pres__product {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.cb-pres__media {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cb-pres__images {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Thin rotating gold ring — on top of product (hollow stroke, no white bleed) */
+.cb-pres__orbit-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  width: var(--cb-pres-orbit-size);
+  height: var(--cb-pres-orbit-size);
+  transform: translate3d(-50%, -50%, 0) rotateX(68deg) translateZ(0);
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.58);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.12),
+    0 0 14px rgba(212, 175, 55, 0.22);
+  opacity: 0.88;
+  animation: cb-pres-orbit-spin var(--cb-pres-orbit-duration) linear infinite;
+  pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition: transform 0.5s ease, opacity 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+.cb-pres__aura {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  z-index: 1;
+  width: 62%;
+  height: 1.25rem;
+  transform: translateX(-50%) translateZ(0);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(50, 38, 14, 0.16) 0%,
+    rgba(50, 38, 14, 0.06) 48%,
+    transparent 72%
+  );
+  filter: blur(10px);
+  opacity: 0.55;
+  animation: cb-pres-aura-breathe 6.5s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+  pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.cb-pres__platform {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: var(--cb-pres-plat-w);
+  height: var(--cb-pres-plat-h);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cb-pres__stand {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  width: var(--cb-pres-ring-w);
+  height: 1.35rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: 1.5px solid rgba(228, 198, 110, 0.95);
+  background: radial-gradient(
+    ellipse 100% 100% at 50% 58%,
+    rgba(142, 108, 38, 0.72) 0%,
+    rgba(175, 132, 48, 0.82) 28%,
+    rgba(201, 155, 58, 0.9) 52%,
+    rgba(218, 178, 72, 0.94) 76%,
+    rgba(212, 175, 55, 0.98) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.35),
+    0 0 14px rgba(212, 175, 55, 0.62),
+    0 0 32px rgba(212, 175, 55, 0.28),
+    0 6px 22px rgba(90, 68, 22, 0.2),
+    0 2px 8px rgba(60, 45, 15, 0.14),
+    inset 0 1px 10px rgba(255, 228, 160, 0.42),
+    inset 0 -5px 14px rgba(100, 75, 25, 0.28);
+  overflow: hidden;
+  pointer-events: none;
+  transition: box-shadow 0.35s var(--cb-pres-ease), filter 0.35s var(--cb-pres-ease);
+}
+
+.cb-pres__stand-shine {
+  pointer-events: none;
+  position: absolute;
+  inset: -45% -70%;
+  background: linear-gradient(
+    108deg,
+    transparent 42%,
+    rgba(255, 236, 180, 0.55) 50%,
+    transparent 58%
+  );
+  opacity: 0;
+  animation: cb-pres-stand-shimmer 8s ease-in-out infinite;
+  animation-delay: calc(var(--platform-delay, 0s) + 0.6s);
+  will-change: transform, opacity;
+}
+
+.cb-pres__ripple {
+  position: absolute;
+  top: 0.15rem;
+  left: 50%;
+  z-index: 2;
+  width: var(--cb-pres-ring-w);
+  height: 1.35rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  animation: cb-pres-plat-ripple 4.8s ease-out infinite;
+  animation-delay: var(--platform-delay, 0s);
+}
+
+.cb-pres__ripple--delay {
+  animation-delay: calc(var(--platform-delay, 0s) + 2.4s);
+}
+
+.cb-pres__glow {
+  position: absolute;
+  top: 0.15rem;
+  left: 50%;
+  z-index: 1;
+  width: 135%;
+  height: 155%;
+  transform: translateX(-50%) translateZ(0);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 100% 80% at 50% 12%,
+    rgba(212, 175, 55, 0.38) 0%,
+    rgba(201, 160, 89, 0.22) 32%,
+    rgba(197, 160, 89, 0.1) 52%,
+    rgba(197, 160, 89, 0.04) 66%,
+    transparent 78%
+  );
+  filter: blur(48px);
+  opacity: 0.22;
+  clip-path: inset(0 -30% -45% -30%);
+  animation: cb-pres-glow-pulse 4s ease-in-out infinite;
+  animation-delay: var(--platform-delay, 0s);
+  pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+}
+
+.cb-pres__shadow {
+  position: absolute;
+  bottom: -0.1rem;
+  left: 50%;
+  z-index: 0;
+  width: var(--cb-pres-shadow-w);
+  height: 1.5rem;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(70, 52, 18, 0.22) 0%,
+    rgba(70, 52, 18, 0.1) 38%,
+    rgba(70, 52, 18, 0.04) 58%,
+    transparent 76%
+  );
+  filter: blur(22px);
+  opacity: 0.9;
+  pointer-events: none;
+  transition: opacity 0.35s var(--cb-pres-ease);
+}
+
+.cb-pres__img {
+  position: relative;
+  z-index: 4;
+  display: block;
+  width: var(--cb-pres-img-w, 94%);
+  height: auto;
+  max-height: var(--cb-pres-img-h, 86%);
+  min-width: 1px;
+  object-fit: contain;
+  object-position: center center;
+  opacity: 1;
+  visibility: visible;
+  user-select: none;
+  pointer-events: none;
+  filter: contrast(1.04) saturate(1.03);
+  mix-blend-mode: multiply;
+  transform: translateZ(4px);
+  will-change: transform;
+  transition: filter 0.35s var(--cb-pres-ease), opacity 0.35s ease;
+}
+
+.cb-pres__img--secondary {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--cb-pres-img-w, 94%);
+  max-height: var(--cb-pres-img-h, 86%);
+  height: auto;
+  transform: translate(-50%, -50%) translateZ(4px);
+}
+
+.cb-pres__placeholder {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display, "Cormorant Garamond", serif);
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  opacity: 0.4;
+  background: linear-gradient(135deg, #c9a962, #e8d5a3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Size variants — defaults; each parent container overrides via @container */
+.cb-pres--card {
+  --cb-pres-lift: 5px;
+  --cb-pres-plat-h: 2rem;
+  --cb-pres-plat-w: min(74%, 100%);
+  --cb-pres-orbit-size: min(72%, 11rem);
+  --cb-pres-img-w: min(96%, 100%);
+  --cb-pres-img-h: min(90%, 100%);
+}
+
+.cb-pres--compact {
+  --cb-pres-lift: 4px;
+  --cb-pres-plat-h: 1.65rem;
+  --cb-pres-plat-w: min(72%, 100%);
+  --cb-pres-orbit-size: min(68%, 9.5rem);
+  --cb-pres-img-w: min(94%, 100%);
+  --cb-pres-img-h: min(88%, 100%);
+}
+
+.cb-pres--thumb {
+  --cb-pres-lift: 3px;
+  --cb-pres-plat-h: 1rem;
+  --cb-pres-plat-w: min(70%, 100%);
+  --cb-pres-orbit-size: min(62%, 6rem);
+  --cb-pres-orbit-duration: 18s;
+  --cb-pres-img-w: min(92%, 100%);
+  --cb-pres-img-h: min(86%, 100%);
+}
+
+.cb-pres--gallery {
+  --cb-pres-lift: 10px;
+  --cb-pres-plat-gap: 3px;
+  --cb-pres-plat-h: 3rem;
+  --cb-pres-plat-w: min(68%, 16rem);
+  --cb-pres-orbit-size: min(70%, 20rem);
+  --cb-pres-orbit-duration: 16s;
+  --cb-pres-img-w: min(98%, 100%);
+  --cb-pres-img-h: min(92%, 100%);
+}
+
+/* ── Per-container sizing (each card fits its own box) ── */
+
+@container shop-card (min-width: 1px) {
+  .cb-pres--card {
+    --cb-pres-orbit-size: min(76%, 88cqw);
+    --cb-pres-img-w: min(98%, 94cqw);
+    --cb-pres-img-h: min(86%, 72cqh);
+    --cb-pres-plat-w: min(78%, 72cqw);
+    --cb-pres-plat-h: clamp(1.1rem, 14cqh, 2.2rem);
+  }
+}
+
+@container product-card (min-width: 1px) {
+  .cb-pres--card {
+    --cb-pres-orbit-size: min(74%, 90cqw);
+    --cb-pres-img-w: min(98%, 92cqw);
+    --cb-pres-img-h: min(90%, 84cqh);
+    --cb-pres-plat-h: clamp(1.2rem, 15cqh, 2.4rem);
+  }
+
+  .cb-pres--compact {
+    --cb-pres-orbit-size: min(70%, 85cqw);
+    --cb-pres-img-w: min(96%, 90cqw);
+    --cb-pres-img-h: min(88%, 80cqh);
+    --cb-pres-plat-h: clamp(1rem, 13cqh, 2rem);
+  }
+}
+
+@container product-gallery (min-width: 1px) {
+  .cb-pres--gallery {
+    --cb-pres-orbit-size: min(72%, 88cqw);
+    --cb-pres-img-w: min(98%, 94cqw);
+    --cb-pres-img-h: min(94%, 88cqh);
+    --cb-pres-plat-w: min(70%, 68cqw);
+    --cb-pres-plat-h: clamp(2rem, 16cqh, 3.5rem);
+  }
+}
+
+@container wishlist-thumb (min-width: 1px) {
+  .cb-pres--thumb {
+    --cb-pres-orbit-size: min(68%, 82cqw);
+    --cb-pres-img-w: min(96%, 90cqw);
+    --cb-pres-img-h: min(90%, 82cqh);
+    --cb-pres-plat-h: clamp(0.75rem, 12cqh, 1.35rem);
+  }
+}
+
+@container cart-thumb (min-width: 1px) {
+  .cb-pres--thumb {
+    --cb-pres-orbit-size: min(64%, 78cqw);
+    --cb-pres-img-w: min(94%, 88cqw);
+    --cb-pres-img-h: min(88%, 80cqh);
+    --cb-pres-plat-h: clamp(0.65rem, 11cqh, 1.2rem);
+  }
+}
+
+/* Hover */
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .cb-pres .cb-pres__lift,
+  .cb-pres--interactive:hover .cb-pres__lift,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__lift {
+    animation: cb-pres-levitate-hover 5.5s ease-in-out infinite;
+  }
+
+  .group:hover .cb-pres .cb-pres__img,
+  .cb-pres--interactive:hover .cb-pres__img,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__img {
+    filter: contrast(1.06) saturate(1.05) brightness(1.02);
+  }
+
+  .group:hover .cb-pres .cb-pres__glow,
+  .cb-pres--interactive:hover .cb-pres__glow,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__glow {
+    opacity: 0.27;
+    filter: blur(48px) brightness(1.2);
+  }
+
+  .group:hover .cb-pres .cb-pres__stand,
+  .cb-pres--interactive:hover .cb-pres__stand,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__stand {
+    filter: brightness(1.06);
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.42),
+      0 0 18px rgba(212, 175, 55, 0.72),
+      0 0 40px rgba(212, 175, 55, 0.34),
+      0 8px 26px rgba(90, 68, 22, 0.24),
+      inset 0 1px 10px rgba(255, 228, 160, 0.48),
+      inset 0 -5px 14px rgba(100, 75, 25, 0.28);
+  }
+
+  .group:hover .cb-pres .cb-pres__shadow,
+  .cb-pres--interactive:hover .cb-pres__shadow,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__shadow {
+    opacity: 0.95;
+  }
+
+  .group:hover .cb-pres .cb-pres__orbit-ring,
+  .cb-pres--interactive:hover .cb-pres__orbit-ring,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__orbit-ring {
+    opacity: 1;
+    border-color: rgba(212, 175, 55, 0.78);
+    box-shadow:
+      0 0 0 1px rgba(212, 175, 55, 0.2),
+      0 0 18px rgba(212, 175, 55, 0.32);
+  }
+}
+
+@keyframes cb-pres-orbit-spin {
+  to {
+    transform: translate3d(-50%, -50%, 0) rotateX(68deg) rotateZ(360deg) translateZ(0);
+  }
+}
+
+@keyframes cb-pres-levitate {
+  0%,
+  100% {
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift)), 0) rotateZ(0deg);
+  }
+  25% {
+    transform: translate3d(1.5px, calc(-1 * var(--cb-pres-lift) - 3px), 0) rotateZ(0.7deg);
+  }
+  50% {
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift) - 6px), 0) rotateZ(0deg);
+  }
+  75% {
+    transform: translate3d(-1.5px, calc(-1 * var(--cb-pres-lift) - 3px), 0) rotateZ(-0.7deg);
+  }
+}
+
+@keyframes cb-pres-levitate-hover {
+  0%,
+  100% {
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift) - 4px), 0) rotateZ(0deg);
+  }
+  25% {
+    transform: translate3d(2px, calc(-1 * var(--cb-pres-lift) - 7px), 0) rotateZ(0.9deg);
+  }
+  50% {
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift) - 10px), 0) rotateZ(0deg);
+  }
+  75% {
+    transform: translate3d(-2px, calc(-1 * var(--cb-pres-lift) - 7px), 0) rotateZ(-0.9deg);
+  }
+}
+
+@keyframes cb-pres-aura-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateX(-50%) scale(0.96);
+  }
+  50% {
+    opacity: 0.62;
+    transform: translateX(-50%) scale(1.04);
+  }
+}
+
+@keyframes cb-pres-plat-ripple {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.9);
+    opacity: 0;
+  }
+}
+
+@keyframes cb-pres-stand-shimmer {
+  0%,
+  72%,
+  100% {
+    opacity: 0;
+    transform: translateX(-120%) rotate(8deg);
+  }
+  78% {
+    opacity: 0.75;
+  }
+  88% {
+    opacity: 0;
+    transform: translateX(120%) rotate(8deg);
+  }
+}
+
+@keyframes cb-pres-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.22;
+  }
+}
+
+@media (max-width: 767px) {
+  @container shop-card (min-width: 1px) {
+    .cb-pres--card {
+      --cb-pres-img-h: min(90%, 80cqh);
+      --cb-pres-plat-h: clamp(0.9rem, 12cqh, 1.6rem);
+    }
+  }
+
+  @container product-gallery (min-width: 1px) {
+    .cb-pres--gallery {
+      --cb-pres-img-h: min(92%, 86cqh);
+      --cb-pres-plat-h: clamp(1.6rem, 14cqh, 2.8rem);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-pres__lift,
+  .cb-pres__aura,
+  .cb-pres__glow,
+  .cb-pres__stand,
+  .cb-pres__stand-shine,
+  .cb-pres__ripple,
+  .cb-pres__orbit-ring,
+  .cb-pres__img {
+    animation: none !important;
+  }
+
+  .cb-pres__lift {
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift)), 0) translateZ(0);
+  }
+
+  .cb-pres__orbit-ring {
+    transform: translate3d(-50%, -50%, 0) rotateX(68deg) translateZ(0);
+  }
+
+  .group:hover .cb-pres .cb-pres__lift,
+  .cb-pres--interactive:hover .cb-pres__lift,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__lift {
+    animation: none !important;
+    transform: translate3d(0, calc(-1 * var(--cb-pres-lift)), 0) translateZ(0);
+  }
+
+  .group:hover .cb-pres .cb-pres__glow,
+  .cb-pres--interactive:hover .cb-pres__glow,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__glow,
+  .group:hover .cb-pres .cb-pres__orbit-ring,
+  .cb-pres--interactive:hover .cb-pres__orbit-ring,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__orbit-ring,
+  .group:hover .cb-pres .cb-pres__img,
+  .cb-pres--interactive:hover .cb-pres__img,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__img,
+  .group:hover .cb-pres .cb-pres__stand,
+  .cb-pres--interactive:hover .cb-pres__stand,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__stand,
+  .group:hover .cb-pres .cb-pres__shadow,
+  .cb-pres--interactive:hover .cb-pres__shadow,
+  .cb-wishlist-card:hover .cb-pres .cb-pres__shadow {
+    transition: none !important;
+  }
+}

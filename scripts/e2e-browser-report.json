@@ -1,0 +1,34 @@
+{
+  "Shop": {
+    "ok": true,
+    "detail": "Image visible: http://localhost:5073/FileStorage/products/3/main_600.jpg"
+  },
+  "Product Details": {
+    "ok": true,
+    "detail": "Gallery uses main: http://localhost:5073/FileStorage/products/3/main.jpg"
+  },
+  "Cart": {
+    "ok": true,
+    "detail": "API imageUrl uses main_300: /FileStorage/products/3/main_300.jpg"
+  },
+  "Cart UI": {
+    "ok": true,
+    "detail": "Rendered main_300: http://localhost:5073/FileStorage/products/3/main_300.jpg"
+  },
+  "Wishlist": {
+    "ok": true,
+    "detail": "API primaryImage uses main_300: /FileStorage/products/3/main_300.jpg"
+  },
+  "Wishlist UI": {
+    "ok": true,
+    "detail": "Rendered main_300: http://localhost:5073/FileStorage/products/3/main_300.jpg"
+  },
+  "No Broken Images": {
+    "ok": true,
+    "detail": "No non-200 FileStorage responses"
+  },
+  "Console": {
+    "ok": true,
+    "detail": "No console errors"
+  }
+}
