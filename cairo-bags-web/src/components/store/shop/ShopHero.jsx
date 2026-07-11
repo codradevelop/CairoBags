@@ -45,7 +45,13 @@ function ShopHeroScene() {
   );
 }
 
-export function ShopHero({ categories = [], activeCategoryId = "", onCategorySelect, className }) {
+export function ShopHero({
+  categories = [],
+  activeCategoryId = "",
+  activeCategoryName = "",
+  onCategorySelect,
+  className,
+}) {
   const { locale } = useLocale();
 
   const pills = useMemo(() => {
@@ -67,14 +73,27 @@ export function ShopHero({ categories = [], activeCategoryId = "", onCategorySel
     <section className={cn("cb-shop-hero", className)}>
       <div className="cb-shop-hero-inner">
         <div className="cb-shop-hero-left">
-          <p className="cb-shop-hero-label">{locale === "ar" ? "المجموعة" : "Collection"}</p>
+          <p className="cb-shop-hero-label">
+            {activeCategoryName
+              ? locale === "ar"
+                ? "المجموعة المختارة"
+                : "Selected Collection"
+              : locale === "ar"
+                ? "المجموعة"
+                : "Collection"}
+          </p>
           <h1 className="cb-shop-hero-title">
-            {locale === "ar" ? "تسوق المجموعة" : "Shop The Collection"}
+            {activeCategoryName ||
+              (locale === "ar" ? "تسوق المجموعة" : "Shop The Collection")}
           </h1>
           <p className="cb-shop-hero-subtitle">
-            {locale === "ar"
-              ? "اكتشفي الفخامة الخالدة، صُنعت من أجلك."
-              : "Discover timeless luxury, crafted for you."}
+            {activeCategoryName
+              ? locale === "ar"
+                ? `منتجات ${activeCategoryName} فقط`
+                : `Showing ${activeCategoryName} products only`
+              : locale === "ar"
+                ? "اكتشفي الفخامة الخالدة، صُنعت من أجلك."
+                : "Discover timeless luxury, crafted for you."}
           </p>
           <span className="cb-shop-hero-accent-line" aria-hidden="true" />
 

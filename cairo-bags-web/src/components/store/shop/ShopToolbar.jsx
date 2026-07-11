@@ -42,6 +42,7 @@ export function ShopToolbar({
   onSortChange,
   viewMode = "grid",
   onViewModeChange,
+  activeCategoryName = "",
   className,
 }) {
   const { locale } = useLocale();
@@ -49,16 +50,23 @@ export function ShopToolbar({
 
   return (
     <div className={cn("cb-shop-toolbar", className)}>
-      <p className="cb-shop-product-count">
-        <span className="font-medium text-[var(--shop-text)]">{loading ? "—" : productCount}</span>{" "}
-        {locale === "ar"
-          ? productCount === 1
-            ? "منتج"
-            : "منتجات"
-          : productCount === 1
-            ? "product"
-            : "products"}
-      </p>
+      <div>
+        <p className="cb-shop-product-count">
+          <span className="font-medium text-[var(--shop-text)]">{loading ? "—" : productCount}</span>{" "}
+          {locale === "ar"
+            ? productCount === 1
+              ? "منتج"
+              : "منتجات"
+            : productCount === 1
+              ? "product"
+              : "products"}
+        </p>
+        {activeCategoryName ? (
+          <p className="mt-1 text-sm text-[var(--shop-text-muted)]">
+            {locale === "ar" ? `في ${activeCategoryName}` : `in ${activeCategoryName}`}
+          </p>
+        ) : null}
+      </div>
 
       <div className="cb-shop-toolbar-controls">
         <label className="cb-shop-sort">

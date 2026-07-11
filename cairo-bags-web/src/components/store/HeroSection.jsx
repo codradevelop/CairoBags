@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
+import * as categoryService from "../../services/categoryService.js";
+import { resolveCollectionShopHref } from "../../utils/collectionCategory.js";
 import { cn } from "../../utils/cn.js";
 
 import heroBg from "../../assets/hero/hero-bg.png";
 import heroProducts from "../../assets/hero/hero-products-cutout.png";
 import backpackImg from "../../assets/hero/backpack.png";
-import suitcaseImg from "../../assets/hero/suitcase.png";
+import handbagImg from "../../assets/hero/handbag.png";
 import laptopBagImg from "../../assets/hero/laptop-bag.png";
 import crossbodyImg from "../../assets/hero/crossbody.png";
 import travelSetImg from "../../assets/hero/travel-set.png";
@@ -116,12 +118,12 @@ function CategoryBackpackIcon() {
   );
 }
 
-function CategoryLuggageIcon() {
+function CategoryHandbagIcon() {
   return (
     <svg className="cb-hero__category-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="6" y="8" width="12" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M12 14v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 9V7a2 2 0 0 1 4 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="7" y="9" width="10" height="11" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M7 13h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -187,65 +189,90 @@ function HeroShowcase({ locale }) {
 }
 
 function HeroCategoryStrip({ locale }) {
+  const [storeCategories, setStoreCategories] = useState([]);
+
+  useEffect(() => {
+    categoryService
+      .getCategories()
+      .then((data) => setStoreCategories(Array.isArray(data) ? data : []))
+      .catch(() => setStoreCategories([]));
+  }, []);
+
   const categories = useMemo(
     () => [
       {
         key: "backpacks",
+        matchKey: "backpack",
+        titleEn: "Backpacks",
+        titleAr: "حقائب الظهر",
         title: locale === "ar" ? "حقائب الظهر" : "Backpacks",
         desc:
           locale === "ar"
             ? "تنظيم ذكي وراحة يومية للسفر والعمل."
             : "Smart organization and everyday comfort for work and travel.",
         image: backpackImg,
-        href: "/shop",
         Icon: CategoryBackpackIcon,
       },
       {
-        key: "luggage",
-        title: locale === "ar" ? "حقائب السفر" : "Travel Luggage",
+        key: "handbag",
+        matchKey: "handbag",
+        titleEn: "Hand Bags",
+        titleAr: "حقائب يد",
+        title: locale === "ar" ? "حقائب يد" : "Hand Bags",
         desc:
           locale === "ar"
-            ? "متانة فاخرة لكل رحلة بعيدة."
-            : "Premium durability engineered for every journey.",
-        image: suitcaseImg,
-        href: "/shop",
-        Icon: CategoryLuggageIcon,
+            ? "حقيبة صغيرة بمقبض واحد للحمل اليومي."
+            : "Compact carry with a single top handle.",
+        image: handbagImg,
+        Icon: CategoryHandbagIcon,
       },
       {
         key: "laptop",
+        matchKey: "laptop",
+        titleEn: "Laptop Bags",
+        titleAr: "حقائب اللابتوب",
         title: locale === "ar" ? "حقائب اللابتوب" : "Laptop Bags",
         desc:
           locale === "ar"
             ? "حماية أنيقة لأجهزتك المهنية."
             : "Elegant protection for your professional gear.",
         image: laptopBagImg,
-        href: "/shop",
         Icon: CategoryLaptopIcon,
       },
       {
         key: "crossbody",
+        matchKey: "crossbody",
+        titleEn: "Crossbody Bags",
+        titleAr: "حقائب كروس",
         title: locale === "ar" ? "حقائب كروس" : "Crossbody Bags",
         desc:
           locale === "ar"
             ? "أناقة عملية للتنقل اليومي."
             : "Hands-free style for effortless daily movement.",
         image: crossbodyImg,
-        href: "/shop",
         Icon: CategoryCrossbodyIcon,
       },
       {
         key: "travel-sets",
+        matchKey: "travel",
+        titleEn: "Travel Sets",
+        titleAr: "أطقم السفر",
         title: locale === "ar" ? "أطقم السفر" : "Travel Sets",
         desc:
           locale === "ar"
             ? "تنسيق متكامل لرحلاتك القادمة."
             : "Coordinated sets for your next adventure.",
         image: travelSetImg,
-        href: "/shop",
         Icon: CategoryTravelSetIcon,
       },
-    ],
-    [locale]
+    ].map((cat) => ({
+      ...cat,
+      href: resolveCollectionShopHref(storeCategories, cat.matchKey, {
+        titleEn: cat.titleEn,
+        titleAr: cat.titleAr,
+      }),
+    })),
+    [locale, storeCategories]
   );
 
   return (
@@ -365,7 +392,7 @@ export function HeroSection({ className }) {
                 </>
               ) : (
                 <>
-                  Premium backpacks, travel luggage, laptop bags and crossbody bags
+                  Premium backpacks, hand bags, laptop bags and crossbody bags
                   <br />
                   designed for everyday life and every adventure.
                 </>

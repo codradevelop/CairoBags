@@ -5,7 +5,7 @@ import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import * as categoryService from "../../services/categoryService.js";
 import { resolveCollectionShopHref } from "../../utils/collectionCategory.js";
 import backpackImg from "../../assets/hero/collections/backpack.png";
-import suitcaseImg from "../../assets/hero/collections/suitcase.png";
+import handbagImg from "../../assets/hero/collections/handbag.png";
 import laptopBagImg from "../../assets/hero/collections/laptop-bag.png";
 import crossbodyImg from "../../assets/hero/collections/crossbody.png";
 import travelSetImg from "../../assets/hero/collections/travel-set.png";
@@ -22,12 +22,11 @@ const CATEGORY_ICONS = {
       <path d="M24 26v8M20 30h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
-  luggage: (
+  handbag: (
     <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <rect x="12" y="16" width="24" height="26" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M18 16V12a6 6 0 0 1 12 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="18" cy="38" r="2" fill="currentColor" />
-      <circle cx="30" cy="38" r="2" fill="currentColor" />
+      <path d="M20 18V14a4 4 0 0 1 8 0v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="14" y="18" width="20" height="22" rx="4" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M14 26h20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
   laptop: (
@@ -226,21 +225,27 @@ export function CollectionCards() {
       {
         iconKey: "backpack",
         matchKey: "backpack",
+        titleEn: "Backpacks",
+        titleAr: "حقائب الظهر",
         image: backpackImg,
         title: isAr ? "حقائب الظهر" : "Backpacks",
         desc: isAr ? "راحة يومية" : "Daily comfort",
         featured: true,
       },
       {
-        iconKey: "luggage",
-        matchKey: "luggage",
-        image: suitcaseImg,
-        title: isAr ? "حقائب السفر" : "Luggage",
-        desc: isAr ? "للمسافرين" : "For travelers",
+        iconKey: "handbag",
+        matchKey: "handbag",
+        titleEn: "Hand Bags",
+        titleAr: "حقائب يد",
+        image: handbagImg,
+        title: isAr ? "حقائب يد" : "Hand Bags",
+        desc: isAr ? "مقبض واحد للحمل اليومي" : "Single-handle daily carry",
       },
       {
         iconKey: "laptop",
         matchKey: "laptop",
+        titleEn: "Laptop Bags",
+        titleAr: "حقائب اللابتوب",
         image: laptopBagImg,
         title: isAr ? "حقائب اللابتوب" : "Laptop Bags",
         desc: isAr ? "أناقة عملية" : "Smart elegance",
@@ -248,6 +253,8 @@ export function CollectionCards() {
       {
         iconKey: "crossbody",
         matchKey: "crossbody",
+        titleEn: "Crossbody",
+        titleAr: "حقائب كروس",
         image: crossbodyImg,
         title: isAr ? "حقائب كروس" : "Crossbody",
         desc: isAr ? "خفيفة وأنيقة" : "Light & chic",
@@ -255,6 +262,8 @@ export function CollectionCards() {
       {
         iconKey: "travel",
         matchKey: "travel",
+        titleEn: "Travel Sets",
+        titleAr: "أطقم السفر",
         image: travelSetImg,
         title: isAr ? "أطقم السفر" : "Travel Sets",
         desc: isAr ? "مجموعات كاملة" : "Complete sets",
@@ -263,7 +272,10 @@ export function CollectionCards() {
 
     return defs.map((def) => ({
       ...def,
-      href: resolveCollectionShopHref(categories, def.matchKey),
+      href: resolveCollectionShopHref(categories, def.matchKey, {
+        titleEn: def.titleEn,
+        titleAr: def.titleAr,
+      }),
     }));
   }, [categories, isAr]);
 

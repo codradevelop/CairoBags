@@ -5,11 +5,11 @@ import { ScrollRestoration } from "./router/ScrollRestoration.jsx";
 
 export default function App() {
   return (
-    <AppProviders>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AppProviders>
         <ScrollRestoration />
         <AppRouter />
-      </BrowserRouter>
-    </AppProviders>
+      </AppProviders>
+    </BrowserRouter>
   );
 }

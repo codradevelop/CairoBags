@@ -13,6 +13,7 @@ public sealed class ProductImageProcessingService : IProductImageProcessingServi
     private const int MaxInputDimension = 2500;
     private const float ProductFillRatio = 0.875f;
     private const byte NearWhiteThreshold = 245;
+    private const byte NearBlackThreshold = 35;
     private const byte AlphaBackgroundThreshold = 25;
     private const int JpegQuality = 92;
     private const int WebpQuality = 92;
@@ -62,6 +63,8 @@ public sealed class ProductImageProcessingService : IProductImageProcessingServi
                 return ProductImageProcessingResult.Failed();
 
             DownscaleIfNeeded(image);
+
+            StripEdgeConnectedBackground(image);
 
             var bounds = DetectContentBounds(image);
             if (bounds.Width <= 0 || bounds.Height <= 0)
@@ -221,6 +224,82 @@ public sealed class ProductImageProcessingService : IProductImageProcessingServi
         || (pixel.R >= NearWhiteThreshold
             && pixel.G >= NearWhiteThreshold
             && pixel.B >= NearWhiteThreshold);
+
+    private static bool IsDarkBackgroundCandidate(Rgba32 pixel) =>
+        pixel.R + pixel.G + pixel.B <= NearBlackThreshold;
+
+    private static bool HasUniformDarkCornerBackground(Image<Rgba32> image)
+    {
+        if (image.Width < 2 || image.Height < 2)
+            return false;
+
+        Span<Rgba32> corners =
+        [
+            image[0, 0],
+            image[image.Width - 1, 0],
+            image[0, image.Height - 1],
+            image[image.Width - 1, image.Height - 1]
+        ];
+
+        var darkCornerCount = 0;
+        foreach (var corner in corners)
+        {
+            if (IsDarkBackgroundCandidate(corner))
+                darkCornerCount++;
+        }
+
+        return darkCornerCount >= 3;
+    }
+
+    private static void StripEdgeConnectedBackground(Image<Rgba32> image)
+    {
+        if (!HasUniformDarkCornerBackground(image))
+            return;
+
+        var width = image.Width;
+        var height = image.Height;
+        var visited = new bool[width * height];
+        var queue = new Queue<(int X, int Y)>();
+
+        void TryEnqueue(int x, int y)
+        {
+            if (x < 0 || x >= width || y < 0 || y >= height)
+                return;
+
+            var index = (y * width) + x;
+            if (visited[index])
+                return;
+
+            if (!IsDarkBackgroundCandidate(image[x, y]))
+                return;
+
+            visited[index] = true;
+            queue.Enqueue((x, y));
+        }
+
+        for (var x = 0; x < width; x++)
+        {
+            TryEnqueue(x, 0);
+            TryEnqueue(x, height - 1);
+        }
+
+        for (var y = 0; y < height; y++)
+        {
+            TryEnqueue(0, y);
+            TryEnqueue(width - 1, y);
+        }
+
+        while (queue.Count > 0)
+        {
+            var (x, y) = queue.Dequeue();
+            image[x, y] = new Rgba32(0, 0, 0, 0);
+
+            TryEnqueue(x - 1, y);
+            TryEnqueue(x + 1, y);
+            TryEnqueue(x, y - 1);
+            TryEnqueue(x, y + 1);
+        }
+    }
 
     private static bool ShouldPreserveTransparency(Image<Rgba32> image)
     {

@@ -207,6 +207,11 @@ export function CategoryForm({ initialValues, categories = [], onSubmit, submitt
               previewUrl={form.imageUrl || null}
               fileName={selectedFileName}
             />
+            <p className="mt-2 text-xs text-brand-muted">
+              {locale === "ar"
+                ? "يُزال الخلفية تلقائياً ويُحفظ المنتج كصورة شفافة مثل بطاقات المجموعات."
+                : "Background is removed automatically and the bag is saved as a transparent cutout, like the collection cards."}
+            </p>
           </InputGroup>
           <label className="flex items-center gap-2 text-sm md:col-span-2">
             <input

@@ -2236,6 +2236,7 @@ namespace CairoBags.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal>("ShippingFee")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("ShippingZoneId")

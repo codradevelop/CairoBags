@@ -1095,14 +1095,14 @@
   --cb-coll-shadow-w: 76%;
 }
 
-.cb-coll__product-lift--luggage,
-.cb-coll__platform--luggage {
-  --cb-coll-lift: 2px;
+.cb-coll__product-lift--handbag,
+.cb-coll__platform--handbag {
+  --cb-coll-lift: 0px;
   --cb-coll-plat-gap: 2px;
-  --cb-coll-plat-w: min(68%, 11.5rem);
-  --cb-coll-plat-h: 3rem;
-  --cb-coll-ring-w: 54%;
-  --cb-coll-shadow-w: 62%;
+  --cb-coll-plat-w: min(62%, 10rem);
+  --cb-coll-plat-h: 2.85rem;
+  --cb-coll-ring-w: 56%;
+  --cb-coll-shadow-w: 54%;
 }
 
 .cb-coll__product-lift--laptop,
@@ -1299,9 +1299,9 @@
   object-position: center center;
 }
 
-.cb-coll__img--luggage {
-  width: min(86%, 12.75rem);
-  max-height: min(11.75rem, 34vw);
+.cb-coll__img--handbag {
+  width: min(72%, 10.5rem);
+  max-height: min(10.5rem, 30vw);
 }
 
 .cb-coll__img--laptop {
@@ -1442,14 +1442,14 @@
     --cb-coll-shadow-w: 74%;
   }
 
-  .cb-coll__product-lift--luggage,
-  .cb-coll__platform--luggage {
-    --cb-coll-lift: 1px;
+  .cb-coll__product-lift--handbag,
+  .cb-coll__platform--handbag {
+    --cb-coll-lift: 0px;
     --cb-coll-plat-gap: 1px;
-    --cb-coll-plat-w: min(66%, 10.25rem);
-    --cb-coll-plat-h: 2.75rem;
-    --cb-coll-ring-w: 52%;
-    --cb-coll-shadow-w: 60%;
+    --cb-coll-plat-w: min(58%, 8.75rem);
+    --cb-coll-plat-h: 2.55rem;
+    --cb-coll-ring-w: 54%;
+    --cb-coll-shadow-w: 52%;
   }
 
   .cb-coll__product-lift--laptop,
@@ -1488,9 +1488,9 @@
     object-position: center center;
   }
 
-  .cb-coll__img--luggage {
-    max-height: 9.75rem;
-    width: min(84%, 11rem);
+  .cb-coll__img--handbag {
+    max-height: 8.75rem;
+    width: min(68%, 9.25rem);
   }
 
   .cb-coll__img--laptop {

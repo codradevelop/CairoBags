@@ -429,7 +429,9 @@ export function ProductForm({ productId, initialValues, categories = [], onSubmi
     descAr: isAr ? "الوصف (عربي)" : "Description (Arabic)",
     descEn: isAr ? "الوصف (إنجليزي)" : "Description (English)",
     images: isAr ? "صور المنتج" : "Product images",
-    imagesHint: isAr ? "انقر على النجمة لتعيين الصورة الرئيسية" : "Click the star to set the primary image",
+    imagesHint: isAr
+      ? "تُزال الخلفية تلقائياً ويُحفظ الحقيبة كصورة شفافة. انقر على النجمة لتعيين الصورة الرئيسية."
+      : "Background is removed automatically for a transparent cutout. Click the star to set the primary image.",
     addImage: isAr ? "إضافة صورة" : "Add image",
     removeImage: isAr ? "حذف الصورة" : "Remove image",
     setPrimary: isAr ? "الصورة الرئيسية" : "Primary",

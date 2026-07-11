@@ -484,6 +484,251 @@ public class AdminOrderService : IAdminOrderService
         }
     }
 
+    public async Task<ServiceResult<AdminOrderActionResponseDto>> UpdateCodOrderStatusAsync(
+        int orderId,
+        string targetStatus,
+        string adminUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var order = await _context.Orders
+                .Include(o => o.Items)
+                .Include(o => o.Payment!)
+                    .ThenInclude(p => p.PaymentMethod)
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.Id == orderId, cancellationToken);
+
+            if (order == null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "order_not_found",
+                    "Order not found.",
+                    StatusCodes.Status404NotFound);
+            }
+
+            if (order.Payment?.PaymentMethod?.Type != PaymentMethodType.CashOnDelivery)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "not_cod_order",
+                    "This order is not a Cash on Delivery order.",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            if (!Enum.TryParse<OrderStatus>(targetStatus, true, out var newStatus))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "invalid_status",
+                    $"Invalid order status: {targetStatus}",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            var oldStatus = order.Status;
+            if (oldStatus == newStatus)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "no_status_change",
+                    "Order is already in the target status.",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            var codAllowedTransitions = new Dictionary<OrderStatus, OrderStatus[]>
+            {
+                { OrderStatus.Pending, new[] { OrderStatus.Confirmed, OrderStatus.Cancelled } },
+                { OrderStatus.Confirmed, new[] { OrderStatus.Preparing, OrderStatus.Cancelled } },
+                { OrderStatus.Preparing, new[] { OrderStatus.HandedToShipping, OrderStatus.Cancelled } },
+                { OrderStatus.HandedToShipping, new[] { OrderStatus.AtLocalHub, OrderStatus.OutForDelivery, OrderStatus.Cancelled } },
+                { OrderStatus.AtLocalHub, new[] { OrderStatus.OutForDelivery, OrderStatus.Cancelled } },
+                { OrderStatus.OutForDelivery, new[] { OrderStatus.Delivered, OrderStatus.Cancelled } }
+            };
+
+            bool isAllowed = false;
+            if (codAllowedTransitions.TryGetValue(oldStatus, out var allowedTargets))
+            {
+                isAllowed = allowedTargets.Contains(newStatus);
+            }
+
+            if (!isAllowed)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                    "invalid_status_transition",
+                    $"Cannot transition COD order from {oldStatus} to {newStatus}.",
+                    StatusCodes.Status400BadRequest);
+            }
+
+            var now = DateTime.UtcNow;
+
+            // Handle inventory transitions
+            bool isNewStatusShippedOrLater = newStatus == OrderStatus.HandedToShipping ||
+                                             newStatus == OrderStatus.AtLocalHub ||
+                                             newStatus == OrderStatus.OutForDelivery ||
+                                             newStatus == OrderStatus.Delivered;
+
+            bool isOldStatusBeforeShipped = oldStatus == OrderStatus.Pending ||
+                                            oldStatus == OrderStatus.Confirmed ||
+                                            oldStatus == OrderStatus.Preparing;
+
+            if (isNewStatusShippedOrLater && isOldStatusBeforeShipped)
+            {
+                var saleResult = await ConvertReservationsToSaleAsync(order, adminUserId, cancellationToken);
+                if (saleResult != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                        saleResult.ErrorCode,
+                        saleResult.Message,
+                        saleResult.StatusCode);
+                }
+            }
+
+            if (newStatus == OrderStatus.Cancelled)
+            {
+                if (isOldStatusBeforeShipped)
+                {
+                    var releaseResult = await ReleaseReservationsAsync(
+                        order,
+                        adminUserId,
+                        $"Released reservation for cancelled COD order {order.OrderNumber}",
+                        cancellationToken);
+
+                    if (releaseResult.Error != null)
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+                        return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                            releaseResult.Error.ErrorCode,
+                            releaseResult.Error.Message,
+                            releaseResult.Error.StatusCode);
+                    }
+                }
+                else
+                {
+                    var variantIds = order.Items.Select(i => i.ProductVariantId).Distinct().ToList();
+                    var inventories = await _context.Inventories
+                        .Where(i => variantIds.Contains(i.ProductVariantId))
+                        .ToDictionaryAsync(i => i.ProductVariantId, cancellationToken);
+
+                    foreach (var item in order.Items)
+                    {
+                        if (!inventories.TryGetValue(item.ProductVariantId, out var inventory))
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                                "inventory_not_found",
+                                $"Inventory not found for variant {item.ProductVariantId}.");
+                        }
+
+                        inventory.QuantityOnHand += item.Quantity;
+                        inventory.UpdatedAt = now;
+                        inventory.UpdatedBy = adminUserId;
+
+                        inventory.Movements.Add(new InventoryMovement
+                        {
+                            Type = InventoryMovementType.Return,
+                            Quantity = item.Quantity,
+                            Notes = $"Inventory returned from cancelled COD order {order.OrderNumber}",
+                            ReferenceNumber = order.OrderNumber,
+                            CreatedAt = now,
+                            CreatedBy = adminUserId
+                        });
+                    }
+                }
+            }
+
+            order.Status = newStatus;
+            order.UpdatedAt = now;
+            order.UpdatedBy = adminUserId;
+            order.StatusHistory.Add(new OrderStatusHistory
+            {
+                OldStatus = oldStatus,
+                NewStatus = newStatus,
+                Notes = $"COD status updated to {newStatus} by admin.",
+                CreatedAt = now,
+                CreatedBy = adminUserId
+            });
+
+            if (newStatus == OrderStatus.Delivered && order.Payment != null)
+            {
+                order.Payment.Status = PaymentStatus.Confirmed;
+                order.Payment.UpdatedAt = now;
+                order.Payment.UpdatedBy = adminUserId;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            var notificationType = newStatus switch
+            {
+                OrderStatus.Confirmed => NotificationType.OrderConfirmed,
+                OrderStatus.Preparing => NotificationType.OrderProcessing,
+                OrderStatus.HandedToShipping => NotificationType.OrderShipped,
+                OrderStatus.AtLocalHub => NotificationType.OrderShipped,
+                OrderStatus.OutForDelivery => NotificationType.OrderShipped,
+                OrderStatus.Delivered => NotificationType.OrderDelivered,
+                OrderStatus.Cancelled => NotificationType.OrderCancelled,
+                _ => NotificationType.OrderProcessing
+            };
+
+            var notificationTitle = newStatus switch
+            {
+                OrderStatus.Confirmed => "Order Confirmed",
+                OrderStatus.Preparing => "Order Preparing",
+                OrderStatus.HandedToShipping => "Order Handed to Shipping",
+                OrderStatus.AtLocalHub => "Order at Local Hub",
+                OrderStatus.OutForDelivery => "Order Out for Delivery",
+                OrderStatus.Delivered => "Order Delivered",
+                OrderStatus.Cancelled => "Order Cancelled",
+                _ => "Order Updated"
+            };
+
+            var message = newStatus switch
+            {
+                OrderStatus.Confirmed => $"Your order {order.OrderNumber} has been confirmed.",
+                OrderStatus.Preparing => $"Your order {order.OrderNumber} is being prepared.",
+                OrderStatus.HandedToShipping => $"Your order {order.OrderNumber} has been handed to shipping.",
+                OrderStatus.AtLocalHub => $"Your order {order.OrderNumber} arrived at the local hub.",
+                OrderStatus.OutForDelivery => $"Your order {order.OrderNumber} is out for delivery.",
+                OrderStatus.Delivered => $"Your order {order.OrderNumber} has been delivered.",
+                OrderStatus.Cancelled => $"Your order {order.OrderNumber} has been cancelled.",
+                _ => $"Your order {order.OrderNumber} status has been updated to {newStatus}."
+            };
+
+            await _notificationService.TryCreateAndNotifyAsync(
+                order.UserId,
+                notificationTitle,
+                message,
+                notificationType,
+                NotificationTargetTypes.Order,
+                order.Id,
+                order.OrderNumber,
+                cancellationToken);
+
+            if (newStatus is OrderStatus.Delivered or OrderStatus.Completed)
+                await _statisticsRealtime.NotifyStatisticsUpdatedAsync(cancellationToken);
+
+            return ServiceResult<AdminOrderActionResponseDto>.Ok(MapActionResponse(order));
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return ServiceResult<AdminOrderActionResponseDto>.Fail(
+                "concurrency_conflict",
+                "Inventory was updated during status update. Please try again.",
+                StatusCodes.Status409Conflict);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     private async Task<ServiceResult<AdminOrderActionResponseDto>> TransitionOrderAsync(
         int orderId,
         string adminUserId,

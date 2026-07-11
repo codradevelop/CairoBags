@@ -19,7 +19,7 @@ import {
   parseShopFilters,
 } from "../../utils/shopFilters.js";
 import { isValidShopCategoryId } from "../../utils/collectionCategory.js";
-import { getProductName, getProductPriceRange } from "../../utils/productHelpers.js";
+import { getProductName, getProductPriceRange, getCategoryId, getCategoryName } from "../../utils/productHelpers.js";
 import { Button } from "../../components/ui/index.js";
 import { cn } from "../../utils/cn.js";
 
@@ -88,6 +88,17 @@ export function ShopPage() {
     return { ...urlFilters, categoryId: "" };
   }, [urlFilters, categories]);
 
+  const activeCategory = useMemo(() => {
+    if (!activeFilters.categoryId || categories.length === 0) return null;
+    return (
+      categories.find(
+        (category) => String(getCategoryId(category)) === String(activeFilters.categoryId)
+      ) ?? null
+    );
+  }, [activeFilters.categoryId, categories]);
+
+  const activeCategoryName = activeCategory ? getCategoryName(activeCategory, locale) : "";
+
   const loadProducts = useCallback(async (options = {}) => {
     const background = options?.background === true;
     if (!background) {
@@ -141,6 +152,7 @@ export function ShopPage() {
       <ShopHero
         categories={categories}
         activeCategoryId={activeFilters.categoryId}
+        activeCategoryName={activeCategoryName}
         onCategorySelect={handleCategoryPillSelect}
       />
 
@@ -173,6 +185,7 @@ export function ShopPage() {
               onSortChange={setSortValue}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
+              activeCategoryName={activeCategoryName}
             />
 
             {loading ? <ProductGridSkeleton count={8} className="cb-shop-product-grid" /> : null}
