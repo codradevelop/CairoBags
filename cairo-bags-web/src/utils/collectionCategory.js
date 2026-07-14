@@ -6,10 +6,10 @@ import { getCategoryId, getCategoryName, getCategorySlug } from "./productHelper
  */
 const COLLECTION_MATCH_TERMS = {
   backpack: ["backpack", "backpacks", "back-pack", "حقائب الظهر", "حقيبة ظهر"],
-  handbag: ["hand bag", "hand bags", "handbag", "handbags", "حقائب يد", "حقيبة يد"],
-  laptop: ["laptop", "laptop-bag", "laptop bag", "laptop bags", "حقائب اللابتوب", "لابتوب"],
+  handbag: ["hand bag", "hand bags", "handbag", "handbags", "hand-bags", "حقائب يد", "حقيبة يد"],
+  laptop: ["laptop", "laptop-bag", "laptop-bags", "laptop bag", "laptop bags", "حقائب اللابتوب", "لابتوب"],
   crossbody: ["crossbody", "cross-body", "cross body", "حقائب كروس", "كروس"],
-  travel: ["travel set", "travel-set", "travel sets", "complete sets", "أطقم السفر", "مجموعات سفر"],
+  travel: ["travel set", "travel-set", "travel-sets", "travel sets", "complete sets", "أطقم السفر", "مجموعات سفر"],
 };
 
 function normalize(value) {

@@ -36,7 +36,8 @@ const SORT_OPTIONS = {
 };
 
 export function ShopToolbar({
-  productCount = 0,
+  displayedCount = 0,
+  totalCount = 0,
   loading = false,
   sortValue = "featured",
   onSortChange,
@@ -47,19 +48,20 @@ export function ShopToolbar({
 }) {
   const { locale } = useLocale();
   const options = locale === "ar" ? SORT_OPTIONS.ar : SORT_OPTIONS.en;
+  const shown = loading ? "—" : String(displayedCount);
+  const total = loading ? "—" : String(totalCount);
 
   return (
     <div className={cn("cb-shop-toolbar", className)}>
       <div>
         <p className="cb-shop-product-count">
-          <span className="font-medium text-[var(--shop-text)]">{loading ? "—" : productCount}</span>{" "}
           {locale === "ar"
-            ? productCount === 1
-              ? "منتج"
-              : "منتجات"
-            : productCount === 1
-              ? "product"
-              : "products"}
+            ? loading
+              ? "جاري التحميل…"
+              : `عرض ${shown} من ${total} منتج`
+            : loading
+              ? "Loading…"
+              : `Showing ${shown} of ${total} products`}
         </p>
         {activeCategoryName ? (
           <p className="mt-1 text-sm text-[var(--shop-text-muted)]">

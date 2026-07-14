@@ -11,6 +11,7 @@ import { ProductGridSkeleton, EmptyState } from "../../components/store/index.js
 import { ShopHero } from "../../components/store/shop/ShopHero.jsx";
 import { ShopFiltersSidebar } from "../../components/store/shop/ShopFiltersSidebar.jsx";
 import { ShopToolbar } from "../../components/store/shop/ShopToolbar.jsx";
+import { ShopPagination } from "../../components/store/shop/ShopPagination.jsx";
 import { ShopFeatureBar } from "../../components/store/shop/ShopFeatureBar.jsx";
 import { ShopProductCard } from "../../components/store/shop/ShopProductCard.jsx";
 import {
@@ -22,6 +23,8 @@ import { isValidShopCategoryId } from "../../utils/collectionCategory.js";
 import { getProductName, getProductPriceRange, getCategoryId, getCategoryName } from "../../utils/productHelpers.js";
 import { Button } from "../../components/ui/index.js";
 import { cn } from "../../utils/cn.js";
+
+const SHOP_PAGE_SIZE = 12;
 
 function sortProducts(products, sortKey, locale) {
   const items = [...products];
@@ -52,6 +55,7 @@ export function ShopPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sortValue, setSortValue] = useState("featured");
   const [viewMode, setViewMode] = useState("grid");
+  const [page, setPage] = useState(1);
   const { colors: filterColors } = useShopFilterOptions();
 
   usePageTitle(locale === "ar" ? "تسوق" : "Shop");
@@ -129,9 +133,36 @@ export function ShopPage() {
     return sortProducts(products, sortValue, locale);
   }, [products, sortValue, locale]);
 
+  const totalCount = sortedAndFiltered.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / SHOP_PAGE_SIZE) || 1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    activeFilters.categoryId,
+    activeFilters.minPrice,
+    activeFilters.maxPrice,
+    activeFilters.inStock,
+    activeFilters.searchTerm,
+    activeFilters.color,
+    sortValue,
+  ]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * SHOP_PAGE_SIZE;
+    return sortedAndFiltered.slice(start, start + SHOP_PAGE_SIZE);
+  }, [sortedAndFiltered, page]);
+
+  const displayedCount = pageItems.length;
+
   function applyFilters() {
     setSearchParams(filtersToSearchParams(draftFilters));
     setFiltersOpen(false);
+    setPage(1);
   }
 
   function resetFilters() {
@@ -139,12 +170,20 @@ export function ShopPage() {
     setDraftFilters(empty);
     setSearchParams({});
     setFiltersOpen(false);
+    setPage(1);
   }
 
   function handleCategoryPillSelect(categoryId) {
     const next = { ...urlFilters, categoryId };
     setDraftFilters(next);
     setSearchParams(filtersToSearchParams(next));
+    setPage(1);
+  }
+
+  function handlePageChange(nextPage) {
+    const safe = Math.min(Math.max(1, nextPage), totalPages);
+    setPage(safe);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -179,7 +218,8 @@ export function ShopPage() {
 
           <div className="cb-shop-content">
             <ShopToolbar
-              productCount={sortedAndFiltered.length}
+              displayedCount={displayedCount}
+              totalCount={totalCount}
               loading={loading}
               sortValue={sortValue}
               onSortChange={setSortValue}
@@ -218,21 +258,29 @@ export function ShopPage() {
               />
             ) : null}
 
-            {!loading && !error && sortedAndFiltered.length > 0 ? (
-              <div
-                className={viewMode === "grid" ? "cb-shop-product-grid" : "cb-shop-product-list"}
-                data-count={viewMode === "grid" && sortedAndFiltered.length <= 3 ? String(sortedAndFiltered.length) : undefined}
-                key={`${viewMode}-${sortedAndFiltered.length}`}
-              >
-                {sortedAndFiltered.map((product, index) => (
-                  <ShopProductCard
-                    key={product.id ?? product.Id}
-                    product={product}
-                    listView={viewMode === "list"}
-                    listIndex={index}
-                  />
-                ))}
-              </div>
+            {!loading && !error && pageItems.length > 0 ? (
+              <>
+                <div
+                  className={viewMode === "grid" ? "cb-shop-product-grid" : "cb-shop-product-list"}
+                  data-count={viewMode === "grid" && pageItems.length <= 3 ? String(pageItems.length) : undefined}
+                  key={`${viewMode}-${page}-${pageItems.length}`}
+                >
+                  {pageItems.map((product, index) => (
+                    <ShopProductCard
+                      key={product.id ?? product.Id}
+                      product={product}
+                      listView={viewMode === "list"}
+                      listIndex={index}
+                    />
+                  ))}
+                </div>
+
+                <ShopPagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </>
             ) : null}
           </div>
         </div>

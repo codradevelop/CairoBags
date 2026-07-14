@@ -1,5 +1,5 @@
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
-import { formatPrice, getProductPriceRange } from "../../utils/productHelpers.js";
+import { formatPrice, getProductComparePrice, getProductPriceRange } from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
 
 export function ProductPrice({
@@ -12,7 +12,8 @@ export function ProductPrice({
   const { locale } = useLocale();
   const range = product ? getProductPriceRange(product) : null;
   const displayPrice = price ?? range?.low;
-  const displayCompare = comparePrice ?? (product ? product.compareAtPrice ?? product.CompareAtPrice : null);
+  const displayCompare =
+    comparePrice ?? (product ? getProductComparePrice(product) : null);
 
   const sizes = {
     sm: "text-sm",

@@ -22,10 +22,14 @@ import {
   getProductName,
   getProductVariants,
   getVariantId,
+  getVariantColorName,
+  getProductDiscountPercent,
+  getProductComparePrice,
   isProductInStock,
   isProductNewArrival,
   isVariantInStock,
 } from "../../../utils/productHelpers.js";
+import { getColorFromName, isLightSwatch } from "../../../utils/colorSwatchUtils.js";
 import { cn } from "../../../utils/cn.js";
 import { ProductPresentation, isAboveFoldPriority } from "../ProductPresentation.jsx";
 
@@ -61,6 +65,20 @@ function getAllProductImageUrls(product) {
 
 function getPurchasableVariants(product) {
   return getProductVariants(product).filter((variant) => isVariantInStock(variant));
+}
+
+function getProductColorSwatches(product, locale) {
+  const variants = getProductVariants(product);
+  const seen = new Map();
+  for (const variant of variants) {
+    const label = getVariantColorName(variant, locale)?.trim();
+    if (!label) continue;
+    const key = label.toLowerCase();
+    if (seen.has(key)) continue;
+    const hex = getColorFromName(label);
+    seen.set(key, { key, label, hex, light: isLightSwatch(hex) });
+  }
+  return [...seen.values()];
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -233,14 +251,50 @@ export const ShopProductCard = memo(function ShopProductCard({
   const href = buildProductPath(product, locale);
   const inStock = isProductInStock(product);
   const isNew = isProductNewArrival(product);
+  const [detailProduct, setDetailProduct] = useState(product);
+  const [colorSwatches, setColorSwatches] = useState(() => getProductColorSwatches(product, locale));
+  const discountPercent = getProductDiscountPercent(detailProduct);
+  const comparePrice = getProductComparePrice(detailProduct);
 
-  /* lazy-load full image list on first hover */
+  /* Load full product details for colors, compare prices, and gallery images */
+  useEffect(() => {
+    setDetailProduct(product);
+    setColorSwatches(getProductColorSwatches(product, locale));
+    setImageUrls(getAllProductImageUrls(product));
+    setCurrentImg(0);
+
+    let cancelled = false;
+    loadProductDetails(productId)
+      .then((details) => {
+        if (cancelled) return;
+        setDetailProduct(details);
+        setColorSwatches(getProductColorSwatches(details, locale));
+        const allUrls = getAllProductImageUrls(details);
+        if (allUrls.length) {
+          setImageUrls(allUrls);
+          fetchedRef.current = true;
+          if (allUrls.length > 1) {
+            const preload = new Image();
+            preload.src = allUrls[1];
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [product, productId, locale]);
+
   const handleCardEnter = useCallback(() => {
     setCardHovered(true);
     if (fetchedRef.current) return;
     fetchedRef.current = true;
     loadProductDetails(productId)
       .then((details) => {
+        setDetailProduct(details);
+        const nextColors = getProductColorSwatches(details, locale);
+        if (nextColors.length) setColorSwatches(nextColors);
         const allUrls = getAllProductImageUrls(details);
         if (allUrls.length > 1) {
           setImageUrls(allUrls);
@@ -249,14 +303,15 @@ export const ShopProductCard = memo(function ShopProductCard({
         }
       })
       .catch(() => {});
-  }, [productId]);
+  }, [productId, locale]);
 
   const handleCardLeave = useCallback(() => setCardHovered(false), []);
 
-  /* auto-advance */
+  /* Auto-advance while NOT hovered; pause on hover for manual arrow control */
   useEffect(() => {
-    if (!cardHovered || imgCount <= 1) {
+    if (cardHovered || imgCount <= 1) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
       return;
     }
     timerRef.current = setInterval(() => setCurrentImg((c) => (c + 1) % imgCount), 2400);
@@ -332,7 +387,7 @@ export const ShopProductCard = memo(function ShopProductCard({
               aria-label="Previous image"
               className={cn(
                 "cb-shop-card-nav cb-shop-card-nav-prev",
-                cardHovered ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1"
+                cardHovered ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-1 pointer-events-none"
               )}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -345,7 +400,7 @@ export const ShopProductCard = memo(function ShopProductCard({
               aria-label="Next image"
               className={cn(
                 "cb-shop-card-nav cb-shop-card-nav-next",
-                cardHovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-1"
+                cardHovered ? "opacity-100 translate-x-0" : "opacity-0 translate-x-1 pointer-events-none"
               )}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -391,10 +446,45 @@ export const ShopProductCard = memo(function ShopProductCard({
           <Link to={href} className="cb-shop-card-info">
             <h3 className="cb-shop-card-title">{name}</h3>
             <div className="cb-shop-card-price-row">
-              <ProductPrice product={product} size="sm" className="cb-shop-card-price" />
+              <ProductPrice
+                product={detailProduct}
+                comparePrice={comparePrice}
+                size="sm"
+                className="cb-shop-card-price"
+              />
+              {discountPercent ? (
+                <span className="cb-shop-card-discount">
+                  {locale === "ar" ? `وفّر ${discountPercent}%` : `Save ${discountPercent}%`}
+                </span>
+              ) : null}
             </div>
             <ShopCardRating product={product} href={href} />
           </Link>
+          {colorSwatches.length > 0 ? (
+            <ul
+              className="cb-shop-card-colors"
+              aria-label={locale === "ar" ? "الألوان المتاحة" : "Available colors"}
+            >
+              {colorSwatches.slice(0, 5).map((swatch) => (
+                <li key={swatch.key} className="cb-shop-card-color">
+                  <span
+                    className={cn(
+                      "cb-shop-card-color-dot",
+                      swatch.light && "cb-shop-card-color-dot-light"
+                    )}
+                    style={{ backgroundColor: swatch.hex }}
+                    aria-hidden="true"
+                  />
+                  <span className="cb-shop-card-color-name">{swatch.label}</span>
+                </li>
+              ))}
+              {colorSwatches.length > 5 ? (
+                <li className="cb-shop-card-color-more">
+                  {locale === "ar" ? "المزيد" : "More"}
+                </li>
+              ) : null}
+            </ul>
+          ) : null}
         </div>
       </article>
 

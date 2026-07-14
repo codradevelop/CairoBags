@@ -139,7 +139,7 @@ export function getProductImageFullUrl(image) {
   return path ? resolveMediaUrl(path) : null;
 }
 
-/** Derive main_{size}.jpg from a product image path (mirrors backend ProductImageUrlHelper). */
+/** Derive main_{size}.png/.webp from a product image path (mirrors backend ProductImageUrlHelper). */
 export function deriveProductImageSizeUrl(imageUrl, size) {
   if (!imageUrl || typeof imageUrl !== "string") return imageUrl;
   const trimmed = imageUrl.trim();
@@ -156,18 +156,17 @@ export function deriveProductImageSizeUrl(imageUrl, size) {
   return `${base}${suffix}${ext}`;
 }
 
-/** main_600.jpg — shop / featured / new-arrival cards only */
+/** main_600 — shop / featured / new-arrival cards only (never main.png / main_300) */
 export function getProductImageCardUrl(image) {
-  const thumbnailPath = image?.thumbnailUrl ?? image?.ThumbnailUrl ?? null;
-  if (thumbnailPath) return resolveMediaUrl(thumbnailPath);
-
   const fullPath = image?.imageUrl ?? image?.ImageUrl ?? null;
-  if (!fullPath) return null;
+  const thumbnailPath = image?.thumbnailUrl ?? image?.ThumbnailUrl ?? null;
+  const candidate = fullPath || thumbnailPath;
+  if (!candidate) return null;
 
-  return resolveMediaUrl(deriveProductImageSizeUrl(fullPath, 600));
+  return resolveMediaUrl(deriveProductImageSizeUrl(candidate, 600));
 }
 
-/** main_300.jpg — cart, wishlist, compact previews */
+/** main_300 — cart, wishlist, compact previews */
 export function getProductImageThumbUrl(image) {
   const fullPath = image?.imageUrl ?? image?.ImageUrl ?? null;
   if (!fullPath) return null;
@@ -180,7 +179,7 @@ export function getProductImageAssetUrl(image) {
   return getProductImageCardUrl(image);
 }
 
-/** Card listing image — always prefers main_600, never main.jpg */
+/** Card listing image — always main_600 derivative */
 export function getProductCardImageUrl(product) {
   const images = getProductImages(product);
   const image = images.find((item) => item.isPrimary ?? item.IsPrimary) ?? images[0];
@@ -189,17 +188,37 @@ export function getProductCardImageUrl(product) {
   const primary = getPrimaryImagePath(product);
   if (!primary) return null;
 
-  const trimmed = primary.trim();
-  if (/_600\./i.test(trimmed)) return resolveMediaUrl(trimmed);
-  if (/_300\./i.test(trimmed)) {
-    const base = trimmed.replace(/_300(\.[^./]+)$/i, "$1");
-    return resolveMediaUrl(deriveProductImageSizeUrl(base, 600));
-  }
-  if (!/_\d+\./i.test(trimmed)) {
-    return resolveMediaUrl(deriveProductImageSizeUrl(trimmed, 600));
+  return resolveMediaUrl(deriveProductImageSizeUrl(primary.trim(), 600));
+}
+
+/** Discount % from compare-at / discountPercentage / variant compare prices. Null when none. */
+export function getProductDiscountPercent(product) {
+  const explicit = product?.discountPercentage ?? product?.DiscountPercentage;
+  if (explicit != null && Number(explicit) > 0) {
+    return Math.round(Number(explicit));
   }
 
-  return resolveMediaUrl(trimmed);
+  const { low } = getProductPriceRange(product);
+  const compare = getProductComparePrice(product);
+  if (low != null && compare != null) {
+    const price = Number(low);
+    const was = Number(compare);
+    if (was > price && price > 0) {
+      return Math.round(((was - price) / was) * 100);
+    }
+  }
+
+  // Fall back to best variant-level discount when product-level compare is missing/invalid
+  const variants = getProductVariants(product);
+  let best = null;
+  for (const variant of variants) {
+    const price = Number(getVariantPrice(variant));
+    const was = Number(getVariantComparePrice(variant));
+    if (!(was > price) || !(price > 0)) continue;
+    const pct = Math.round(((was - price) / was) * 100);
+    if (pct > 0 && (best == null || pct > best)) best = pct;
+  }
+  return best;
 }
 
 export function getProductImageUrl(product) {
@@ -225,7 +244,21 @@ export function isProductNewArrival(product) {
 }
 
 export function getProductComparePrice(product) {
-  return product?.compareAtPrice ?? product?.CompareAtPrice ?? null;
+  const productLevel = product?.compareAtPrice ?? product?.CompareAtPrice ?? null;
+  if (productLevel != null && Number(productLevel) > 0) {
+    return Number(productLevel);
+  }
+
+  const variants = getProductVariants(product);
+  let best = null;
+  for (const variant of variants) {
+    const compare = getVariantComparePrice(variant);
+    if (compare == null) continue;
+    const value = Number(compare);
+    if (!(value > 0)) continue;
+    if (best == null || value > best) best = value;
+  }
+  return best;
 }
 
 export function getVariantId(variant) {

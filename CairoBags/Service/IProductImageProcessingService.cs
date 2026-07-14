@@ -1,13 +1,14 @@
 namespace CairoBags.Service;
 
 /// <summary>
-/// Normalizes newly uploaded product images to a consistent square canvas.
+/// Normalizes newly uploaded product images into transparent cutouts for the luxury storefront presentation.
 /// </summary>
 public interface IProductImageProcessingService
 {
     /// <summary>
-    /// Trims empty margins, centers the product on a square canvas, generates thumbnails,
-    /// and overwrites/replaces the uploaded file in place.
+    /// Removes near-white studio backgrounds (color key + edge feather), trims transparent margins,
+    /// centers the product on a transparent 1200×1200 canvas (~88% fill), and writes PNG/WebP
+    /// derivatives (original, _600, _300). JPEG inputs are replaced — JPEG cannot keep alpha.
     /// Returns a failed result when processing is skipped; the original file is left untouched on failure.
     /// </summary>
     Task<ProductImageProcessingResult> TryNormalizeAsync(

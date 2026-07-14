@@ -259,6 +259,21 @@ builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
+// Idempotent default category seeding (insert missing only — never overwrite/delete).
+try
+{
+    using var seedScope = app.Services.CreateScope();
+    var seedContext = seedScope.ServiceProvider.GetRequiredService<CairoBagsContext>();
+    var seedEnv = seedScope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+    var seedConfig = seedScope.ServiceProvider.GetRequiredService<IConfiguration>();
+    var seedLogger = seedScope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("CategorySeeder");
+    await CategorySeeder.SeedAsync(seedContext, seedEnv, seedConfig, seedLogger);
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Category seeding failed on startup.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();

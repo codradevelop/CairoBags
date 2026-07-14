@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import * as categoryService from "../../services/categoryService.js";
-import { resolveCollectionShopHref } from "../../utils/collectionCategory.js";
-import backpackImg from "../../assets/hero/collections/backpack.png";
-import handbagImg from "../../assets/hero/collections/handbag.png";
-import laptopBagImg from "../../assets/hero/collections/laptop-bag.png";
-import crossbodyImg from "../../assets/hero/collections/crossbody.png";
-import travelSetImg from "../../assets/hero/collections/travel-set.png";
+import { buildShopCategoryHref } from "../../utils/collectionCategory.js";
+import {
+  getCategoryDescription,
+  getCategoryId,
+  getCategoryImageUrl,
+  getCategoryName,
+  getCategorySlug,
+} from "../../utils/productHelpers.js";
 
 const EASE = [0.22, 0.61, 0.36, 1];
 const TILT_SPRING = { stiffness: 180, damping: 24, mass: 0.6 };
@@ -38,17 +40,36 @@ const CATEGORY_ICONS = {
   crossbody: (
     <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
       <rect x="14" y="20" width="20" height="16" rx="3" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M24 20V10M18 12l6-4 6 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M24 12v8M18 28h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M10 18c4 4 8 6 14 6s10-2 14-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
   travel: (
     <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-      <rect x="8" y="22" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="26" y="18" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M22 30h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="12" y="16" width="24" height="22" rx="3" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M18 16v-3a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3M12 26h24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   ),
 };
+
+function iconKeyFromSlug(slug) {
+  const key = String(slug ?? "").toLowerCase();
+  if (key.includes("backpack")) return "backpack";
+  if (key.includes("hand")) return "handbag";
+  if (key.includes("laptop")) return "laptop";
+  if (key.includes("cross")) return "crossbody";
+  if (key.includes("travel")) return "travel";
+  return "backpack";
+}
+
+function sortCategories(categories) {
+  return [...categories].sort((a, b) => {
+    const orderA = Number(a?.sortOrder ?? a?.SortOrder ?? 0);
+    const orderB = Number(b?.sortOrder ?? b?.SortOrder ?? 0);
+    if (orderA !== orderB) return orderA - orderB;
+    return Number(getCategoryId(a) ?? 0) - Number(getCategoryId(b) ?? 0);
+  });
+}
 
 function CollectionCard({ cat, index, featured = false, isAr }) {
   const cardRef = useRef(null);
@@ -115,7 +136,7 @@ function CollectionCard({ cat, index, featured = false, isAr }) {
         <span className="cb-coll__card-ambient" aria-hidden="true" />
         <span className="cb-coll__card-spotlight" aria-hidden="true" />
         <div className="cb-coll__card-head">
-          <span className="cb-coll__icon">{CATEGORY_ICONS[cat.iconKey]}</span>
+          <span className="cb-coll__icon">{CATEGORY_ICONS[cat.iconKey] ?? CATEGORY_ICONS.backpack}</span>
           <span className="cb-coll__num" aria-hidden="true">
             {String(index + 1).padStart(2, "0")}
           </span>
@@ -141,13 +162,15 @@ function CollectionCard({ cat, index, featured = false, isAr }) {
                 }}
               >
                 <span className="cb-coll__product-aura" aria-hidden="true" />
-                <img
-                  src={cat.image}
-                  alt=""
-                  className={`cb-coll__img cb-coll__img--${cat.iconKey}${featured ? " cb-coll__img--featured" : ""}`}
-                  loading="lazy"
-                  draggable={false}
-                />
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt=""
+                    className={`cb-coll__img cb-coll__img--${cat.iconKey}${featured ? " cb-coll__img--featured" : ""}`}
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : null}
               </motion.div>
             </div>
 
@@ -212,72 +235,60 @@ export function CollectionCards() {
   const { locale } = useLocale();
   const isAr = locale === "ar";
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     categoryService
       .getCategories()
-      .then((data) => setCategories(Array.isArray(data) ? data : []))
-      .catch(() => setCategories([]));
+      .then((data) => {
+        if (!cancelled) setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setCategories([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const collections = useMemo(() => {
-    const defs = [
-      {
-        iconKey: "backpack",
-        matchKey: "backpack",
-        titleEn: "Backpacks",
-        titleAr: "حقائب الظهر",
-        image: backpackImg,
-        title: isAr ? "حقائب الظهر" : "Backpacks",
-        desc: isAr ? "راحة يومية" : "Daily comfort",
-        featured: true,
-      },
-      {
-        iconKey: "handbag",
-        matchKey: "handbag",
-        titleEn: "Hand Bags",
-        titleAr: "حقائب يد",
-        image: handbagImg,
-        title: isAr ? "حقائب يد" : "Hand Bags",
-        desc: isAr ? "مقبض واحد للحمل اليومي" : "Single-handle daily carry",
-      },
-      {
-        iconKey: "laptop",
-        matchKey: "laptop",
-        titleEn: "Laptop Bags",
-        titleAr: "حقائب اللابتوب",
-        image: laptopBagImg,
-        title: isAr ? "حقائب اللابتوب" : "Laptop Bags",
-        desc: isAr ? "أناقة عملية" : "Smart elegance",
-      },
-      {
-        iconKey: "crossbody",
-        matchKey: "crossbody",
-        titleEn: "Crossbody",
-        titleAr: "حقائب كروس",
-        image: crossbodyImg,
-        title: isAr ? "حقائب كروس" : "Crossbody",
-        desc: isAr ? "خفيفة وأنيقة" : "Light & chic",
-      },
-      {
-        iconKey: "travel",
-        matchKey: "travel",
-        titleEn: "Travel Sets",
-        titleAr: "أطقم السفر",
-        image: travelSetImg,
-        title: isAr ? "أطقم السفر" : "Travel Sets",
-        desc: isAr ? "مجموعات كاملة" : "Complete sets",
-      },
-    ];
+    return sortCategories(categories).map((category) => {
+      const slug = getCategorySlug(category, "en") || getCategorySlug(category, locale);
+      const iconKey = iconKeyFromSlug(slug);
+      const desc = getCategoryDescription(category, locale);
+      return {
+        id: getCategoryId(category),
+        iconKey,
+        title: getCategoryName(category, locale),
+        desc: desc || (isAr ? "مجموعة مختارة" : "Curated collection"),
+        image: getCategoryImageUrl(category),
+        href: buildShopCategoryHref(category),
+      };
+    });
+  }, [categories, isAr, locale]);
 
-    return defs.map((def) => ({
-      ...def,
-      href: resolveCollectionShopHref(categories, def.matchKey, {
-        titleEn: def.titleEn,
-        titleAr: def.titleAr,
-      }),
-    }));
-  }, [categories, isAr]);
+  if (loading || collections.length === 0) {
+    return (
+      <section className="cb-coll" id="categories">
+        <div className="cb-land-container">
+          <header className="cb-coll__head">
+            <span className="cb-coll__label">{isAr ? "المجموعات" : "Collections"}</span>
+            <h2 className="cb-coll__title">{isAr ? "اختر عالمك" : "Choose Your World"}</h2>
+          </header>
+          {!loading && collections.length === 0 ? (
+            <p className="cb-coll__desc" style={{ textAlign: "center", marginTop: "1.5rem" }}>
+              {isAr ? "ستتوفر التصنيفات قريباً" : "Categories will appear here soon"}
+            </p>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
 
   const [featured, ...rest] = collections;
 
@@ -299,7 +310,7 @@ export function CollectionCards() {
           <CollectionCard cat={featured} index={0} featured isAr={isAr} />
           <div className="cb-coll__aside">
             {rest.map((cat, i) => (
-              <CollectionCard key={cat.iconKey} cat={cat} index={i + 1} isAr={isAr} />
+              <CollectionCard key={cat.id ?? cat.iconKey ?? i} cat={cat} index={i + 1} isAr={isAr} />
             ))}
           </div>
         </div>

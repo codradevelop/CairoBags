@@ -1108,6 +1108,10 @@
 
 .cb-shop-card-price-row {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .cb-shop-card-price {
@@ -1115,6 +1119,66 @@
   font-weight: 700 !important;
   letter-spacing: -0.02em;
   color: var(--shop-text) !important;
+}
+
+.cb-shop-card-discount {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(196, 163, 90, 0.18);
+  color: #a88b3d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.cb-shop-card-colors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-shop-card-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cb-shop-card-color-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.cb-shop-card-color-dot-light {
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.cb-shop-card-color-name {
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--shop-muted);
+  white-space: nowrap;
+}
+
+.cb-shop-card-color-more {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--shop-gold, #c4a35a);
+  line-height: 1.2;
 }
 
 .cb-shop-card-rating {
@@ -1254,4 +1318,81 @@
   .cb-shop-card:hover {
     transform: none;
   }
+}
+
+/* ─── Pagination ─── */
+.cb-shop-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 28px;
+  padding-bottom: 8px;
+}
+
+.cb-shop-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cb-shop-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--shop-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--shop-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.cb-shop-pagination-btn:hover:not(:disabled) {
+  border-color: var(--shop-gold);
+  color: var(--shop-gold-dark, #a88b3d);
+}
+
+.cb-shop-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cb-shop-pagination-btn-active {
+  border-color: var(--shop-text);
+  background: var(--shop-text);
+  color: #fff;
+}
+
+.cb-shop-pagination-btn-active:hover:not(:disabled) {
+  border-color: var(--shop-text);
+  background: var(--shop-text);
+  color: #fff;
+}
+
+.cb-shop-pagination-arrow {
+  font-size: 14px;
+}
+
+.cb-shop-pagination-ellipsis {
+  min-width: 24px;
+  text-align: center;
+  color: var(--shop-muted);
+  font-size: 13px;
+  user-select: none;
+}
+
+/* Shop cards only: remove gold orbit ring / decorative rings (keep soft shadow) */
+.cb-shop-card .cb-pres__orbit-ring,
+.cb-shop-card .cb-pres__ripple,
+.cb-shop-card .cb-pres__aura {
+  display: none !important;
 }

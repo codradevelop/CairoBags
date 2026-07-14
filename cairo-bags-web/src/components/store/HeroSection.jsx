@@ -3,16 +3,18 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocale } from "../layout/LanguageSwitcher.jsx";
 import * as categoryService from "../../services/categoryService.js";
-import { resolveCollectionShopHref } from "../../utils/collectionCategory.js";
+import { buildShopCategoryHref } from "../../utils/collectionCategory.js";
+import {
+  getCategoryDescription,
+  getCategoryId,
+  getCategoryImageUrl,
+  getCategoryName,
+  getCategorySlug,
+} from "../../utils/productHelpers.js";
 import { cn } from "../../utils/cn.js";
 
 import heroBg from "../../assets/hero/hero-bg.png";
 import heroProducts from "../../assets/hero/hero-products-cutout.png";
-import backpackImg from "../../assets/hero/backpack.png";
-import handbagImg from "../../assets/hero/handbag.png";
-import laptopBagImg from "../../assets/hero/laptop-bag.png";
-import crossbodyImg from "../../assets/hero/crossbody.png";
-import travelSetImg from "../../assets/hero/travel-set.png";
 
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -156,6 +158,24 @@ function CategoryTravelSetIcon() {
   );
 }
 
+function heroIconFromSlug(slug) {
+  const key = String(slug ?? "").toLowerCase();
+  if (key.includes("hand")) return CategoryHandbagIcon;
+  if (key.includes("laptop")) return CategoryLaptopIcon;
+  if (key.includes("cross")) return CategoryCrossbodyIcon;
+  if (key.includes("travel")) return CategoryTravelSetIcon;
+  return CategoryBackpackIcon;
+}
+
+function sortHeroCategories(categories) {
+  return [...categories].sort((a, b) => {
+    const orderA = Number(a?.sortOrder ?? a?.SortOrder ?? 0);
+    const orderB = Number(b?.sortOrder ?? b?.SortOrder ?? 0);
+    if (orderA !== orderB) return orderA - orderB;
+    return Number(getCategoryId(a) ?? 0) - Number(getCategoryId(b) ?? 0);
+  });
+}
+
 function HeroShowcase({ locale }) {
   return (
     <motion.div
@@ -199,81 +219,23 @@ function HeroCategoryStrip({ locale }) {
   }, []);
 
   const categories = useMemo(
-    () => [
-      {
-        key: "backpacks",
-        matchKey: "backpack",
-        titleEn: "Backpacks",
-        titleAr: "حقائب الظهر",
-        title: locale === "ar" ? "حقائب الظهر" : "Backpacks",
-        desc:
-          locale === "ar"
-            ? "تنظيم ذكي وراحة يومية للسفر والعمل."
-            : "Smart organization and everyday comfort for work and travel.",
-        image: backpackImg,
-        Icon: CategoryBackpackIcon,
-      },
-      {
-        key: "handbag",
-        matchKey: "handbag",
-        titleEn: "Hand Bags",
-        titleAr: "حقائب يد",
-        title: locale === "ar" ? "حقائب يد" : "Hand Bags",
-        desc:
-          locale === "ar"
-            ? "حقيبة صغيرة بمقبض واحد للحمل اليومي."
-            : "Compact carry with a single top handle.",
-        image: handbagImg,
-        Icon: CategoryHandbagIcon,
-      },
-      {
-        key: "laptop",
-        matchKey: "laptop",
-        titleEn: "Laptop Bags",
-        titleAr: "حقائب اللابتوب",
-        title: locale === "ar" ? "حقائب اللابتوب" : "Laptop Bags",
-        desc:
-          locale === "ar"
-            ? "حماية أنيقة لأجهزتك المهنية."
-            : "Elegant protection for your professional gear.",
-        image: laptopBagImg,
-        Icon: CategoryLaptopIcon,
-      },
-      {
-        key: "crossbody",
-        matchKey: "crossbody",
-        titleEn: "Crossbody Bags",
-        titleAr: "حقائب كروس",
-        title: locale === "ar" ? "حقائب كروس" : "Crossbody Bags",
-        desc:
-          locale === "ar"
-            ? "أناقة عملية للتنقل اليومي."
-            : "Hands-free style for effortless daily movement.",
-        image: crossbodyImg,
-        Icon: CategoryCrossbodyIcon,
-      },
-      {
-        key: "travel-sets",
-        matchKey: "travel",
-        titleEn: "Travel Sets",
-        titleAr: "أطقم السفر",
-        title: locale === "ar" ? "أطقم السفر" : "Travel Sets",
-        desc:
-          locale === "ar"
-            ? "تنسيق متكامل لرحلاتك القادمة."
-            : "Coordinated sets for your next adventure.",
-        image: travelSetImg,
-        Icon: CategoryTravelSetIcon,
-      },
-    ].map((cat) => ({
-      ...cat,
-      href: resolveCollectionShopHref(storeCategories, cat.matchKey, {
-        titleEn: cat.titleEn,
-        titleAr: cat.titleAr,
+    () =>
+      sortHeroCategories(storeCategories).map((category) => {
+        const slug = getCategorySlug(category, "en") || getCategorySlug(category, locale);
+        const desc = getCategoryDescription(category, locale);
+        return {
+          key: String(getCategoryId(category) ?? slug),
+          title: getCategoryName(category, locale),
+          desc: desc || (locale === "ar" ? "مجموعة مختارة" : "Curated collection"),
+          image: getCategoryImageUrl(category),
+          href: buildShopCategoryHref(category),
+          Icon: heroIconFromSlug(slug),
+        };
       }),
-    })),
     [locale, storeCategories]
   );
+
+  if (categories.length === 0) return null;
 
   return (
     <div className="cb-hero__categories">
@@ -298,7 +260,9 @@ function HeroCategoryStrip({ locale }) {
                 </span>
               </div>
               <div className="cb-hero__category-img-wrap" aria-hidden="true">
-                <img src={cat.image} alt="" className="cb-hero__category-img" loading="lazy" decoding="async" />
+                {cat.image ? (
+                  <img src={cat.image} alt="" className="cb-hero__category-img" loading="lazy" decoding="async" />
+                ) : null}
               </div>
             </Link>
           </motion.div>

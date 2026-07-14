@@ -131,6 +131,12 @@
   min-height: 100%;
 }
 
+/* Product details: remove gold ring around the bag (keep soft pedestal/shadow) */
+.cb-product-detail-gallery .cb-pres__orbit-ring,
+.cb-product-detail-gallery .cb-pres__ripple {
+  display: none !important;
+}
+
 /* ─────────────────────────────────────────────────────────
    PDP — clean Zara-style panel (pdp-* classes)
 ───────────────────────────────────────────────────────── */

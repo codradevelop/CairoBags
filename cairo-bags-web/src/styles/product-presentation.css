@@ -78,6 +78,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  isolation: isolate;
 }
 
 .cb-pres__images {
@@ -92,12 +93,12 @@
   pointer-events: none;
 }
 
-/* Thin rotating gold ring — on top of product (hollow stroke, no white bleed) */
+/* Thin rotating gold ring — behind the product cutout */
 .cb-pres__orbit-ring {
   position: absolute;
   left: 50%;
-  top: 50%;
-  z-index: 5;
+  top: 52%;
+  z-index: 2;
   width: var(--cb-pres-orbit-size);
   height: var(--cb-pres-orbit-size);
   transform: translate3d(-50%, -50%, 0) rotateX(68deg) translateZ(0);
@@ -232,7 +233,7 @@
     transparent 78%
   );
   filter: blur(48px);
-  opacity: 0.22;
+  opacity: 0.32;
   clip-path: inset(0 -30% -45% -30%);
   animation: cb-pres-glow-pulse 4s ease-in-out infinite;
   animation-delay: var(--platform-delay, 0s);
@@ -277,8 +278,7 @@
   visibility: visible;
   user-select: none;
   pointer-events: none;
-  filter: contrast(1.04) saturate(1.03);
-  mix-blend-mode: multiply;
+  filter: contrast(1.02) saturate(1.02);
   transform: translateZ(4px);
   will-change: transform;
   transition: filter 0.35s var(--cb-pres-ease), opacity 0.35s ease;
@@ -311,28 +311,28 @@
   --cb-pres-lift: 5px;
   --cb-pres-plat-h: 2rem;
   --cb-pres-plat-w: min(74%, 100%);
-  --cb-pres-orbit-size: min(72%, 11rem);
-  --cb-pres-img-w: min(96%, 100%);
-  --cb-pres-img-h: min(90%, 100%);
+  --cb-pres-orbit-size: min(78%, 12rem);
+  --cb-pres-img-w: min(98%, 100%);
+  --cb-pres-img-h: min(92%, 100%);
 }
 
 .cb-pres--compact {
   --cb-pres-lift: 4px;
   --cb-pres-plat-h: 1.65rem;
   --cb-pres-plat-w: min(72%, 100%);
-  --cb-pres-orbit-size: min(68%, 9.5rem);
-  --cb-pres-img-w: min(94%, 100%);
-  --cb-pres-img-h: min(88%, 100%);
+  --cb-pres-orbit-size: min(74%, 10.5rem);
+  --cb-pres-img-w: min(96%, 100%);
+  --cb-pres-img-h: min(90%, 100%);
 }
 
 .cb-pres--thumb {
   --cb-pres-lift: 3px;
   --cb-pres-plat-h: 1rem;
   --cb-pres-plat-w: min(70%, 100%);
-  --cb-pres-orbit-size: min(62%, 6rem);
+  --cb-pres-orbit-size: min(68%, 6.5rem);
   --cb-pres-orbit-duration: 18s;
-  --cb-pres-img-w: min(92%, 100%);
-  --cb-pres-img-h: min(86%, 100%);
+  --cb-pres-img-w: min(94%, 100%);
+  --cb-pres-img-h: min(88%, 100%);
 }
 
 .cb-pres--gallery {
@@ -340,19 +340,19 @@
   --cb-pres-plat-gap: 3px;
   --cb-pres-plat-h: 3rem;
   --cb-pres-plat-w: min(68%, 16rem);
-  --cb-pres-orbit-size: min(70%, 20rem);
+  --cb-pres-orbit-size: min(74%, 21rem);
   --cb-pres-orbit-duration: 16s;
   --cb-pres-img-w: min(98%, 100%);
-  --cb-pres-img-h: min(92%, 100%);
+  --cb-pres-img-h: min(94%, 100%);
 }
 
 /* ── Per-container sizing (each card fits its own box) ── */
 
 @container shop-card (min-width: 1px) {
   .cb-pres--card {
-    --cb-pres-orbit-size: min(76%, 88cqw);
-    --cb-pres-img-w: min(98%, 94cqw);
-    --cb-pres-img-h: min(86%, 72cqh);
+    --cb-pres-orbit-size: min(72%, 82cqw);
+    --cb-pres-img-w: min(98%, 96cqw);
+    --cb-pres-img-h: min(90%, 78cqh);
     --cb-pres-plat-w: min(78%, 72cqw);
     --cb-pres-plat-h: clamp(1.1rem, 14cqh, 2.2rem);
   }
@@ -360,25 +360,25 @@
 
 @container product-card (min-width: 1px) {
   .cb-pres--card {
-    --cb-pres-orbit-size: min(74%, 90cqw);
-    --cb-pres-img-w: min(98%, 92cqw);
-    --cb-pres-img-h: min(90%, 84cqh);
+    --cb-pres-orbit-size: min(70%, 84cqw);
+    --cb-pres-img-w: min(98%, 94cqw);
+    --cb-pres-img-h: min(92%, 88cqh);
     --cb-pres-plat-h: clamp(1.2rem, 15cqh, 2.4rem);
   }
 
   .cb-pres--compact {
-    --cb-pres-orbit-size: min(70%, 85cqw);
-    --cb-pres-img-w: min(96%, 90cqw);
-    --cb-pres-img-h: min(88%, 80cqh);
+    --cb-pres-orbit-size: min(68%, 80cqw);
+    --cb-pres-img-w: min(96%, 92cqw);
+    --cb-pres-img-h: min(90%, 84cqh);
     --cb-pres-plat-h: clamp(1rem, 13cqh, 2rem);
   }
 }
 
 @container product-gallery (min-width: 1px) {
   .cb-pres--gallery {
-    --cb-pres-orbit-size: min(72%, 88cqw);
-    --cb-pres-img-w: min(98%, 94cqw);
-    --cb-pres-img-h: min(94%, 88cqh);
+    --cb-pres-orbit-size: min(68%, 80cqw);
+    --cb-pres-img-w: min(98%, 96cqw);
+    --cb-pres-img-h: min(94%, 90cqh);
     --cb-pres-plat-w: min(70%, 68cqw);
     --cb-pres-plat-h: clamp(2rem, 16cqh, 3.5rem);
   }
@@ -413,13 +413,13 @@
   .group:hover .cb-pres .cb-pres__img,
   .cb-pres--interactive:hover .cb-pres__img,
   .cb-wishlist-card:hover .cb-pres .cb-pres__img {
-    filter: contrast(1.06) saturate(1.05) brightness(1.02);
+    filter: contrast(1.04) saturate(1.04) brightness(1.02);
   }
 
   .group:hover .cb-pres .cb-pres__glow,
   .cb-pres--interactive:hover .cb-pres__glow,
   .cb-wishlist-card:hover .cb-pres .cb-pres__glow {
-    opacity: 0.27;
+    opacity: 0.4;
     filter: blur(48px) brightness(1.2);
   }
 
@@ -533,10 +533,10 @@
 @keyframes cb-pres-glow-pulse {
   0%,
   100% {
-    opacity: 0.18;
+    opacity: 0.28;
   }
   50% {
-    opacity: 0.22;
+    opacity: 0.36;
   }
 }
 
